@@ -22,7 +22,7 @@ Now you’re ready for daily dev.
 ### 1) Edit locally with Cursor + Claude Code
 *(Claude stays on your laptop; nothing new to configure.)*
 
-```
+```bash
 ~/career-jobs-app/         ← normal folder
 │   src/…
 │   scripts/…

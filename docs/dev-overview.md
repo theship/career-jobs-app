@@ -150,7 +150,7 @@ make dev                      # opens Web Terminal (22222-...)
 ### Day-to-day workflow
 
 #### 1) Edit locally with Cursor + Claude Code
-```
+```bash
 ~/career-jobs-app/
 │   src/…
 │   scripts/…
