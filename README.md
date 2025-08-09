@@ -9,8 +9,9 @@ For full details see **[`./docs/dev-overview.md`](./docs/dev-overview.md)**. Thi
 ```bash
 git clone git@github.com:theship/career-jobs-app.git
 cd career-jobs-app
-cp .env.example .env        # add DAYTONA_API_KEY and GH_PAT
+cp .env.example .env    # add DAYTONA_API_KEY and GH_PAT
 # optional (only if you haven't yet): daytona login --api-key "$DAYTONA_API_KEY"
+make setup              # installs daytona, jq, gh, shellcheck, node/pnpm (macOS: via Brewfile)
 ```
 
 Now you’re ready for daily dev.
@@ -22,7 +23,7 @@ Now you’re ready for daily dev.
 ### 1) Edit locally with Cursor + Claude Code
 *(Claude stays on your laptop; nothing new to configure.)*
 
-```bash
+```text
 ~/career-jobs-app/         ← normal folder
 │   src/…
 │   scripts/…
@@ -58,14 +59,15 @@ Because we inject `GH_PAT` into the sandbox, `git pull` works without prompts.
 | Edit a single file & save (no commit yet)                         | `gh pr diff --cached` *(optional look)* | You can see the diff without committing.                          |
 | Merge a PR on GitHub                                              | `git pull`                              | Sandbox updates to the new main branch.                           |
 
-> **Tip:** add a tiny alias in the sandbox:
+#### Tip
+Add a tiny alias in the sandbox:
 >
 > ```bash
 > echo 'alias gp="git pull --ff-only"' >> ~/.bashrc && source ~/.bashrc
 > ```
 > Then just type `gp` after every local push.
 
-### 4) Stop & clean‑up
+### 4) Stop & clean up
 
 - Do nothing: sandbox **auto‑stops after 45 min idle**, then **auto‑archives 60 min later**.
 - Or stop immediately when you’re done:

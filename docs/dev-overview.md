@@ -150,7 +150,7 @@ make dev                      # opens Web Terminal (22222-...)
 ### Day-to-day workflow
 
 #### 1) Edit locally with Cursor + Claude Code
-```bash
+```text
 ~/career-jobs-app/
 │   src/…
 │   scripts/…
@@ -168,6 +168,7 @@ pnpm run dev     # or pnpm test, node scripts/…, etc.
 Because `GH_PAT` is injected, `git pull` won’t prompt.
 
 #### 3) Push / pull loop
+
 | You do in **Cursor**                                              | Then do in **Web Terminal**             | Result                                                            |
 | ----------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------- |
 | `git add .` <br>`git commit -m "feat: login page"` <br>`git push` | `git pull`                              | Sandbox gets latest; dev server/test reruns.                      |
@@ -226,7 +227,7 @@ Because `GH_PAT` is injected, `git pull` won’t prompt.
 - **Short sessions:** use `make stop`. Rely on `autoStopMinutes: 45` and `autoArchiveMinutes: 60` for safety.
 - **Prebuild dev image** so cold-starts don’t spend time installing deps (see CI snippet below).
 
-**Optional CI to prebuild image (cuts sandbox minutes)**
+### Optional CI to prebuild image (cuts sandbox minutes)
 ```yaml
 # .github/workflows/build-dev-image.yml
 name: build-dev-image
@@ -251,10 +252,13 @@ jobs:
 ```
 Then in `.daytona.yml`: `image: ghcr.io/theship/career-jobs-app:dev`.
 
-**Prune command (Makefile)**
+### Prune command (Makefile)
+
 ```make
+# markdownlint-disable MD010
 prune:
 	@daytona sandbox list --format json | 	jq -r '.[] | select((.state|ascii_downcase)=="archived") | .id' | 	xargs -r daytona sandbox delete
+  # markdownlint-enable MD010
 ```
 
 ---
