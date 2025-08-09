@@ -5,8 +5,8 @@
 .env.test.local
 .env.production.local
 .envrc
-# Allow sample .env files (order matters, these after .env)
 # but DO commit the root template
+# (Allow the sample .env file (order matters, this after .env)
 !/.env.example
 
 # Python
