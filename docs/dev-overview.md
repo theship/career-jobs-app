@@ -1,13 +1,13 @@
-# GitHub ⇄ Daytona ⇄ Claude Code (Cursor) ⇄ CodeRabbit workflow
+# GitHub ⇄ Cursor + Daytona + Claude Code ⇄ CodeRabbit workflow
 
-> **Scope:** This is the canonical guide for developing inside a safe “bubble” using a **Daytona AI Sandbox** for execution, **Cursor/Claude Code** for editing, and **CodeRabbit** for PR reviews. It includes real-world caveats we hit (no SSH on sandboxes, CLI changes, env handling) and explicit cost controls.
+> **Scope:** This is the canonical guide for developing inside a safe "bubble" using **Cursor IDE** for code exploration and **Claude Code running directly in Daytona AI Sandboxes** for development work, with **CodeRabbit** for PR reviews. This hybrid approach provides the best of both worlds: Cursor's excellent IDE features locally and secure code execution in the cloud.
 
 ---
 
 ## 1) Purpose
 
 - Keep untrusted/npm code execution **isolated** from laptops.
-- Keep dev ergonomics high: edit with **Cursor + Claude Code** locally, **run/test/preview in a Daytona sandbox**.
+- Keep dev ergonomics high: **Cursor IDE** for code exploration and **Claude Code in Daytona** for development work.
 - Keep reviews and CI **in GitHub**, with **CodeRabbit** enforcing PR quality.
 - Make the environment **share-by-git** so `make dev` brings anyone to the same bubble.
 
@@ -16,9 +16,10 @@
 ## 2) Project decisions & caveats
 
 ### Daytona (AI Sandboxes, CLI ≥ v0.25)
-- **No SSH endpoint** for sandboxes today. Human shell is the **Web Terminal** at `https://22222-<id>.proxy.daytona.work`. (Nightly CLI has `sandbox exec` for a pseudo-TTY; treat as optional/experimental.)
+- **No SSH endpoint** for sandboxes, but **Web Terminal** at `https://22222-<id>.proxy.daytona.work` provides full shell access for Claude Code.
+- **Claude Code installation**: Persists in sandbox until archived, install once per sandbox lifecycle.
 - `daytona sandbox create` prints **human text**, not JSON → use `daytona sandbox list --format json` to query IDs/state.
-- When launching with `--context .` **do not pass** `--cpu/--memory/--disk` (snapshot-style error). We default to **class small (1 vCPU / 1 GiB)** which is plenty for Node+Vite.
+- When launching with `--context .` **do not pass** `--cpu/--memory/--disk` (snapshot-style error). We default to **class small (1 vCPU / 1 GiB)** which is plenty for Node+Vite+Claude Code.
 - Old verbs like `daytona env` and `git-providers` are **gone**. We load `.env` locally and pass vars on create via our script.
 - Manual `archive` verb is not exposed in the stable CLI. We rely on **`autoArchiveMinutes`** to move stopped boxes to cold storage.
 
@@ -26,12 +27,19 @@
 - Daytona needs **one fine-grained PAT** (repo-scoped) with **Contents: RW** and **Workflows: RW**. Store as `GH_PAT` in `.env`.
 - **CodeRabbit** is a **GitHub App** → **no PAT** needed for it.
 
-### Cursor/Claude
-- Workflow is **Local-edit / Remote-run**: source on laptop; execution/tests/preview in sandbox. Sync via `git push` (local) → `git pull` (sandbox).
+### Cursor IDE + Claude Code
+- **Cursor IDE (local)**: Code exploration, file browsing, git operations, and Claude Code for Cursor integration
+  - Claude Code in Cursor provides AI assistance with full codebase context
+  - Excellent IntelliSense, debugging tools, and IDE features
+  - Git integration for commits, branches, and PR management
+- **Claude Code (in Daytona)**: Actual development work, code execution, testing, and file modifications
+  - Full shell environment with persistent state
+  - Direct file system access for reliable code changes
+  - Isolated execution environment for security
 
 ### Cost discipline (high level)
 - **One sandbox per project**; reuse stopped boxes by label.
-- **Short sessions:** `make stop` when done; fallback **auto-stop 45 m** → **auto-archive 60 m**.
+- **Short sessions:** `make stop` when done; fallback **auto-stop 45 min** → **auto-archive 60 min**.
 - **Run tests in CI** by default; only debug in the sandbox.
 - **Prebuild dev image** to avoid spending sandbox time on `pnpm i`.
 
@@ -91,11 +99,19 @@ networkPolicy:
     - allow: https://github.com
 ```
 
-### G. Spin up the first sandbox
+### G. Spin up the first sandbox and install Claude Code
 ```bash
 make dev
 # A browser tab opens to: https://22222-<sandbox-id>.proxy.daytona.work
-# In that terminal (first time each session):
+# In that Web Terminal, set up Claude Code (first time per sandbox):
+curl -fsSL https://claude.ai/install.sh | sh
+export ANTHROPIC_API_KEY=your_anthropic_api_key_here
+echo 'export ANTHROPIC_API_KEY=your_anthropic_api_key_here' >> ~/.bashrc
+
+# Now you can run Claude Code:
+claude
+
+# In Claude Code session (or regular terminal):
 git pull
 pnpm run dev   # or pnpm test, node scripts/..., etc.
 ```
@@ -141,31 +157,64 @@ jobs:
 
 ### First run (per machine)
 ```bash
+# Local setup
 git clone git@github.com:theship/career-jobs-app.git
 cd career-jobs-app
-cp .env.example .env          # add DAYTONA_API_KEY & GH_PAT
+cp .env.example .env          # add DAYTONA_API_KEY, GH_PAT, ANTHROPIC_API_KEY
+
+# How environment variables flow:
+# 1. You store keys locally in ~/career-jobs-app/.env:
+#    DAYTONA_API_KEY=dkp_your_key_here
+#    GH_PAT=ghp_your_token_here  
+#    ANTHROPIC_API_KEY=sk-ant-your_key_here
+# 2. When you run make dev locally:
+#    - scripts/dev.sh loads your .env file
+#    - Passes keys to Daytona API when creating sandbox:
+#      daytona sandbox create \
+#        -e GH_PAT="$GH_PAT" \
+#        -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY"
+# 3. Daytona injects them into the sandbox environment
+# 4. .daytona.yml references them and makes them available to Claude Code
+
+# Start Daytona sandbox
 make dev                      # opens Web Terminal (22222-...)
+
+# In the Web Terminal, install Claude Code (first time per sandbox)
+# Use secure installation method
+curl -fsSL https://claude.ai/install.sh -o /tmp/claude-install.sh
+# Optionally verify checksum here, then:
+sh /tmp/claude-install.sh
+
+# API key is automatically available via sandbox environment
+# No need to export manually - it's injected via .daytona.yml
 ```
 
 ### Day-to-day workflow
 
-#### 1) Edit locally with Cursor + Claude Code
+#### 1) Code exploration with Cursor IDE (local)
 ```text
-~/career-jobs-app/
+~/career-jobs-app/         ← Open this in Cursor IDE
 │   src/…
 │   scripts/…
 │   .daytona.yml
 └─  .env
 ```
-Claude edits locally; inline unit tests can run locally.
+- Use Claude Code in Cursor for AI assistance with full codebase context
+- Browse files, understand code structure, review changes
+- Use Cursor's excellent IntelliSense and debugging tools
+- Manage git operations (branches, commits, PRs) through Cursor's UI
 
-#### 2) Run / preview remotely in the sandbox
-In the **Web Terminal**:
+#### 2) Development work in Daytona Web Terminal
+In the **Web Terminal** at `https://22222-<id>.proxy.daytona.work`:
 ```bash
-git pull         # fetch the code Claude just edited locally
-pnpm run dev     # or pnpm test, node scripts/…, etc.
+# Start Claude Code for development work
+claude
+
+# In Claude Code session:
+git pull         # sync latest changes
+pnpm run dev     # run development server
+# Claude Code can now edit files, run tests, etc.
 ```
-Because `GH_PAT` is injected, `git pull` won’t prompt.
 
 #### 3) Push / pull loop
 
@@ -175,11 +224,15 @@ Because `GH_PAT` is injected, `git pull` won’t prompt.
 | Edit a file locally (no commit)                                   | `gh pr diff --cached` *(optional)*      | Inspect diff without committing.                                  |
 | Merge a PR on GitHub                                              | `git pull`                              | Sandbox updates to new `main`.                                    |
 
-> **Tip:** set an alias in the sandbox:
-> ```bash
-> echo 'alias gp="git pull --ff-only"' >> ~/.bashrc && source ~/.bashrc
-> ```
-> Then just run `gp` after each push.
+#### 4) Hybrid workflow benefits
+
+| **Environment**         | **Best Used For**                                              | **Tools Available**                                    |
+| ----------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| **Cursor IDE (local)**  | Code exploration, git management, AI assistance              | Claude Code integration, IntelliSense, git UI        |
+| **Daytona (remote)**    | Code execution, file modifications, testing, development     | Claude Code CLI, full shell, isolated execution      |
+
+
+> **Key insight:** You get the best of both worlds - Cursor's excellent IDE features locally and secure, isolated development in the cloud.
 
 #### 4) Stop & clean-up
 - **Stop immediately when you’re done:**
@@ -279,10 +332,18 @@ prune:
 - No `archive` subcommand yet → rely on `autoArchiveMinutes` or `delete`.
 - State strings are lowercase; labels may be an object or `["key=value"]`. Our reuse logic handles both.
 
-## Appendix B — Cursor UX tips
+## Appendix B — Cursor + Claude Code tips
 
-- Install Dev-Containers extension if you like, but **do not click “Reopen in Container”** (that starts a local Docker container and confuses which terminal Claude uses).
-- If you really want a terminal inside Cursor, you can try the nightly CLI’s `sandbox exec` and point the integrated terminal there (optional). Default path remains Web Terminal.
+- **Claude Code in Cursor**: Excellent for code exploration, understanding existing code, and planning changes with full codebase context.
+  - `Cmd/Ctrl + L`: Ask Claude about selected code
+  - `Cmd/Ctrl + I`: Inline edit with Claude
+  - `Cmd/Ctrl + K`: Generate code with Claude
+  - `Cmd/Ctrl + Shift + P` → "Add to CLAUDE.md": Save important context for future sessions
+  - `Cmd/Ctrl + Shift + P` → "Claude: Understand codebase": Get high-level code structure analysis
+- **Claude Code in Daytona**: Use for actual development work, file modifications, testing, and execution.
+- Install Dev-Containers extension if you like, but **do not click "Reopen in Container"** (that starts a local Docker container and confuses the workflow).
+- **Git workflow**: Use Cursor's git UI for branch management and commits, then sync to Daytona with `git pull`.
+- **Persistent Claude Code setup**: Once installed in a Daytona sandbox, Claude Code persists until the sandbox is archived (~60 minutes after stopping).
 
 ## Appendix C — Security & secrets
 

@@ -9,6 +9,12 @@
 # (Allow the sample .env file (order matters, this after .env)
 !/.env.example
 
+# Claude Code files
+.claude/
+claude-session-*
+.anthropic/
+.cursor/
+
 # Python
 __pycache__/
 *.py[cod]
