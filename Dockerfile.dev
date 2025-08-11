@@ -1,0 +1,17 @@
+# Dev image for Daytona sandbox (Node + pnpm)
+FROM node:20-bookworm
+
+# Enable corepack and pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Workdir mirrors sandbox path
+WORKDIR /workspace
+
+# Pre-install deps if lockfile exists (saves sandbox minutes)
+COPY package.json pnpm-lock.yaml* ./
+RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else echo "No lockfile, skipping pnpm install"; fi
+
+# Copy (most) sources to improve dev UX; .env is ignored by git
+COPY . .
+
+EXPOSE 3000

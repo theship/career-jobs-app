@@ -1,0 +1,19 @@
+# Daytona reads this automatically if it's at repo root
+image: ghcr.io/theship/career-jobs-app:dev   # built once by CI & cached
+limits:
+  cpu: 1
+  memory: 2Gi
+autoStopMinutes: 45
+autoArchiveMinutes: 60
+env:
+  - GH_PAT=${GH_PAT}             # pulled from your shell when you run dev.sh
+  - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}   # pulled from your shell when you run dev.sh
+  - NODE_ENV=development
+networkPolicy:
+  egress:
+    - allow: https://registry.npmjs.org
+    - allow: https://github.com
+    - allow: https://claude.ai               # Claude Code installation
+    - allow: https://api.anthropic.com       # Claude Code API calls
+    - allow: https://raw.githubusercontent.com   # Claude Code installer
+    - allow: https://objects.githubusercontent.com   # GitHub release assets (redirect target)
