@@ -67,6 +67,8 @@ flowchart TD
 - **OpenAI API**: Text embeddings and structured outputs
 - **pdfminer.six**: PDF text extraction
 - **spaCy**: Natural language processing and entity recognition
+- **Weights & Biases**: Experiment tracking, hyperparameter optimization, dataset lineage
+- **Weave**: LLM observability, evaluation, and quality monitoring
 
 ### Frontend
 - **Next.js** (recommended): React framework with SSR support
@@ -419,12 +421,25 @@ career-jobs-app/
 │   ├── raw/              # Raw ATS data
 │   ├── processed/        # Normalized job data
 │   ├── embeddings/       # Cached embedding vectors
+│   ├── research/         # Cached company research data
 │   └── exports/          # Generated CSV exports
+├── experiments/          # 🔨 TO BE CREATED - W&B experiment configs
+│   ├── scoring_sweeps.yaml
+│   ├── evaluation_datasets/
+│   └── sweep_configs/
+├── evals/                # 🔨 TO BE CREATED - Weave evaluations
+│   ├── __init__.py
+│   ├── research_eval.py  # Company research evaluation
+│   ├── pitch_eval.py     # Pitch generation evaluation
+│   ├── datasets/         # Evaluation datasets
+│   └── scorers/          # Custom scoring functions
 ├── scripts/              # 🔨 TO BE CREATED - Utility scripts
 │   ├── __init__.py
 │   ├── seed_data.py      # Development data seeding
 │   ├── migrate_data.py   # Data migration utilities
 │   ├── generate_embeddings.py # Batch embedding generation
+│   ├── run_experiments.py # W&B experiment runner
+│   ├── run_evaluations.py # Weave evaluation runner
 │   └── backup_data.py    # Data backup utilities
 ├── tests/                # 🔨 TO BE CREATED - Comprehensive testing
 │   ├── __init__.py
@@ -464,6 +479,11 @@ career-jobs-app/
 - Dedicated utilities and caching layer
 - Business logic isolated in domain engines
 
+**5. Experiment Tracking & LLM Observability**
+- W&B for scoring algorithm optimization and dataset lineage
+- Weave for LLM call tracing, evaluation, and quality monitoring
+- Automated regression detection and performance optimization
+
 #### AIEWF Component Details
 
 ##### Development Environment Files
@@ -481,7 +501,20 @@ career-jobs-app/
 - **`seed_data.py`**: Development data seeding for testing
 - **`migrate_data.py`**: Data migration utilities
 - **`generate_embeddings.py`**: Batch embedding generation for performance
+- **`run_experiments.py`**: W&B experiment orchestration and sweep management
+- **`run_evaluations.py`**: Weave evaluation runner for LLM quality checks
 - **`backup_data.py`**: Data backup and recovery utilities
+
+##### Experiment Tracking (`/experiments` - W&B)
+- **`scoring_sweeps.yaml`**: Bayesian optimization config for scoring weights
+- **`evaluation_datasets/`**: Curated datasets for model performance testing
+- **`sweep_configs/`**: Various sweep configurations for different optimization goals
+
+##### LLM Evaluation (`/evals` - Weave)
+- **`research_eval.py`**: Company research quality evaluation with custom scorers
+- **`pitch_eval.py`**: Pitch generation quality and personalization evaluation  
+- **`datasets/`**: Ground truth datasets for LLM evaluation
+- **`scorers/`**: Custom scoring functions for hallucination, accuracy, and relevance
 
 ##### Makefile Targets
 ```bash
@@ -490,6 +523,8 @@ make dev      # Start/resume Daytona sandbox with dev.sh
 make stop     # Stop all running sandboxes
 make prune    # Delete archived sandboxes to free disk space
 make lint-sh  # Shellcheck validation for shell scripts
+make sweep    # Run W&B scoring weight optimization sweep
+make eval     # Run Weave LLM evaluation suite
 ```
 
 ##### Hybrid Development Workflow

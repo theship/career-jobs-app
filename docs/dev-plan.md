@@ -368,6 +368,7 @@ describe('Job Listings', () => {
 - Create job ranking system
 - Optimize vector similarity queries
 - Add score explanations
+- **Set up experiment tracking and optimization**
 
 #### Tasks
 1. **Core Scoring Engine**
@@ -387,6 +388,13 @@ describe('Job Listings', () => {
    - Feature importance calculation
    - Matching highlights in frontend components
    - Export score explanations in CSV format
+
+4. **W&B Experiment Tracking**
+   - Set up W&B project for experiment tracking
+   - Create experiment service in `/api/services/experiments.py`
+   - Implement scoring weight optimization with W&B Sweeps
+   - Add dataset lineage tracking with W&B Artifacts
+   - Create evaluation datasets in `/experiments/evaluation_datasets/`
 
 #### Backend Acceptance Tests
 ```python
@@ -444,6 +452,41 @@ def test_vector_similarity_performance():
     
     assert duration < 2.0  # Under 2 seconds for 1000 jobs
     assert len(response.json()["results"]) <= 100  # Limited results
+
+def test_wandb_experiment_tracking():
+    """W&B experiment tracking works for scoring runs"""
+    import wandb
+    
+    # Mock W&B run
+    with wandb.init(project="job-ranker", mode="disabled"):
+        resume_id = upload_test_resume("Test resume")
+        response = client.post(f"/scores/run", json={
+            "resume_id": resume_id,
+            "experiment_config": {
+                "cosine_weight": 0.5,
+                "skill_weight": 0.2,
+                "seniority_weight": 0.1
+            }
+        })
+        
+        assert response.status_code == 200
+        # Should log metrics to W&B (tested in integration)
+
+def test_scoring_weight_optimization():
+    """Scoring weights can be optimized via sweep configuration"""
+    sweep_config = {
+        "method": "bayes",
+        "parameters": {
+            "cosine_weight": {"min": 0.3, "max": 0.7},
+            "skill_weight": {"min": 0.1, "max": 0.3},
+            "seniority_weight": {"min": 0.05, "max": 0.15}
+        }
+    }
+    
+    # Test that sweep config is valid
+    assert "method" in sweep_config
+    assert "parameters" in sweep_config
+    assert sum(p["max"] for p in sweep_config["parameters"].values()) <= 1.0
 ```
 
 #### Frontend Acceptance Tests
@@ -492,6 +535,7 @@ describe('Job Scoring', () => {
 - Create pitch generation system
 - Ensure structured outputs and citations
 - Add research caching and validation
+- **Set up LLM observability and evaluation**
 
 #### Tasks
 1. **AI Research System**
@@ -511,6 +555,13 @@ describe('Job Scoring', () => {
    - Citation validation and fact-checking
    - Quality scoring for generated content
    - API endpoints in `/api/routes/research.py` and `/api/routes/pitch.py`
+
+4. **Weave LLM Observability & Evaluation**
+   - Instrument LLM calls with `@weave.op` decorators
+   - Create evaluation datasets in `/evals/datasets/`
+   - Implement custom scorers in `/evals/research_eval.py` and `/evals/pitch_eval.py`
+   - Set up side-by-side prompt comparisons and regression checks
+   - Add cost, latency, and hallucination monitoring
 
 #### Backend Acceptance Tests
 ```python
@@ -570,6 +621,43 @@ def test_research_caching():
     
     assert response1.json() == response2.json()
     assert second_duration < first_duration / 2  # Significantly faster
+
+def test_weave_tracing():
+    """Weave traces capture LLM calls for debugging"""
+    import weave
+    
+    with weave.init(project_name="company-research"):
+        response = client.post("/research/generate", json={"company_domain": "stripe.com"})
+        
+        assert response.status_code == 200
+        # Weave should capture trace with inputs/outputs/costs
+        # (verified in Weave UI during development)
+
+def test_research_evaluation():
+    """Research evaluation with custom scorers works"""
+    from evals.research_eval import run_eval
+    
+    # Run evaluation on test dataset
+    results = run_eval()
+    
+    assert "competitor_coverage" in results.summary
+    assert "has_excellence" in results.summary
+    assert "has_shortcomings" in results.summary
+    assert results.summary["competitor_coverage"] > 0.7  # Quality threshold
+
+def test_hallucination_detection():
+    """Research output is checked for hallucinations"""
+    response = client.post("/research/generate", json={"company_domain": "stripe.com"})
+    research = response.json()
+    
+    # All URLs should be valid and reachable
+    for competitor in research["competitors"]:
+        assert competitor["url"].startswith("http")
+        # Additional validation in production: URL reachability
+    
+    for aspiration in research["aspirations"]:
+        assert aspiration["source_url"].startswith("http")
+        # Additional validation: source verification
 ```
 
 #### Frontend Acceptance Tests

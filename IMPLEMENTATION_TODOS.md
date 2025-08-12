@@ -109,11 +109,13 @@
 - Core scoring algorithms in `/scoring_engine/`
 - Vector similarity with pgvector
 - Multi-factor ranking system
+- **W&B experiment tracking and scoring weight optimization**
 
 ### Phase 5: AI Research & Pitch Generation (Weeks 10-11)
 - Company research with structured OpenAI outputs
 - Personalized pitch generation
 - Prompt template system
+- **Weave LLM observability, evaluation, and quality monitoring**
 
 ### Phase 6: Export & Integration (Weeks 12-13)
 - CSV export functionality
@@ -179,6 +181,10 @@ SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-... (already injected)
+
+# Phase 4+: W&B and Weave (add to .daytona.yml when needed)
+WANDB_API_KEY=...        # For experiment tracking
+WEAVE_PROJECT=career-jobs-app  # For LLM evaluation
 
 # Frontend (.env.local)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
