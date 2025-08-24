@@ -11,7 +11,16 @@ For full details see **[`./docs/dev-overview.md`](./docs/dev-overview.md)**. Thi
 git clone git@github.com:theship/career-jobs-app.git
 cd career-jobs-app
 cp .env.example .env    # add DAYTONA_API_KEY and GH_PAT
-# optional (only if you haven't yet): daytona login --api-key "$DAYTONA_API_KEY"
+
+# Set up Python environment
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Load environment variables and login to Daytona
+source .env
+daytona login --api-key $DAYTONA_API_KEY
+
 make setup              # installs daytona, jq, gh, shellcheck, node/pnpm (macOS: via Brewfile)
 ```
 
