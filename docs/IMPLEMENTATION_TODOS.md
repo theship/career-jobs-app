@@ -79,6 +79,12 @@
    ├── package.json
    └── next.config.ts
    ```
+   **IMPORTANT**: Follow the design system in `docs/FRONTEND_DESIGN_BRIEF.md`:
+   - Dark mode first with pure black backgrounds
+   - Mellow red accent color (#EF4444) for CTAs
+   - Subtle gradients and glow effects
+   - Card-based layouts with generous spacing
+   - See `docs/preferred-UI-styling/` for reference screenshots
 
 10. **Create Supabase client in `/dashboard/src/lib/supabase.ts`**
     - Initialize Supabase client with project URL and anon key
