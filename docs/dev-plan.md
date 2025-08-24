@@ -172,14 +172,46 @@ describe('Authentication Flow', () => {
 2. **File Processing Pipeline**
    - Supabase Storage integration in `/api/services/storage.py`
    - PDF text extraction using pdfminer.six
-   - Skill extraction with spaCy in `/api/services/skill_extractor.py`
+   - Multi-stage skill extraction in `/api/services/skill_extractor.py`:
+     * Stage 1: Dictionary/fuzzy matching with rapidfuzz (fast, cheap)
+     * Stage 2: Retrieve candidates via embeddings (if coverage < 70%)
+     * Stage 3: OpenAI function calling with closed-world constraint
+     * Stage 4: Validate and merge with Pydantic schemas
    - SHA256 hashing for deduplication and versioning
 
 3. **Embedding Generation System**
-   - OpenAI API integration in `/api/services/embeddings.py`
+   - OpenAI API integration in `/api/services/embeddings.py` (for resume text)
+   - Skill extraction features:
+     * Evidence spans (character offsets) for UI highlighting
+     * Confidence scores (0-1) for each extracted skill
+     * Years of experience extraction when mentioned
+     * Strict gating to skills vocabulary (no hallucinated skills)
    - Batch processing script in `/scripts/generate_embeddings.py`
    - Caching system in `/data/embeddings/` directory
    - Error handling and retry logic with exponential backoff
+
+4. **Skill Extraction Configuration**
+   - Schema definition in `/config/schemas/skills.json`:
+     * skill_id (required, must exist in vocabulary)
+     * evidence_span [start, end] character offsets
+     * confidence (0-1 float)
+     * extraction_method (dictionary|fuzzy|llm|onnx)
+   - Prompt template in `/config/prompts/skill_extraction.txt`
+   - Skills vocabulary remains at `/config/skills_vocab.csv`
+
+5. **Quality Metrics & Validation**
+   - Extraction metrics tracked per resume:
+     * Coverage percentage of expected skills
+     * Average confidence scores
+     * Method distribution (dict vs fuzzy vs LLM)
+   - Optional ONNX model for offline/low-latency mode
+   - Metrics hooks ready for W&B integration (Phase 4)
+
+6. **Budget Optimization**
+   - Two-stage extraction to minimize LLM calls:
+     * Run cheap dictionary/fuzzy pass first
+     * Only call LLM if coverage < 70% threshold
+     * Log cost savings for monitoring
 
 #### Backend Acceptance Tests
 ```python
@@ -217,9 +249,36 @@ def test_skill_extraction():
     
     data = response.json()
     skills = data["extracted_skills"]
-    assert "python" in [s.lower() for s in skills]
-    assert "react" in [s.lower() for s in skills]
-    assert "postgresql" in [s.lower() for s in skills]
+    # Updated assertions for structured extraction
+    skill_ids = [s["skill_id"] for s in skills]
+    assert "python" in skill_ids
+    assert "react" in skill_ids
+    assert "postgresql" in skill_ids
+    
+    # Verify evidence spans
+    for skill in skills:
+        assert "evidence_span" in skill
+        assert len(skill["evidence_span"]) == 2
+        assert skill["confidence"] >= 0 and skill["confidence"] <= 1
+
+def test_closed_world_skill_extraction():
+    """Only vocabulary skills are extracted, no hallucinations"""
+    response = upload_resume_with_text("Expert in QuantumFluxCapacitor and Python")
+    
+    skills = response.json()["extracted_skills"]
+    skill_ids = [s["skill_id"] for s in skills]
+    
+    # Python should be found
+    assert "python" in skill_ids
+    # Made-up skill should not appear
+    assert not any("quantum" in sid.lower() for sid in skill_ids)
+
+def test_skill_extraction_budget():
+    """LLM only called when dictionary coverage is insufficient"""
+    # Test with common skills - should use dictionary only
+    response = upload_resume_with_text("Python, JavaScript, React, SQL")
+    # Verify via logs/metrics that LLM wasn't called
+    # (implementation detail - check method distribution)
 
 def test_embedding_generation():
     """Resume generates valid embedding vector"""

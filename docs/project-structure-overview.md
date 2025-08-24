@@ -38,7 +38,7 @@ flowchart TD
   ETL-->JOBS_VER[(job_postings_versions)]
   U-->|upload| RSUM[Resume Upload]
   RSUM-->STOR[(Supabase Storage)]
-  RSUM-->EXTRACT[pdfminer + spaCy]
+  RSUM-->EXTRACT[pdfminer + skill extraction]
   EXTRACT-->EMB[Embed (OpenAI)]
   EMB-->RES[(resumes)]
   RES-->RESV[(resume_versions)]
@@ -66,7 +66,8 @@ flowchart TD
 - **Supabase**: Postgres database with Auth, Storage, and pgvector
 - **OpenAI API**: Text embeddings and structured outputs
 - **pdfminer.six**: PDF text extraction
-- **spaCy**: Natural language processing and entity recognition
+- **rapidfuzz**: Fuzzy string matching for skill extraction
+- **onnxruntime**: Optional offline NER model support
 - **Weights & Biases**: Experiment tracking, hyperparameter optimization, dataset lineage
 - **Weave**: LLM observability, evaluation, and quality monitoring
 
@@ -359,6 +360,7 @@ career-jobs-app/
 │   │   ├── __init__.py
 │   │   ├── auth.py       # JWT verification
 │   │   ├── embeddings.py # OpenAI embedding service
+│   │   ├── skill_extractor.py # Multi-stage skill extraction (dict/fuzzy/LLM)
 │   │   ├── storage.py    # File storage service
 │   │   └── research.py   # Company research service
 │   ├── utils/            # Shared utilities

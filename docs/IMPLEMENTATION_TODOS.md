@@ -103,11 +103,30 @@
 
 - Add `config/skills_vocab.csv` (columns: `skill,category,aliases,tags`) [DONE]
 - Implement loader in `scoring_engine/skills_matcher.py` (normalize with aliases; tolerate empty cells)
-- Seed small CSV (~50–150 rows) and a test ensuring “PyTorch”→“Python|PyTorch” normalization
+- Seed small CSV (~50–150 rows) and a test ensuring "PyTorch"→"Python|PyTorch" normalization
 
 ### Phase 2: Resume Processing Pipeline (Weeks 3-4)
 - Resume upload API endpoints (`/api/routes/resumes.py`)
-- File processing with pdfminer.six and spaCy
+- File processing with pdfminer.six for PDF text extraction
+- **NEW: Multi-stage skill extraction** replacing spaCy:
+  * Dictionary/fuzzy matching with rapidfuzz (Stage 1)
+  * Embedding-based candidate retrieval (Stage 2) 
+  * OpenAI function calling with closed-world constraint (Stage 3)
+  * Pydantic validation and merging (Stage 4)
+- **Skill extraction features**:
+  * Evidence spans (character offsets) for UI highlighting
+  * Confidence scores (0-1) for quality assessment
+  * Years of experience extraction
+  * Strict vocabulary gating (no hallucinated skills)
+  * Budget optimization (LLM only if coverage < 70%)
+- **Required configuration files**:
+  * `/config/schemas/skills.json` - Pydantic validation schema
+  * `/config/prompts/skill_extraction.txt` - LLM instruction template
+  * `/config/skills_vocab.csv` - Already created, source of truth
+- **Quality tracking**:
+  * Extraction metrics per resume (coverage, confidence, method)
+  * Optional ONNX model support for offline mode
+  * Metrics hooks for W&B Phase 4 integration
 - OpenAI embeddings integration
 - Supabase Storage integration
 
