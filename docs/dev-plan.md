@@ -52,7 +52,10 @@ This document outlines the phased development approach for the Career Jobs App, 
     -- Enable **Signing Keys** in Supabase (Auth → JWT).
     -- Verify via JWKS at `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (RS256/ES256, `aud=authenticated`).
     -- Cache JWKS for a few minutes; no legacy HS256 shared secret in backend.
-   - Create user registration/login flows in `/dashboard/src/app/login` **IMPORTANT** see docs/preferred-UI-styling/ for styling
+   - Create user registration/login flows in `/dashboard/src/app/login`
+     **IMPORTANT**: Follow the design system in `docs/FRONTEND_DESIGN_BRIEF.md`
+     - Dark theme with black backgrounds and red accents
+     - See `docs/preferred-UI-styling/` for reference screenshots
    - Set up Supabase client in `/dashboard/src/lib/supabase.ts`
 
 #### Backend Acceptance Tests
