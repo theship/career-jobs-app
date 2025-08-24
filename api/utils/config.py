@@ -6,7 +6,8 @@ import yaml
 from typing import Dict, Any, Optional
 from pathlib import Path
 from functools import lru_cache
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,12 +26,12 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000)
     
     # Supabase settings
-    supabase_url: str = Field(..., env="SUPABASE_URL")
-    supabase_anon_key: str = Field(..., env="SUPABASE_ANON_KEY")
-    supabase_service_role_key: str = Field(..., env="SUPABASE_SERVICE_ROLE_KEY")
+    supabase_url: str = Field(...)
+    supabase_anon_key: str = Field(default="")
+    supabase_service_role_key: str = Field(...)
     
     # OpenAI settings
-    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
+    openai_api_key: str = Field(...)
     openai_model: str = Field(default="gpt-4o-mini")
     openai_embedding_model: str = Field(default="text-embedding-3-small")
     
@@ -46,10 +47,12 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore"  # Ignore extra fields like WANDB_*
+    }
 
 def load_yaml_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
     """
