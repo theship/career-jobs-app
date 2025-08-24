@@ -5,11 +5,13 @@
 ## 🎯 Phase 1: Foundation & Authentication (START HERE)
 
 ### Critical Priority - Database Setup
-1. **Set up Supabase project with pgvector extension**
-   - Create new Supabase project
-   - Enable pgvector extension in SQL editor: `CREATE EXTENSION IF NOT EXISTS vector;`
-   - Enable pgcrypto extension: `CREATE EXTENSION IF NOT EXISTS pgcrypto;`
-   - Note project URL and anon/service_role keys for config
+1. ✅ **Set up Supabase project with pgvector extension** [DONE]
+   - Create new Supabase project [DONE]
+   - Enable pgvector extension in SQL editor: `CREATE EXTENSION IF NOT EXISTS vector;` [DONE]
+   - Enable pgcrypto extension: `CREATE EXTENSION IF NOT EXISTS pgcrypto;` [DONE]
+   - Enable `pgvector` and `pgcrypto` in the **extensions** schema (Supabase → Database → Extensions) [DONE]
+   - Enable **JWT Signing Keys** (Supabase → Auth → JWT); note JWKS URL for backend [DONE]
+   - Added  project URL and anon/service_role keys in root .env file for config  [DONE]
 
 2. **Create database schema and migrations for core tables**
    - Implement all tables from `docs/project-structure-overview.md` (lines 85-173)
@@ -60,6 +62,9 @@
 
 8. **Implement JWT authentication middleware in `/api/services/auth.py`**
    - JWKS verification from Supabase (see example in docs/project-structure-overview.md)
+   - Implement JWT auth middleware in `/api/services/auth.py` using **JWKS**.
+      -- JWKS: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (RS256/ES256)
+      -- Ensure `aud=authenticated`; cache keys; no legacy HS256 secret
    - FastAPI dependency for protected routes
    - User extraction from JWT tokens
 
@@ -93,6 +98,12 @@
 - ✅ Health check endpoint returns 200
 
 ## 🔄 After Phase 1 Complete
+
+### Phase 2 prep
+
+- Add `config/skills_vocab.csv` (columns: `skill,category,aliases,tags`) [DONE]
+- Implement loader in `scoring_engine/skills_matcher.py` (normalize with aliases; tolerate empty cells)
+- Seed small CSV (~50–150 rows) and a test ensuring “PyTorch”→“Python|PyTorch” normalization
 
 ### Phase 2: Resume Processing Pipeline (Weeks 3-4)
 - Resume upload API endpoints (`/api/routes/resumes.py`)

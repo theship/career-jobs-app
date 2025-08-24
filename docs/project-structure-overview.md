@@ -385,6 +385,8 @@ career-jobs-app/
 │   │   ├── __init__.py
 │   │   └── job_normalizer.py
 │   └── orchestrator.py   # Ingestion scheduling/management
+├── config/
+│   └── skills_vocab.csv  # canonical skills list (see dev-plan.md / Phase 2)
 ├── dashboard/            # 🔨 TO BE CREATED - Next.js frontend
 │   ├── package.json
 │   ├── next.config.ts

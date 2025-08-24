@@ -199,3 +199,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Design files
+docs/preferred-UI-styling/

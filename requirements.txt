@@ -1,0 +1,41 @@
+# Core dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Authentication
+pyjwt[crypto]==2.8.0
+httpx==0.25.2  # For fetching JWKS
+cryptography==41.0.7  # Required for RS256/ES256
+
+# Database
+supabase==2.3.0
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+
+# File processing (Phase 2 prep)
+pdfminer.six==20221105
+python-multipart==0.0.6  # For file uploads
+
+# AI/ML (Phase 2 prep)
+openai==1.6.1
+numpy==1.24.3
+spacy==3.7.2
+
+# Utilities
+pyyaml==6.0.1  # For config files
+python-jose[cryptography]==3.3.0  # Additional JWT support
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-asyncio==0.21.1
+httpx==0.25.2  # For testing API calls
+factory-boy==3.3.0
+
+# Development
+black==23.12.0
+isort==5.13.2
+mypy==1.7.1

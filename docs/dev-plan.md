@@ -2,7 +2,27 @@
 
 ## Overview
 
-This document outlines the phased development approach for the Career Jobs App, including acceptance criteria, testing strategies, and milestone definitions.
+This document outlines the phased development approach for the Career Jobs App, including acceptance criteria, testing strategies, and milestone definitions. Phase 0–6. Stack: Supabase (Postgres + Auth + Storage + RLS + pgvector), FastAPI, Next.js, OpenAI embeddings, W&B + Weave later for experiments/observability. JWT verification is JWKS‑based.
+
+## Source Coverage Matrix (what maps where)
+
+| Source item                         | Doc section(s)                                                               | Notes                              |
+| ----------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------- |
+| Supabase Signing Keys + JWKS URL    | dev‑plan.md Phase 0 & Phase 1 (Auth)                                         | JWKS is normative; no HS256 secret |
+| pgvector + pgcrypto in `extensions` | dev‑plan.md Phase 0; IMPLEMENTATION\_TODOS Critical DB                       | Clarifies schema location          |
+| Minimal schema + RLS                | dev‑plan.md Phase 1 DB; project‑structure‑overview\.md Data Model            | Owner‑only policies                |
+| FE auth flow + `/login`             | dev‑plan.md Phase 1 Frontend; TODOs Frontend                                 | Session + Bearer to backend        |
+| Backend acceptance tests            | dev‑plan.md Phase 1 Tests; TODOs Testing                                     | Health/reject/accept/me            |
+| Skills vocabulary CSV               | dev‑plan.md Phase 2 “Skills Vocabulary”; project‑structure‑overview\.md tree | `skill,category,aliases,tags`      |
+| W\&B + Weave (later phases)         | dev‑plan.md Phases 4–5 retained                                              | No changes                         |
+
+## Agent Assistant Prompts
+
+* **STRICT\_NO\_ERASURE:** *Do not delete or rewrite existing sections unless the diff explicitly shows line‑anchored replacements. If something must be removed, emit a justification and a reversible patch.*
+* **DIFF‑ONLY OUTPUT:** *Produce unified diffs with anchors (±10 lines) for each file changed. No free‑hand rewrites.*
+* **COVERAGE MATRIX:** *List every requirement and where it appears in the updated docs.*
+* **DOC MANIFEST:** *Show per‑file line counts and SHA256 checksums after changes.*
+* **FAIL‑CLOSED:** *If any referenced section is missing, stop and report missing anchors rather than guessing.*
 
 ## Development Phases
 
@@ -23,13 +43,16 @@ This document outlines the phased development approach for the Career Jobs App, 
 2. **Project Structure Setup**
    - Create `/api` directory with FastAPI structure (models, routes, services, utils)
    - Set up `/config` directory with settings.yaml and JSON schemas
-   - Create `/dashboard` directory for Next.js frontend
+   - Create `/dashboard` directory for Next.js frontend  **IMPORTANT** see docs/preferred-UI-styling/ for styling
    - Initialize `/scripts` for utility scripts
 
 3. **Authentication System**
    - Configure Supabase Auth project settings
-   - Implement JWT verification in `/api/services/auth.py`
-   - Create user registration/login flows in `/dashboard/src/app/login`
+   -Implement JWT verification in `/api/services/auth.py` using **JWT Signing Keys (JWKS)**.
+    -- Enable **Signing Keys** in Supabase (Auth → JWT).
+    -- Verify via JWKS at `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (RS256/ES256, `aud=authenticated`).
+    -- Cache JWKS for a few minutes; no legacy HS256 shared secret in backend.
+   - Create user registration/login flows in `/dashboard/src/app/login` **IMPORTANT** see docs/preferred-UI-styling/ for styling
    - Set up Supabase client in `/dashboard/src/lib/supabase.ts`
 
 #### Backend Acceptance Tests
@@ -130,6 +153,15 @@ describe('Authentication Flow', () => {
 - Extract and process resume text
 - Generate embeddings for semantic matching
 - Handle resume versioning
+
+#### Skills Vocabulary
+- File: `config/skills_vocab.csv`
+- Columns: `skill,category,aliases,tags`
+  - `skill`: canonical label (e.g., Python)
+  - `category`: language|framework|db|cloud|tool
+  - `aliases`: optional `|`-separated variants (e.g., PyTorch|torch)
+  - `tags`: optional `|`-separated facets (e.g., backend|data)
+- Loader: `scoring_engine/skills_matcher.py` consumes this at startup to normalize tokens; pipelines must treat this as the source of truth.
 
 #### Tasks
 1. **Resume API Endpoints**
