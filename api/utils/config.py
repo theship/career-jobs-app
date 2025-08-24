@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO")
     
+    # Directory paths
+    @property
+    def CONFIG_DIR(self) -> str:
+        """Get the config directory path"""
+        return str(Path(__file__).parent.parent.parent / "config")
+    
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
@@ -130,3 +136,6 @@ def load_settings() -> Settings:
     logger.info(f"Loaded configuration for environment: {settings.environment}")
     
     return settings
+
+# Global settings instance
+settings = get_settings()

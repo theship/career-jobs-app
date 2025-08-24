@@ -17,6 +17,7 @@ sqlalchemy>=2.0.0
 
 # File processing (Phase 2 prep)
 pdfminer.six>=20240706
+python-docx>=1.1.0
 python-multipart>=0.0.19  # For file uploads
 
 # AI/ML (Phase 2 prep)

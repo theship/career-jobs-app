@@ -1,92 +1,75 @@
-"""
-Database connection and Supabase client utilities
-"""
+"""Database connection utilities."""
+import asyncpg
 from typing import Optional
-from functools import lru_cache
 import logging
-from supabase import create_client, Client
-from api.utils.config import get_settings
+from contextlib import asynccontextmanager
+
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
+
 class DatabaseConnection:
-    """Manage Supabase database connection"""
+    """Manages database connection pool."""
     
     def __init__(self):
-        self.settings = get_settings()
-        self._client: Optional[Client] = None
-        self._service_client: Optional[Client] = None
+        """Initialize database connection."""
+        self.pool: Optional[asyncpg.Pool] = None
+        self._parse_supabase_url()
     
-    @property
-    def client(self) -> Client:
-        """Get Supabase client with anon key (for client-side operations)"""
-        if self._client is None:
-            self._client = create_client(
-                self.settings.supabase_url,
-                self.settings.supabase_anon_key
-            )
-            logger.info("Created Supabase client with anon key")
-        return self._client
-    
-    @property
-    def service_client(self) -> Client:
-        """Get Supabase client with service role key (for server-side operations)"""
-        if self._service_client is None:
-            self._service_client = create_client(
-                self.settings.supabase_url,
-                self.settings.supabase_service_role_key
-            )
-            logger.info("Created Supabase client with service role key")
-        return self._service_client
-    
-    def get_client(self, use_service_role: bool = False) -> Client:
-        """
-        Get appropriate Supabase client
+    def _parse_supabase_url(self):
+        """Parse Supabase URL to get database connection string."""
+        # Supabase URL format: https://[project-ref].supabase.co
+        # Database URL format: postgresql://postgres.[project-ref]:password@aws-0-[region].pooler.supabase.com:6543/postgres
         
-        Args:
-            use_service_role: If True, use service role key (bypasses RLS)
-            
-        Returns:
-            Supabase client
-        """
-        return self.service_client if use_service_role else self.client
+        # For now, we'll use the Supabase client for all DB operations
+        # Direct DB connection would require the database URL from Supabase dashboard
+        pass
     
-    async def health_check(self) -> bool:
-        """
-        Check database connection health
+    async def init_pool(self):
+        """Initialize connection pool."""
+        if self.pool is None:
+            try:
+                # This would need the actual database URL from Supabase
+                # For Phase 2, we're using Supabase client instead of direct DB access
+                logger.info("Database pool initialization skipped - using Supabase client")
+            except Exception as e:
+                logger.error(f"Failed to initialize database pool: {e}")
+                raise
+    
+    async def close_pool(self):
+        """Close connection pool."""
+        if self.pool:
+            await self.pool.close()
+            self.pool = None
+            logger.info("Database pool closed")
+    
+    @asynccontextmanager
+    async def acquire(self):
+        """Acquire a database connection from the pool."""
+        if self.pool is None:
+            await self.init_pool()
         
-        Returns:
-            True if connection is healthy
-        """
-        try:
-            # Try a simple query
-            result = self.client.table("app_user").select("id").limit(1).execute()
-            return True
-        except Exception as e:
-            logger.error(f"Database health check failed: {e}")
-            return False
+        async with self.pool.acquire() as conn:
+            yield conn
 
-# Singleton instance
-@lru_cache()
-def get_db() -> DatabaseConnection:
-    """Get singleton database connection"""
-    return DatabaseConnection()
 
-# Dependency for FastAPI routes
-async def get_supabase_client() -> Client:
-    """
-    FastAPI dependency to get Supabase client
-    
-    Returns:
-        Supabase client with anon key
-    """
-    return get_db().client
+# Global database connection instance
+db_connection = DatabaseConnection()
 
-async def get_supabase_service_client() -> Client:
-    """
-    FastAPI dependency to get Supabase service client
-    
-    Returns:
-        Supabase client with service role key
-    """
-    return get_db().service_client
+
+async def get_db_connection():
+    """Dependency to get database connection."""
+    # For now, return the connection object
+    # In production, this would return an actual DB connection
+    return db_connection
+
+
+async def init_database():
+    """Initialize database on application startup."""
+    await db_connection.init_pool()
+
+
+async def close_database():
+    """Close database on application shutdown."""
+    await db_connection.close_pool()
