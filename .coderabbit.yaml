@@ -1,0 +1,167 @@
+# CodeRabbit Configuration
+# Documentation: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+# Review Settings
+reviews:
+  # Enable high-level summary of changes
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  
+  # Enable poem and review profile
+  poem: false
+  review_status: true
+  
+  # Collapse generated code suggestions
+  collapse_walkthrough: false
+  
+  # Enable auto-review on PR creation
+  auto_review:
+    enabled: true
+    # Review new commits automatically
+    auto_incremental_review: true
+    
+  # Path filters - files to exclude from review
+  path_filters:
+    - "!**/*.lock"
+    - "!**/*.log"
+    - "!**/node_modules/**"
+    - "!**/.venv/**"
+    - "!**/__pycache__/**"
+    - "!**/*.pyc"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/.next/**"
+    - "!**/coverage/**"
+    - "!**/.pytest_cache/**"
+
+# Language-specific settings
+languages:
+  python:
+    # Enable Python-specific checks
+    enabled: true
+    # Use Python 3.13 for analysis
+    version: "3.13"
+    # Check for security issues
+    security_analysis: true
+    # Check for performance issues
+    performance_analysis: true
+    # Linting tools
+    linters:
+      - black
+      - isort
+      - mypy
+    
+  typescript:
+    enabled: true
+    # Check for type safety
+    strict_mode: true
+    # ESLint configuration
+    eslint: true
+    
+  javascript:
+    enabled: true
+    eslint: true
+
+# Security and best practices
+security:
+  # Scan for secrets
+  secrets_detection: true
+  # Check for vulnerable dependencies
+  dependency_scanning: true
+  # OWASP checks
+  owasp_checks: true
+
+# Performance
+performance:
+  # Check for N+1 queries
+  database_queries: true
+  # Check for inefficient algorithms
+  algorithmic_complexity: true
+  # Memory usage patterns
+  memory_leaks: true
+
+# Documentation
+documentation:
+  # Enforce docstrings for Python
+  enforce_docstrings: true
+  # Check for outdated comments
+  comment_quality: true
+  # API documentation
+  api_documentation: true
+
+# Testing
+testing:
+  # Suggest test cases for new code
+  suggest_tests: true
+  # Check test coverage
+  coverage_threshold: 80
+  # Ensure tests follow best practices
+  test_quality: true
+
+# Custom rules for this project
+custom_patterns:
+  # Ensure proper use of async/await
+  - pattern: "async def.*"
+    message: "Ensure all async functions properly handle exceptions"
+    
+  # Check for proper Supabase RLS usage
+  - pattern: "supabase\\.from_\\("
+    message: "Ensure Row-Level Security (RLS) policies are properly configured"
+    
+  # Validate OpenAI API usage
+  - pattern: "openai\\.(Client|AsyncClient)"
+    message: "Ensure API keys are properly configured and errors are handled"
+    
+  # Check for proper JWT validation
+  - pattern: "jwt\\.decode"
+    message: "Ensure JWT tokens are validated with proper algorithms (RS256/ES256)"
+
+# AI-specific checks for this career app
+ai_checks:
+  # LLM usage patterns
+  llm_best_practices: true
+  # Prompt injection prevention
+  prompt_security: true
+  # Token usage optimization
+  token_optimization: true
+  # Embedding dimension consistency
+  embedding_validation: true
+
+# Commenting style
+comments:
+  # Encourage explaining "why" not "what"
+  style: "descriptive"
+  # Minimum comment length
+  min_length: 10
+  # Require comments for complex logic
+  complexity_threshold: 10
+
+# Pull Request checks
+pull_request:
+  # Title must follow conventional commits
+  title_pattern: "^(feat|fix|docs|style|refactor|test|chore|perf)\\(.*\\): .+"
+  # Require description
+  require_description: true
+  # Minimum description length
+  min_description_length: 50
+  # Check for linked issues
+  require_issue_link: false
+
+# Branch protection suggestions
+branch_protection:
+  # Suggest protection for main branch
+  protect_main: true
+  # Require PR reviews
+  require_reviews: true
+  # Require status checks
+  require_status_checks: true
+
+# Notifications
+notifications:
+  # Notify on high-severity issues
+  high_severity: true
+  # Notify on security issues
+  security_issues: true
+  # Summary comment on PR
+  summary_comment: true

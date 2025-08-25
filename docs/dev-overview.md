@@ -16,6 +16,7 @@
 ## 2) Project decisions & caveats
 
 ### Daytona (AI Sandboxes, CLI ≥ v0.25)
+
 - **No SSH endpoint** for sandboxes, but **Web Terminal** at `https://22222-<id>.proxy.daytona.work` provides full shell access for Claude Code.
 - **Claude Code installation**: Persists in sandbox until archived, install once per sandbox lifecycle.
 - `daytona sandbox create` prints **human text**, not JSON → use `daytona sandbox list --format json` to query IDs/state.
@@ -24,10 +25,12 @@
 - Manual `archive` verb is not exposed in the stable CLI. We rely on **`autoArchiveMinutes`** to move stopped boxes to cold storage.
 
 ### GitHub & tokens
+
 - Daytona needs **one fine-grained PAT** (repo-scoped) with **Contents: RW** and **Workflows: RW**. Store as `GH_PAT` in `.env`.
 - **CodeRabbit** is a **GitHub App** → **no PAT** needed for it.
 
 ### Cursor IDE + Claude Code
+
 - **Cursor IDE (local)**: Code exploration, file browsing, git operations, and Claude Code for Cursor integration
   - Claude Code in Cursor provides AI assistance with full codebase context
   - Excellent IntelliSense, debugging tools, and IDE features
@@ -38,6 +41,7 @@
   - Isolated execution environment for security
 
 ### Cost discipline (high level)
+
 - **One sandbox per project**; reuse stopped boxes by label.
 - **Short sessions:** `make stop` when done; fallback **auto-stop 45 min** → **auto-archive 60 min**.
 - **Run tests in CI** by default; only debug in the sandbox.
@@ -48,6 +52,7 @@
 ## 3) Setting up a new project (one-time)
 
 ### A. Prerequisites (run once per laptop)
+
 ```bash
 git clone git@github.com:theship/career-jobs-app.git
 cd career-jobs-app
@@ -61,24 +66,39 @@ daytona login --api-key "$DAYTONA_API_KEY"
 ```
 
 ### B. GitHub repo & PAT
+
 Create a **fine-grained PAT** on your account (or a machine user):
+
 - **Repository access:** only `theship/career-jobs-app`
 - **Permissions:** `Contents: Read/Write`, `Workflows: Read/Write`
 - Add to `.env`: `GH_PAT=ghp_xxx`
 
 ### C. How the PAT is injected
+
 We never use the removed `daytona env`. Our `scripts/dev.sh` loads `.env` and passes `GH_PAT` when creating the sandbox, so `git pull` works in the Web Terminal without prompts. Older sandboxes may lack `GH_PAT`; the script warns—either export it manually in the Web Terminal or create a fresh sandbox.
 
 ### D. Install CodeRabbit on the repo
+
 GitHub → **Settings → Integrations → GitHub Apps** → install **CodeRabbit** on this repo (no PAT).
 
+#### CodeRabbit Python path sequence diagram
+
+![CodeRabbit Python path sequence diagram](./images/coderabbit-pr-python.png "CodeRabbit Python path sequence diagram from pull/4")
+
+#### CodeRabbit Dashboard sequence diagram
+
+![CodeRabbit Dashboard sequence diagram](./images/coderabbit-pr-dashboard.png "CodeRabbit Dashboard sequence diagram from pull/4")
+
 ### E. Repository hardening (recommended)
+
 - Protect `main` from direct pushes.
 - Require status checks: **CodeRabbit** + CI tests must pass before merge.
 - Confirm `.gitignore` includes `.env`.
 
 ### F. Baseline config files (commit once)
+
 These live in the repo:
+
 - **`.daytona.yml`** (defaults & cost controls)
 - **`.devcontainer/devcontainer.json`** (editor parity)
 - **`scripts/dev.sh`** (create/resume + open terminal)
@@ -86,6 +106,7 @@ These live in the repo:
 - **`.env.example`** (template of required keys)
 
 **`.daytona.yml` (project defaults & cost controls)**
+
 ```yaml
 class: small
 labels: { project: career-jobs-app }
@@ -100,6 +121,7 @@ networkPolicy:
 ```
 
 ### G. Spin up the first sandbox and install Claude Code
+
 ```bash
 make dev
 # A browser tab opens to: https://22222-<sandbox-id>.proxy.daytona.work
@@ -115,10 +137,13 @@ claude
 git pull
 pnpm run dev   # or pnpm test, node scripts/..., etc.
 ```
+
 Preview at `https://3000-<id>.proxy.daytona.work` when the dev server runs.
 
 ### H. CI wiring (tests + nightly jobs)
+
 **PR & push tests** (`.github/workflows/ci.yml`):
+
 ```yaml
 name: ci
 on: [push, pull_request]
@@ -135,6 +160,7 @@ jobs:
 ```
 
 **Nightly job fetch** (`.github/workflows/nightly-fetch.yml`):
+
 ```yaml
 name: nightly-job-fetch
 on:
@@ -149,6 +175,7 @@ jobs:
       - uses: pnpm/action-setup@v3
       - run: pnpm i && pnpm exec node scripts/fetch_jobs.js
 ```
+
 > **Why CI?** CI minutes are free enough, deterministic, and make CodeRabbit’s status checks meaningful. Running full suites in the sandbox burns quota/time.
 
 ---
@@ -156,6 +183,7 @@ jobs:
 ## 4) Contributing to an existing project
 
 ### First run (per machine)
+
 ```bash
 # Local setup
 git clone git@github.com:theship/career-jobs-app.git
@@ -192,6 +220,7 @@ sh /tmp/claude-install.sh
 ### Day-to-day workflow
 
 #### 1) Code exploration with Cursor IDE (local)
+
 ```text
 ~/career-jobs-app/         ← Open this in Cursor IDE
 │   src/…
@@ -199,13 +228,16 @@ sh /tmp/claude-install.sh
 │   .daytona.yml
 └─  .env
 ```
+
 - Use Claude Code in Cursor for AI assistance with full codebase context
 - Browse files, understand code structure, review changes
 - Use Cursor's excellent IntelliSense and debugging tools
 - Manage git operations (branches, commits, PRs) through Cursor's UI
 
 #### 2) Development work in Daytona Web Terminal
+
 In the **Web Terminal** at `https://22222-<id>.proxy.daytona.work`:
+
 ```bash
 # Start Claude Code for development work
 claude
@@ -231,14 +263,16 @@ pnpm run dev     # run development server
 | **Cursor IDE (local)**  | Code exploration, git management, AI assistance              | Claude Code integration, IntelliSense, git UI        |
 | **Daytona (remote)**    | Code execution, file modifications, testing, development     | Claude Code CLI, full shell, isolated execution      |
 
-
 > **Key insight:** You get the best of both worlds - Cursor's excellent IDE features locally and secure, isolated development in the cloud.
 
 #### 4) Stop & clean-up
+
 - **Stop immediately when you’re done:**
+
   ```bash
   make stop
   ```
+
 - If you forget, the sandbox **auto-stops after 45 min idle**, then **auto-archives 60 min later**.
 
 ---
@@ -246,18 +280,22 @@ pnpm run dev     # run development server
 ## 5) Tests — where to create and run them
 
 **Unit tests (fast, no network):**
+
 - Framework: **Vitest** (or Jest) under `src/**/__tests__/*.test.ts`.
 - **Local** during development (`pnpm test:watch`), **CI** on PRs.
 
 **Integration tests (API boundaries, DB mocks):**
+
 - Place under `tests/integration/*.test.ts`.
 - Run in **CI** (`pnpm test:integration`), and in the **sandbox** only for debugging.
 
 **E2E tests (browser):**
+
 - Framework: **Playwright** under `tests/e2e/`.
 - Prefer **CI** for determinism (`pnpm test:e2e`); sandbox is for repro.
 
 `package.json` scripts:
+
 ```jsonc
 {
   "scripts": {
@@ -269,6 +307,7 @@ pnpm run dev     # run development server
   }
 }
 ```
+
 > **Cost saver:** Default to CI for anything heavier than unit tests.
 
 ---
@@ -281,6 +320,7 @@ pnpm run dev     # run development server
 - **Prebuild dev image** so cold-starts don’t spend time installing deps (see CI snippet below).
 
 ### Optional CI to prebuild image (cuts sandbox minutes)
+
 ```yaml
 # .github/workflows/build-dev-image.yml
 name: build-dev-image
@@ -303,6 +343,7 @@ jobs:
           docker build -t "$IMAGE" -f Dockerfile.dev .
           docker push "$IMAGE"
 ```
+
 Then in `.daytona.yml`: `image: ghcr.io/theship/career-jobs-app:dev`.
 
 ### Prune command (Makefile)
@@ -310,7 +351,7 @@ Then in `.daytona.yml`: `image: ghcr.io/theship/career-jobs-app:dev`.
 ```make
 # markdownlint-disable MD010
 prune:
-	@daytona sandbox list --format json | 	jq -r '.[] | select((.state|ascii_downcase)=="archived") | .id' | 	xargs -r daytona sandbox delete
+ @daytona sandbox list --format json |  jq -r '.[] | select((.state|ascii_downcase)=="archived") | .id' |  xargs -r daytona sandbox delete
   # markdownlint-enable MD010
 ```
 
@@ -359,23 +400,29 @@ We already have **`.github/workflows/build-dev-image.yml`** in this repo. It bui
 **Right now we are *not* using that image** for sandboxes; Daytona still creates from the default snapshot and seeds your local repo via `--context .`.
 
 ### Why we might enable it later
+
 - **Faster cold-starts**: deps (pnpm/node modules) are preinstalled, so sandboxes start in seconds.
 - **Lower sandbox minutes**: fewer “npm install” minutes burning the free tier.
 - **Parity**: CI and local runs share the same base image.
 
 ### How to enable when ready
+
 1) **Build the image at least once** (so the tag exists):
+
    ```bash
    git commit --allow-empty -m "build: seed dev image" && git push
    # wait for Actions ▸ build-dev-image to finish
    ```
+
 2) **Make it pullable**: if the repo is private, GHCR packages default to private. Either:
    - Flip the `:dev` image visibility to **public** (recommended for dev; no secrets inside), or
    - Keep it private and wire registry credentials for Daytona (extra setup; TBD).
 3) **Point Daytona at the image** by adding to `.daytona.yml`:
+
    ```yaml
    image: ghcr.io/theship/career-jobs-app:dev
    ```
+
    (Everything else in `.daytona.yml` stays the same.)
 
 > Optional: If we later remove `--context .` from `scripts/dev.sh`, we’ll `git clone` / `git pull` inside the sandbox instead. For now, keeping `--context .` is simpler—Daytona will still pull the image first once `image:` is set, then copy our repo into place.

@@ -146,8 +146,7 @@ data/private/
 *.sqlite3
 
 # Test files
-test_*.py
-*_test.py
+# Note: DO NOT ignore test files - they need to be in the repo for CI!
 
 # Memory files
 file::memory:

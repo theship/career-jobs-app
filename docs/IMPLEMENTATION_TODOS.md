@@ -5,6 +5,7 @@
 ## 🎯 Phase 1: Foundation & Authentication (START HERE)
 
 ### Critical Priority - Database Setup
+
 1. ✅ **Set up Supabase project with pgvector extension** [DONE]
    - Create new Supabase project [DONE]
    - Enable pgvector extension in SQL editor: `CREATE EXTENSION IF NOT EXISTS vector;` [DONE]
@@ -13,18 +14,20 @@
    - Enable **JWT Signing Keys** (Supabase → Auth → JWT); note JWKS URL for backend [DONE]
    - Added  project URL and anon/service_role keys in root .env file for config  [DONE]
 
-2. **Create database schema and migrations for core tables**
+2. ⚠️ **Create database schema and migrations for core tables** [PARTIALLY DONE]
    - Implement all tables from `docs/project-structure-overview.md` (lines 85-173)
    - Core tables: `app_user`, `job_postings`, `job_postings_versions`, `resumes`, `resume_versions`, `scores`, `company_research`
    - Add pgvector columns for embeddings: `embedding vector(3072)`
    - Create SCD-2 versioning triggers for job_postings
 
-3. **Implement Row-Level Security (RLS) policies**
+3. ⚠️ **Implement Row-Level Security (RLS) policies** [PARTIALLY DONE]
    - Enable RLS on user-scoped tables: `resumes`, `resume_versions`, `scores`
    - Create policies for user data isolation (examples in docs/project-structure-overview.md lines 290-297)
 
 ### High Priority - Project Structure
-4. **Create `/api` FastAPI project structure**
+
+4. ✅ **Create `/api` FastAPI project structure** [DONE]
+
    ```
    api/
    ├── __init__.py
@@ -36,7 +39,8 @@
    └── static/
    ```
 
-5. **Set up `/config` directory with settings and schemas**
+5. ✅ **Set up `/config` directory with settings and schemas** [DONE]
+
    ```
    config/
    ├── settings.yaml
@@ -45,7 +49,8 @@
    └── schemas/ (job_posting.json, resume.json, company_research.json)
    ```
 
-6. **Initialize other core directories**
+6. ⚠️ **Initialize other core directories** [PARTIALLY DONE]
+
    ```
    scoring_engine/ (similarity.py, skills_matcher.py, geo_scorer.py, ranker.py)
    ingestion/ (connectors/, normalizers/, orchestrator.py)
@@ -55,12 +60,13 @@
    ```
 
 ### Medium Priority - Authentication
-7. **Configure Supabase Auth project settings**
+
+7. ✅ **Configure Supabase Auth project settings** [DONE]
    - Set up email auth providers
    - Configure redirect URLs for development
    - Set JWT expiration and security settings
 
-8. **Implement JWT authentication middleware in `/api/services/auth.py`**
+8. ✅ **Implement JWT authentication middleware in `/api/services/auth.py`** [DONE]
    - JWKS verification from Supabase (see example in docs/project-structure-overview.md)
    - Implement JWT auth middleware in `/api/services/auth.py` using **JWKS**.
       -- JWKS: `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (RS256/ES256)
@@ -68,7 +74,8 @@
    - FastAPI dependency for protected routes
    - User extraction from JWT tokens
 
-9. **Set up `/dashboard` Next.js frontend structure**
+9. ✅ **Set up `/dashboard` Next.js frontend structure** [DONE]
+
    ```
    dashboard/
    ├── src/
@@ -79,6 +86,7 @@
    ├── package.json
    └── next.config.ts
    ```
+
    **IMPORTANT**: Follow the design system in `docs/FRONTEND_DESIGN_BRIEF.md`:
    - Dark mode first with pure black backgrounds
    - Mellow red accent color (#EF4444) for CTAs
@@ -86,16 +94,18 @@
    - Card-based layouts with generous spacing
    - See `docs/preferred-UI-styling/` for reference screenshots
 
-10. **Create Supabase client in `/dashboard/src/lib/supabase.ts`**
+10. ✅ **Create Supabase client in `/dashboard/src/lib/supabase.ts`** [DONE]
     - Initialize Supabase client with project URL and anon key
     - Set up auth helpers and session management
 
 ### Testing Priority
-11. **Write initial authentication acceptance tests**
+
+11. ✅ **Write initial authentication acceptance tests** [DONE]
     - Backend tests: API health check, JWT verification, config loading (see docs/dev-plan.md lines 35-72)
     - Frontend tests: Registration, login redirect, session persistence (see docs/dev-plan.md lines 74-124)
 
 ## 📋 Phase 1 Success Criteria
+
 - ✅ User can register/login via Supabase Auth in Next.js frontend
 - ✅ JWT tokens properly protect FastAPI backend endpoints
 - ✅ RLS policies prevent cross-user data access in database
@@ -107,53 +117,58 @@
 
 ### Phase 2 prep
 
-- Add `config/skills_vocab.csv` (columns: `skill,category,aliases,tags`) [DONE]
+- ✅ Add `config/skills_vocab.csv` (columns: `skill,category,aliases,tags`) [DONE]
 - Implement loader in `scoring_engine/skills_matcher.py` (normalize with aliases; tolerate empty cells)
 - Seed small CSV (~50–150 rows) and a test ensuring "PyTorch"→"Python|PyTorch" normalization
 
-### Phase 2: Resume Processing Pipeline (Weeks 3-4)
-- Resume upload API endpoints (`/api/routes/resumes.py`)
-- File processing with pdfminer.six for PDF text extraction
-- **NEW: Multi-stage skill extraction** replacing spaCy:
-  * Dictionary/fuzzy matching with rapidfuzz (Stage 1)
-  * Embedding-based candidate retrieval (Stage 2) 
-  * OpenAI function calling with closed-world constraint (Stage 3)
-  * Pydantic validation and merging (Stage 4)
+### Phase 2: Resume Processing Pipeline (Weeks 3-4) [IN PROGRESS]
+
+- ✅ Resume upload API endpoints (`/api/routes/resumes.py`) [DONE]
+- ✅ File processing with pdfminer.six for PDF text extraction [DONE]
+- ✅ **NEW: Multi-stage skill extraction** replacing spaCy: [DONE]
+  - Dictionary/fuzzy matching with rapidfuzz (Stage 1)
+  - Embedding-based candidate retrieval (Stage 2)
+  - OpenAI function calling with closed-world constraint (Stage 3)
+  - Pydantic validation and merging (Stage 4)
 - **Skill extraction features**:
-  * Evidence spans (character offsets) for UI highlighting
-  * Confidence scores (0-1) for quality assessment
-  * Years of experience extraction
-  * Strict vocabulary gating (no hallucinated skills)
-  * Budget optimization (LLM only if coverage < 70%)
+  - Evidence spans (character offsets) for UI highlighting
+  - Confidence scores (0-1) for quality assessment
+  - Years of experience extraction
+  - Strict vocabulary gating (no hallucinated skills)
+  - Budget optimization (LLM only if coverage < 70%)
 - **Required configuration files**:
-  * `/config/schemas/skills.json` - Pydantic validation schema
-  * `/config/prompts/skill_extraction.txt` - LLM instruction template
-  * `/config/skills_vocab.csv` - Already created, source of truth
+  - `/config/schemas/skills.json` - Pydantic validation schema
+  - `/config/prompts/skill_extraction.txt` - LLM instruction template
+  - `/config/skills_vocab.csv` - Already created, source of truth
 - **Quality tracking**:
-  * Extraction metrics per resume (coverage, confidence, method)
-  * Optional ONNX model support for offline mode
-  * Metrics hooks for W&B Phase 4 integration
-- OpenAI embeddings integration
-- Supabase Storage integration
+  - Extraction metrics per resume (coverage, confidence, method)
+  - Optional ONNX model support for offline mode
+  - Metrics hooks for W&B Phase 4 integration
+- ✅ OpenAI embeddings integration [DONE]
+- ✅ Supabase Storage integration [DONE]
 
 ### Phase 3: Job Ingestion System (Weeks 5-7)  
+
 - ATS connector implementations (Greenhouse, Lever, Ashby)
 - Job normalization pipeline
 - Data orchestration and scheduling
 
 ### Phase 4: Scoring Engine (Weeks 8-9)
+
 - Core scoring algorithms in `/scoring_engine/`
 - Vector similarity with pgvector
 - Multi-factor ranking system
 - **W&B experiment tracking and scoring weight optimization**
 
 ### Phase 5: AI Research & Pitch Generation (Weeks 10-11)
+
 - Company research with structured OpenAI outputs
 - Personalized pitch generation
 - Prompt template system
 - **Weave LLM observability, evaluation, and quality monitoring**
 
 ### Phase 6: Export & Integration (Weeks 12-13)
+
 - CSV export functionality
 - Google Drive integration
 - Email notifications
@@ -161,6 +176,7 @@
 ## 🛠️ Development Environment Commands
 
 ### Start Development Session
+
 ```bash
 # In local terminal (Cursor)
 make dev    # Starts Daytona sandbox
@@ -171,6 +187,7 @@ git pull    # Sync latest changes
 ```
 
 ### Key Development Commands in Daytona
+
 ```bash
 # Backend development
 cd api
@@ -189,6 +206,7 @@ supabase db push
 ```
 
 ### Testing Commands
+
 ```bash
 # Backend tests
 pytest tests/ -v --cov=api
@@ -204,12 +222,14 @@ eslint dashboard/src
 ```
 
 ## 📚 Reference Documentation
+
 - **Project Structure**: `docs/project-structure-overview.md`
-- **Development Plan**: `docs/dev-plan.md` 
+- **Development Plan**: `docs/dev-plan.md`
 - **AIEWF Workflow**: `CLAUDE.md`
 - **Architecture Diagrams**: `docs/project-structure-overview.md` (lines 18-60)
 
 ## 🔑 Environment Variables Needed
+
 ```bash
 # In Daytona sandbox (injected via .daytona.yml)
 SUPABASE_URL=https://your-project.supabase.co
@@ -238,8 +258,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 7. **Git commit regularly** - Use the collaborative attribution format
 
 ## 📝 Status Tracking
-- [ ] Phase 1: Foundation & Authentication  
-- [ ] Phase 2: Resume Processing Pipeline
+
+- [x] Phase 1: Foundation & Authentication ✅ [COMPLETE]  
+- [⚠️] Phase 2: Resume Processing Pipeline [IN PROGRESS]
 - [ ] Phase 3: Job Ingestion System
 - [ ] Phase 4: Scoring Engine  
 - [ ] Phase 5: AI Research & Pitch Generation
