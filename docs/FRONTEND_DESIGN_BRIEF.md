@@ -1,11 +1,13 @@
 # Frontend Design Brief
 
 ## Design Philosophy
+
 Based on the preferred UI styling examples, this application follows a **sophisticated dark-mode-first design system** with emphasis on clarity, hierarchy, and professional aesthetics.
 
 ## Core Design Principles
 
 ### 1. Color Palette
+
 - **Background**: Pure black (#000000) to near-black (#0A0A0A)
 - **Surface**: Dark gray cards (#111111 to #1A1A1A) with subtle borders
 - **Borders**: Very subtle gray (#2A2A2A to #333333)
@@ -22,6 +24,7 @@ Based on the preferred UI styling examples, this application follows a **sophist
   - Background meshes: Very subtle red-to-black gradients for accent sections
 
 ### 2. Typography
+
 - **Font Family**: System fonts with fallbacks
   - Sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial
   - Monospace: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas
@@ -36,9 +39,10 @@ Based on the preferred UI styling examples, this application follows a **sophist
 - **Line Height**: Generous (1.5-1.7 for body text)
 
 ### 3. Layout & Spacing
+
 - **Container**: Centered with max-width (typically 1200px)
 - **Grid**: 3-column card layouts for feature sections
-- **Spacing Scale**: 
+- **Spacing Scale**:
   - xs: 4px
   - sm: 8px
   - md: 16px
@@ -52,6 +56,7 @@ Based on the preferred UI styling examples, this application follows a **sophist
 ### 4. Component Patterns
 
 #### Cards
+
 ```css
 .card {
   background: #111111;
@@ -68,6 +73,7 @@ Based on the preferred UI styling examples, this application follows a **sophist
 ```
 
 #### Buttons
+
 ```css
 .button-primary {
   background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
@@ -100,6 +106,7 @@ Based on the preferred UI styling examples, this application follows a **sophist
 ```
 
 #### Form Inputs
+
 ```css
 .input {
   background: #0A0A0A;
@@ -117,13 +124,15 @@ Based on the preferred UI styling examples, this application follows a **sophist
 ```
 
 ### 5. Visual Hierarchy
+
 - **Minimal chrome**: Remove unnecessary UI elements
 - **Clear sections**: Distinct content blocks with clear boundaries
 - **Progressive disclosure**: Show information as needed
 - **Iconography**: Simple, monochrome icons (preferably outline style)
 
 ### 6. Gradients & Visual Effects
-- **Background gradients**: 
+
+- **Background gradients**:
   - Radial gradients from lighter center to darker edges for depth
   - Subtle red gradient overlays for accent sections
   - Mesh gradients for hero sections
@@ -133,6 +142,7 @@ Based on the preferred UI styling examples, this application follows a **sophist
 - **Border gradients**: Gradient borders for premium/highlighted content
 
 ### 7. Animation & Interactions
+
 - **Subtle transitions**: 0.2s ease for most interactions
 - **Hover states**: Slight brightness/border changes, red accent appears
 - **Loading states**: Skeleton screens with subtle shimmer
@@ -142,6 +152,7 @@ Based on the preferred UI styling examples, this application follows a **sophist
 ## Implementation Guidelines
 
 ### Tailwind CSS Configuration
+
 ```javascript
 // tailwind.config.js
 module.exports = {
@@ -187,6 +198,7 @@ module.exports = {
 ```
 
 ### Component Structure
+
 ```tsx
 // Example Card Component
 export function FeatureCard({ icon, title, description }: FeatureCardProps) {
@@ -209,26 +221,31 @@ export function FeatureCard({ icon, title, description }: FeatureCardProps) {
 ## Page-Specific Styling
 
 ### Dashboard
+
 - Left sidebar navigation (dark surface)
 - Main content area with card-based layout
 - Minimal header with user info
 
 ### Job Listings
+
 - Card grid layout (2-3 columns)
 - Each card with company, title, location, match score
 - Subtle hover effects for interactivity
 
 ### Resume/Profile
+
 - Clean form layouts with dark inputs
 - Section dividers with subtle borders
 - Progress indicators for completion
 
 ### Landing/Auth Pages
+
 - Centered content with hero messaging
 - Minimal form design
 - High contrast CTAs
 
 ## Accessibility Considerations
+
 - **Contrast ratios**: Ensure WCAG AA compliance
 - **Focus indicators**: Visible but subtle focus rings
 - **Keyboard navigation**: Full keyboard support
@@ -237,6 +254,7 @@ export function FeatureCard({ icon, title, description }: FeatureCardProps) {
 ## Do's and Don'ts
 
 ### Do's ✅
+
 - Use plenty of whitespace
 - Maintain consistent spacing
 - Keep interactions subtle
@@ -245,6 +263,7 @@ export function FeatureCard({ icon, title, description }: FeatureCardProps) {
 - Follow the established color palette
 
 ### Don'ts ❌
+
 - Don't use bright colors unnecessarily
 - Avoid heavy drop shadows
 - Don't use excessive animations
@@ -253,7 +272,9 @@ export function FeatureCard({ icon, title, description }: FeatureCardProps) {
 - Avoid using pure white on pure black (use slight off-whites/grays)
 
 ## Reference Implementation
+
 The design system is inspired by modern SaaS applications with dark themes, emphasizing:
+
 - Professional appearance suitable for career-focused application
 - High readability and clear information hierarchy
 - Minimal cognitive load through consistent patterns

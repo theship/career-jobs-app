@@ -62,6 +62,7 @@ flowchart TD
 ## Technology Stack
 
 ### Backend
+
 - **FastAPI**: Python web framework with automatic OpenAPI docs
 - **Supabase**: Postgres database with Auth, Storage, and pgvector
 - **OpenAI API**: Text embeddings and structured outputs
@@ -72,11 +73,13 @@ flowchart TD
 - **Weave**: LLM observability, evaluation, and quality monitoring
 
 ### Frontend
+
 - **Next.js** (recommended): React framework with SSR support
 - **Supabase Auth**: JWT-based authentication
 - **Tailwind CSS**: Utility-first styling
 
 ### Infrastructure
+
 - **Supabase**: Database, auth, storage, and edge functions
 - **Vercel/Railway**: Frontend and backend deployment
 - **Google Drive API**: Export functionality
@@ -86,6 +89,7 @@ flowchart TD
 ### Core Tables
 
 #### Users and Preferences
+
 ```sql
 create table app_user (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -96,6 +100,7 @@ create table app_user (
 ```
 
 #### Job Postings (Current + History)
+
 ```sql
 create table job_postings (
   job_id text primary key,
@@ -131,6 +136,7 @@ create table job_postings_versions (
 ```
 
 #### Résumés and Versions
+
 ```sql
 create table resumes (
   resume_id bigserial primary key,
@@ -153,6 +159,7 @@ create table resume_versions (
 ```
 
 #### Scoring and Research
+
 ```sql
 create table scores (
   score_id bigserial primary key,
@@ -178,6 +185,7 @@ create table company_research (
 ## Job Ingestion Connectors
 
 ### Supported ATS Systems
+
 - **Greenhouse**: Job Board API (`boards/{board_id}/jobs`)
 - **Lever**: Postings API and XML feeds
 - **Ashby**: Public Job Postings API
@@ -186,6 +194,7 @@ create table company_research (
 - **Workday**: Best-effort from `myworkdayjobs.com` sites (no uniform API)
 
 ### Connector Interface
+
 ```python
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -211,6 +220,7 @@ class JobConnector(ABC):
 ## Scoring Algorithm
 
 ### Multi-Factor Scoring
+
 ```python
 total_score = 0.50 * cosine_similarity +
               0.20 * skill_overlap +
@@ -220,6 +230,7 @@ total_score = 0.50 * cosine_similarity +
 ```
 
 ### Feature Definitions
+
 - **Cosine Similarity**: Vector similarity between job description and résumé embeddings
 - **Skill Overlap**: Jaccard similarity of normalized skills
 - **Seniority Fit**: Match between résumé level and job requirements
@@ -229,6 +240,7 @@ total_score = 0.50 * cosine_similarity +
 ## AI-Powered Research & Pitches
 
 ### Company Research Schema
+
 ```json
 {
   "company_domain": "string",
@@ -241,6 +253,7 @@ total_score = 0.50 * cosine_similarity +
 ```
 
 ### Pitch Generation
+
 - Uses structured OpenAI outputs to ensure schema compliance
 - Combines résumé strengths + company research + role requirements
 - Produces 90-second pitch with headline, opening, and bullet points
@@ -248,11 +261,13 @@ total_score = 0.50 * cosine_similarity +
 ## API Design
 
 ### Authentication
+
 - Supabase Auth with JWT tokens
 - JWKS-based verification (supports key rotation)
 - Row-Level Security (RLS) for data isolation
 
 ### Key Endpoints
+
 ```http
 POST /resumes              - Upload and process résumé
 GET  /jobs/recent         - Last 7 days of job postings
@@ -264,6 +279,7 @@ POST /export/drive        - Upload to Google Drive
 ```
 
 ### Response Format
+
 ```json
 {
   "spec_version": "1.0",
@@ -294,18 +310,21 @@ POST /export/drive        - Upload to Google Drive
 ## Security Considerations
 
 ### Data Protection
+
 - Row-Level Security (RLS) for multi-tenant isolation
 - JWT verification via JWKS (no hardcoded secrets)
 - File storage with SHA256 integrity checks
 - User-namespaced storage paths
 
 ### API Security
+
 - Rate limiting per user
 - Input validation with Pydantic models
 - Structured AI outputs to prevent injection
 - Source URL verification for research claims
 
 ### Compliance
+
 - Respect robots.txt and ATS terms of service
 - No aggressive scraping - prefer official APIs
 - Secure handling of uploaded documents
@@ -314,6 +333,7 @@ POST /export/drive        - Upload to Google Drive
 ## Project Structure
 
 ### Current Structure (AIEWF Setup)
+
 ```text
 career-jobs-app/
 ├── .daytona.yml           # Daytona sandbox configuration
@@ -335,6 +355,7 @@ career-jobs-app/
 ```
 
 ### Planned Application Structure
+
 Based on successful AIEWF patterns from civic-steward-visionboard:
 
 ```text
@@ -462,28 +483,33 @@ career-jobs-app/
 #### Key Improvements from Civic-Steward Pattern
 
 **1. Domain-Driven Top-Level Organization**
+
 - `api/` - FastAPI backend (not nested under `/backend`)
 - `scoring_engine/` - Core business logic (like `alignment_engine/`)
 - `ingestion/` - Data ingestion pipeline
 - `dashboard/` - Next.js frontend (like `dashboard/`)
 
 **2. Configuration-Driven Development**
+
 - `config/` directory with YAML files for settings
 - Prompt templates in `config/prompts/`
 - JSON schemas for validation
 - ATS source configurations
 
 **3. Comprehensive Data Management**
+
 - Structured `data/` directory with processing stages
 - Separation of raw, processed, and cached data
 - Dedicated export directory
 
 **4. Service-Oriented Architecture**
+
 - Clear separation between models, routes, and services
 - Dedicated utilities and caching layer
 - Business logic isolated in domain engines
 
 **5. Experiment Tracking & LLM Observability**
+
 - W&B for scoring algorithm optimization and dataset lineage
 - Weave for LLM call tracing, evaluation, and quality monitoring
 - Automated regression detection and performance optimization
@@ -491,17 +517,20 @@ career-jobs-app/
 #### AIEWF Component Details
 
 ##### Development Environment Files
+
 - **`.daytona.yml`**: Sandbox configuration with security policies, resource limits, and API key injection
 - **`Dockerfile.dev`**: Pre-built development container with Node.js, Python, and development tools
 - **`.env.example`**: Template for required environment variables (`DAYTONA_API_KEY`, `GH_PAT`, `ANTHROPIC_API_KEY`)
 - **`Brewfile`**: macOS dependency management via Homebrew (daytona CLI, jq, gh, shellcheck)
 
 ##### Automation Scripts (`/scripts` - AIEWF)
+
 - **`bootstrap.sh`**: One-time setup script for installing development dependencies
 - **`dev.sh`**: Core script that handles sandbox creation, resumption, and state management
 - **`coderabbit-smoke.js`**: Integration testing for CodeRabbit PR review automation
 
 ##### Utility Scripts (`/scripts` - Application)
+
 - **`seed_data.py`**: Development data seeding for testing
 - **`migrate_data.py`**: Data migration utilities
 - **`generate_embeddings.py`**: Batch embedding generation for performance
@@ -510,17 +539,20 @@ career-jobs-app/
 - **`backup_data.py`**: Data backup and recovery utilities
 
 ##### Experiment Tracking (`/experiments` - W&B)
+
 - **`scoring_sweeps.yaml`**: Bayesian optimization config for scoring weights
 - **`evaluation_datasets/`**: Curated datasets for model performance testing
 - **`sweep_configs/`**: Various sweep configurations for different optimization goals
 
 ##### LLM Evaluation (`/evals` - Weave)
+
 - **`research_eval.py`**: Company research quality evaluation with custom scorers
 - **`pitch_eval.py`**: Pitch generation quality and personalization evaluation  
 - **`datasets/`**: Ground truth datasets for LLM evaluation
 - **`scorers/`**: Custom scoring functions for hallucination, accuracy, and relevance
 
 ##### Makefile Targets
+
 ```bash
 make setup    # Install development tools via bootstrap.sh
 make dev      # Start/resume Daytona sandbox with dev.sh
@@ -532,6 +564,7 @@ make eval     # Run Weave LLM evaluation suite
 ```
 
 ##### Hybrid Development Workflow
+
 This project uses a **hybrid Cursor + Daytona + Claude Code** approach:
 
 1. **Cursor IDE (Local)**: Code exploration, git management, Claude Code integration
@@ -540,6 +573,7 @@ This project uses a **hybrid Cursor + Daytona + Claude Code** approach:
 4. **CodeRabbit**: Automated PR reviews with security-first analysis
 
 The AIEWF setup ensures:
+
 - ✅ Secure API key management via environment injection
 - ✅ Isolated development environment with network policies  
 - ✅ Automated sandbox lifecycle management
@@ -549,16 +583,19 @@ The AIEWF setup ensures:
 ## Performance Considerations
 
 ### Database Optimization
+
 - HNSW index on embedding columns for fast similarity search
 - Composite indexes on frequently queried columns
 - Partitioning for time-series data (job_postings_versions)
 
 ### Caching Strategy
+
 - Embedding caching by content hash to avoid duplicate API calls
 - Company research caching (TTL: 24 hours)
 - Redis for session and rate limiting data
 
 ### Cost Management
+
 - Monthly OpenAI API spend caps
 - Batch processing for embeddings
 - Efficient vector similarity queries with limits
@@ -566,12 +603,14 @@ The AIEWF setup ensures:
 ## Monitoring & Observability
 
 ### Metrics
+
 - API request latency and error rates
 - Job ingestion success/failure rates
 - Embedding generation costs
 - User engagement metrics
 
 ### Logging
+
 - Structured JSON logs
 - API request/response correlation IDs
 - ATS connector health checks
@@ -580,6 +619,7 @@ The AIEWF setup ensures:
 ## Development Workflow
 
 ### Local Development
+
 ```bash
 # Backend
 cd backend
@@ -597,12 +637,14 @@ supabase db reset
 ```
 
 ### Testing Strategy
+
 - Unit tests for scoring algorithms
 - Integration tests for ATS connectors
 - End-to-end tests for user workflows
 - Load testing for embedding operations
 
 ### CI/CD Pipeline
+
 - Automated testing on PR creation
 - Database migration validation
 - Security scanning
