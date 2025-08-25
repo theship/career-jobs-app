@@ -72,6 +72,15 @@ We never use the removed `daytona env`. Our `scripts/dev.sh` loads `.env` and pa
 ### D. Install CodeRabbit on the repo
 GitHub → **Settings → Integrations → GitHub Apps** → install **CodeRabbit** on this repo (no PAT).
 
+#### CodeRabbit Python path sequence diagram
+
+
+![CodeRabbit Python path sequence diagram](./images/coderabbit-pr-python.png "CodeRabbit Python path sequence diagram from pull/4")
+
+#### CodeRabbit Dashboard sequence diagram
+
+![CodeRabbit Dashboard sequence diagram](./images/coderabbit-pr-dashboard.png "CodeRabbit Dashboard sequence diagram from pull/4")
+
 ### E. Repository hardening (recommended)
 - Protect `main` from direct pushes.
 - Require status checks: **CodeRabbit** + CI tests must pass before merge.

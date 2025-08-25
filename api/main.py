@@ -2,6 +2,7 @@
 Career Jobs App - FastAPI Backend
 Phase 1: Foundation & Authentication
 """
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,12 +22,13 @@ async def lifespan(app: FastAPI):
     # Shutdown
     print("Shutting down Career Jobs App API...")
 
+
 # Create FastAPI app
 app = FastAPI(
     title="Career Jobs App API",
     description="AI-powered job matching and career development platform",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -34,12 +37,13 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",  # Next.js dev server
         "http://localhost:3001",  # Alternative port
-        os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000")
+        os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/")
 async def root():
@@ -47,17 +51,15 @@ async def root():
     return {
         "message": "Career Jobs App API",
         "version": "0.1.0",
-        "status": "operational"
+        "status": "operational",
     }
+
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring"""
-    return {
-        "status": "healthy",
-        "service": "career-jobs-api",
-        "version": "0.1.0"
-    }
+    return {"status": "healthy", "service": "career-jobs-api", "version": "0.1.0"}
+
 
 # Import and include routers
 from api.routes import auth, resumes

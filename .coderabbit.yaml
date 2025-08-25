@@ -21,35 +21,19 @@ reviews:
     # Review new commits automatically
     auto_incremental_review: true
     
-  # Path filters - focus on important files
+  # Path filters - files to exclude from review
   path_filters:
-    # Ignore these file patterns
-    excluded:
-      - "**/*.lock"
-      - "**/*.log"
-      - "**/node_modules/**"
-      - "**/.venv/**"
-      - "**/__pycache__/**"
-      - "**/*.pyc"
-      - "**/dist/**"
-      - "**/build/**"
-      - "**/.next/**"
-      - "**/coverage/**"
-      - "**/.pytest_cache/**"
-    
-    # Always review these patterns
-    included:
-      - "**/*.py"
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "**/*.js"
-      - "**/*.jsx"
-      - "**/Dockerfile*"
-      - "**/*.yml"
-      - "**/*.yaml"
-      - "**/*.sql"
-      - "**/requirements*.txt"
-      - "**/package.json"
+    - "!**/*.lock"
+    - "!**/*.log"
+    - "!**/node_modules/**"
+    - "!**/.venv/**"
+    - "!**/__pycache__/**"
+    - "!**/*.pyc"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/.next/**"
+    - "!**/coverage/**"
+    - "!**/.pytest_cache/**"
 
 # Language-specific settings
 languages:
