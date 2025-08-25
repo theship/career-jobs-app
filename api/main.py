@@ -3,6 +3,7 @@ Career Jobs App - FastAPI Backend
 Phase 1: Foundation & Authentication
 """
 
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -13,15 +14,18 @@ from fastapi.middleware.cors import CORSMiddleware
 # Load environment variables
 load_dotenv()
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
     # Startup
-    print("Starting Career Jobs App API...")
+    logger.info("Starting Career Jobs App API...")
     yield
     # Shutdown
-    print("Shutting down Career Jobs App API...")
+    logger.info("Shutting down Career Jobs App API...")
 
 
 # Create FastAPI app

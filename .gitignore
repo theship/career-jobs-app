@@ -145,9 +145,6 @@ data/private/
 *.sqlite
 *.sqlite3
 
-# Test files
-# Note: DO NOT ignore test files - they need to be in the repo for CI!
-
 # Memory files
 file::memory:
 

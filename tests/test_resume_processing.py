@@ -208,6 +208,7 @@ async def test_unsupported_file_type(resume_processor):
     mock_file = Mock()
     mock_file.filename = "resume.xyz"
     mock_file.read = AsyncMock(return_value=b"Content")
+    mock_file.seek = AsyncMock()  # Add async seek mock
 
     with pytest.raises(ValueError) as exc_info:
         await resume_processor.extract_text(mock_file)

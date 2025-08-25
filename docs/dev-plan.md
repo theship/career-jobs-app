@@ -1,5 +1,22 @@
 # Career Jobs App - Development Plan
 
+## 📊 Quick Status Summary (Updated 2025-08-25)
+
+### Project Progress
+- **Phase 1: Foundation & Authentication** ✅ COMPLETE (100%)
+- **Phase 2: Resume Processing Pipeline** ✅ COMPLETE (100%)
+- **Phase 3: Job Ingestion System** 🔄 IN PROGRESS (~80%)
+- **Phase 4: Scoring Engine** 📋 NOT STARTED
+- **Phase 5: AI Research & Pitch** 📋 NOT STARTED
+- **Phase 6: Export & Integration** 📋 NOT STARTED
+
+### Current State
+- **Test Status:** 23/23 tests passing ✅
+- **Backend API:** FastAPI running at http://localhost:8000 ✅
+- **Frontend:** Next.js at http://localhost:3001 (boilerplate UI only) ⚠️
+- **Database:** Supabase configured with pgvector ✅
+- **Authentication:** JWT/JWKS verification working ✅
+
 ## Overview
 
 This document outlines the phased development approach for the Career Jobs App, including acceptance criteria, testing strategies, and milestone definitions. Phase 0–6. Stack: Supabase (Postgres + Auth + Storage + RLS + pgvector), FastAPI, Next.js, OpenAI embeddings, W&B + Weave later for experiments/observability. JWT verification is JWKS‑based.
@@ -23,6 +40,50 @@ This document outlines the phased development approach for the Career Jobs App, 
 * **COVERAGE MATRIX:** *List every requirement and where it appears in the updated docs.*
 * **DOC MANIFEST:** *Show per‑file line counts and SHA256 checksums after changes.*
 * **FAIL‑CLOSED:** *If any referenced section is missing, stop and report missing anchors rather than guessing.*
+
+## Development Environment Commands
+
+### Quick Start
+```bash
+# Start backend (from project root)
+python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Start frontend (in separate terminal)
+cd dashboard && npm run dev
+
+# Run tests
+pytest tests/ -v --cov=api
+```
+
+### Key Commands for Development
+```bash
+# Backend development
+pip install -r requirements.txt
+python -m pytest tests/ -v
+
+# Frontend development  
+cd dashboard
+npm install
+npm run dev
+
+# Linting and formatting
+black api/
+isort api/
+```
+
+## 🔑 Environment Variables Needed
+
+```bash
+# Backend (.env)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=eyJ... 
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+OPENAI_API_KEY=sk-...
+
+# Frontend (dashboard/.env.local)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
 
 ## Development Phases
 
@@ -152,7 +213,7 @@ describe('Authentication Flow', () => {
 })
 ```
 
-### Phase 2: Resume Processing Pipeline (Weeks 3-4) 🔄 IN PROGRESS
+### Phase 2: Resume Processing Pipeline (Weeks 3-4) ✅ COMPLETE
 
 #### Objectives
 * ✅ Implement resume upload and storage
@@ -337,33 +398,34 @@ describe('Resume Upload', () => {
 })
 ```
 
-### Phase 3: Job Ingestion System (Weeks 5-7)
+### Phase 3: Job Ingestion System (Weeks 5-7) 🔄 IN PROGRESS
 
 #### Objectives
-* Implement ATS connectors for job fetching
-* Create job normalization pipeline
-* Set up scheduled ingestion jobs
-* Handle job versioning and deduplication
+* ✅ Implement ATS connectors for job fetching
+* ✅ Create job normalization pipeline
+* ⚠️ Set up scheduled ingestion jobs (pending)
+* ⚠️ Handle job versioning and deduplication (partial)
 
 #### Tasks
 
 1. **ATS Connector System**
-   * Implement base connector in `/ingestion/connectors/base.py`
-   * Create specific connectors: `/ingestion/connectors/greenhouse.py`, `lever.py`, `ashby.py`
-   * Add ATS configurations in `/config/ats_sources.yaml`
-   * Error handling and rate limiting with exponential backoff
+   * ✅ Implement base connector in `/ingestion/connectors/base.py`
+   * ✅ Create specific connectors: `/ingestion/connectors/greenhouse.py`, `lever.py`
+   * ❌ `ashby.py` (not implemented)
+   * ⚠️ Add ATS configurations in `/config/ats_sources.yaml` (pending)
+   * ✅ Error handling and rate limiting with exponential backoff
 
 2. **Data Processing Pipeline**
-   * Job normalizer in `/ingestion/normalizers/job_normalizer.py`
-   * Raw data storage in `/data/raw/` with ATS-specific subdirectories
-   * Processed data in `/data/processed/` with canonical schema
-   * Generate embeddings for job descriptions using existing service
+   * ✅ Job normalizer in `/ingestion/normalizers/normalizer.py`
+   * ⚠️ Raw data storage in `/data/raw/` with ATS-specific subdirectories
+   * ⚠️ Processed data in `/data/processed/` with canonical schema
+   * ⚠️ Generate embeddings for job descriptions using existing service
 
 3. **Orchestration System**
-   * Ingestion orchestrator in `/ingestion/orchestrator.py`
-   * Scheduling script in `/scripts/run_ingestion.py`
-   * Job ingestion API endpoints in `/api/routes/jobs.py`
-   * Monitoring and logging with structured JSON logs
+   * ❌ Ingestion orchestrator in `/ingestion/orchestrator.py`
+   * ❌ Scheduling script in `/scripts/run_ingestion.py`
+   * ❌ Job ingestion API endpoints in `/api/routes/jobs.py`
+   * ⚠️ Monitoring and logging with structured JSON logs
 
 #### Backend Acceptance Tests
 

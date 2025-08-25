@@ -192,13 +192,20 @@ class ResumeProcessor:
             except Exception as e:
                 logger.warning(f"OpenAI extraction failed: {e}")
 
+        # Filter out None values from years_experience
+        filtered_years = (
+            {k: v for k, v in years_experience.items() if v is not None}
+            if years_experience
+            else None
+        )
+
         return SkillExtractionResult(
             skills=list(all_skills.values()),
             method=method,
             confidence_scores=confidence_scores,
             evidence_spans=evidence_spans,
             coverage=min(coverage, 100.0),
-            years_experience=years_experience if years_experience else None,
+            years_experience=filtered_years if filtered_years else None,
         )
 
     def _extract_skills_fuzzy(self, text: str) -> Dict[str, Dict[str, Any]]:
@@ -225,12 +232,15 @@ class ResumeProcessor:
             if skill_key in text_lower:
                 spans = self._find_spans(text, skill_key)
                 if spans:
-                    found_skills[canonical] = {
+                    years = self._extract_years_for_skill(text, canonical)
+                    skill_data = {
                         "canonical": canonical,
                         "spans": spans,
                         "confidence": 1.0,
-                        "years": self._extract_years_for_skill(text, canonical),
                     }
+                    if years is not None:
+                        skill_data["years"] = years
+                    found_skills[canonical] = skill_data
                     continue
 
             # Fuzzy match for multi-word skills
@@ -241,12 +251,15 @@ class ResumeProcessor:
                     # Find approximate location
                     spans = self._find_fuzzy_spans(text, skill_key)
                     if spans:
-                        found_skills[canonical] = {
+                        years = self._extract_years_for_skill(text, canonical)
+                        skill_data = {
                             "canonical": canonical,
                             "spans": spans,
                             "confidence": ratio / 100.0,
-                            "years": self._extract_years_for_skill(text, canonical),
                         }
+                        if years is not None:
+                            skill_data["years"] = years
+                        found_skills[canonical] = skill_data
 
         return found_skills
 
@@ -285,6 +298,7 @@ class ResumeProcessor:
         # Look for patterns like "5 years of Python" or "Python (3 years)"
         patterns = [
             rf"(\d+\.?\d*)\s*\+?\s*years?\s+(?:of\s+)?(?:experience\s+)?(?:with\s+)?{re.escape(skill)}",
+            rf"(\d+\.?\d*)\s*\+?\s*years?\s+(?:working\s+)?(?:with\s+)?{re.escape(skill)}",
             rf"{re.escape(skill)}\s*[\(\[]?\s*(\d+\.?\d*)\s*\+?\s*years?",
             rf"{re.escape(skill)}.*?(\d+\.?\d*)\s*\+?\s*years?",
         ]
