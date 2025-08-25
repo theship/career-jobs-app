@@ -1,12 +1,13 @@
 """Storage service for file management using Supabase Storage."""
 
+import logging
 import os
 import uuid
-from typing import Optional
 from datetime import datetime
-import logging
-from supabase import create_client, Client
+from typing import Optional
+
 from fastapi import UploadFile
+from supabase import Client, create_client
 
 from ..utils.config import settings
 

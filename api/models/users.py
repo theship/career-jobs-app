@@ -2,10 +2,11 @@
 User models for database and API
 """
 
-from typing import Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
+from typing import Any, Dict, Optional
 from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserBase(BaseModel):

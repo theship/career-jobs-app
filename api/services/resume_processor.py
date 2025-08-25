@@ -1,16 +1,17 @@
 """Resume processing service with multi-stage skill extraction."""
 
 import io
+import logging
 import re
-from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import openai
+from docx import Document
 from pdfminer.high_level import extract_text
 from pdfminer.layout import LAParams
-from docx import Document
 from rapidfuzz import fuzz, process
-import openai
-import numpy as np
-from datetime import datetime
-import logging
 
 from ..models.resumes import SkillExtractionResult
 from ..utils.config import settings

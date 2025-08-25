@@ -1,15 +1,16 @@
 """Resume management routes."""
 
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from pydantic import BaseModel
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import List, Optional
 
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from pydantic import BaseModel
+
+from ..models.resumes import Resume, ResumeCreate, ResumeUpdate, ResumeVersion
 from ..services.auth import get_current_user
-from ..models.resumes import Resume, ResumeVersion, ResumeCreate, ResumeUpdate
-from ..services.storage import StorageService
 from ..services.resume_processor import ResumeProcessor
+from ..services.storage import StorageService
 from ..utils.db import get_db_connection
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])

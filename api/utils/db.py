@@ -1,9 +1,10 @@
 """Database connection utilities."""
 
-import asyncpg
-from typing import Optional
 import logging
 from contextlib import asynccontextmanager
+from typing import Optional
+
+import asyncpg
 
 from .config import settings
 

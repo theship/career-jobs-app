@@ -3,8 +3,10 @@ Authentication Routes
 Handles user authentication and profile endpoints
 """
 
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any
+
 from api.services.auth import get_current_user, get_current_user_optional
 
 router = APIRouter()

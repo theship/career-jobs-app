@@ -3,16 +3,17 @@ JWT Authentication Service with JWKS Support
 Uses Supabase's JWT Signing Keys (RS256/ES256)
 """
 
-from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+import logging
 import os
+from datetime import datetime, timedelta
+from functools import lru_cache
+from typing import Any, Dict, Optional
+
 import httpx
 import jwt
+from fastapi import Depends, HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
-from fastapi import HTTPException, Security, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from functools import lru_cache
-import logging
 
 logger = logging.getLogger(__name__)
 

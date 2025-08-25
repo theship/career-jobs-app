@@ -2,11 +2,12 @@
 Shared test fixtures and configuration
 """
 
-import pytest
 import os
+from datetime import datetime, timedelta
 from typing import Generator
 from unittest.mock import MagicMock
-from datetime import datetime, timedelta
+
+import pytest
 
 # Set test environment variables
 os.environ["SUPABASE_URL"] = "https://test.supabase.co"
