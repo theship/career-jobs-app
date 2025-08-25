@@ -1,18 +1,19 @@
 """
-Authentication Tests - Phase 1
+Fixed Authentication Tests - Phase 1
 Tests for JWT verification, health checks, and API authentication
 """
 
 import json
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, Mock, patch
 
 import jwt
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api.main import app
-from api.services.auth import get_auth_service
+from api.services.auth import JWTAuthService, get_auth_service
 
 client = TestClient(app)
 
@@ -35,8 +36,86 @@ class TestHealthCheck:
         assert response.json()["status"] == "operational"
 
 
-class TestAuthentication:
-    """Test JWT authentication and protected endpoints"""
+class TestJWTAuthService:
+    """Test the JWT Auth Service directly"""
+
+    @patch.dict("os.environ", {"SUPABASE_URL": "https://test.supabase.co"})
+    def test_verify_valid_token(self):
+        """Test verifying a valid token"""
+        test_payload = {
+            "sub": "test-user-id",
+            "email": "test@example.com",
+            "aud": "authenticated",
+            "role": "authenticated",
+            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "iat": int(datetime.now(timezone.utc).timestamp()),
+        }
+
+        with patch("api.services.auth.PyJWKClient") as mock_jwk_client_class:
+            # Mock the JWKS client instance
+            mock_jwk_instance = Mock()
+            mock_jwk_client_class.return_value = mock_jwk_instance
+
+            # Mock the signing key
+            mock_signing_key = Mock()
+            mock_signing_key.key = "test-key"
+            mock_jwk_instance.get_signing_key_from_jwt.return_value = mock_signing_key
+
+            # Mock jwt.decode
+            with patch("api.services.auth.jwt.decode", return_value=test_payload):
+                service = JWTAuthService()
+                result = service.verify_token("test-token")
+
+                assert result == test_payload
+                assert result["sub"] == "test-user-id"
+
+    @patch.dict("os.environ", {"SUPABASE_URL": "https://test.supabase.co"})
+    def test_verify_expired_token(self):
+        """Test verifying an expired token"""
+        with patch("api.services.auth.PyJWKClient") as mock_jwk_client_class:
+            mock_jwk_instance = Mock()
+            mock_jwk_client_class.return_value = mock_jwk_instance
+
+            mock_signing_key = Mock()
+            mock_signing_key.key = "test-key"
+            mock_jwk_instance.get_signing_key_from_jwt.return_value = mock_signing_key
+
+            with patch(
+                "api.services.auth.jwt.decode", side_effect=jwt.ExpiredSignatureError()
+            ):
+                service = JWTAuthService()
+
+                with pytest.raises(HTTPException) as exc_info:
+                    service.verify_token("expired-token")
+
+                assert exc_info.value.status_code == 401
+                assert "expired" in exc_info.value.detail.lower()
+
+    @patch.dict("os.environ", {"SUPABASE_URL": "https://test.supabase.co"})
+    def test_verify_wrong_audience_token(self):
+        """Test verifying a token with wrong audience"""
+        with patch("api.services.auth.PyJWKClient") as mock_jwk_client_class:
+            mock_jwk_instance = Mock()
+            mock_jwk_client_class.return_value = mock_jwk_instance
+
+            mock_signing_key = Mock()
+            mock_signing_key.key = "test-key"
+            mock_jwk_instance.get_signing_key_from_jwt.return_value = mock_signing_key
+
+            with patch(
+                "api.services.auth.jwt.decode", side_effect=jwt.InvalidAudienceError()
+            ):
+                service = JWTAuthService()
+
+                with pytest.raises(HTTPException) as exc_info:
+                    service.verify_token("wrong-audience-token")
+
+                assert exc_info.value.status_code == 401
+                assert "audience" in exc_info.value.detail.lower()
+
+
+class TestAuthenticationEndpoints:
+    """Test authentication endpoints with proper mocking"""
 
     def test_protected_endpoint_without_token(self):
         """Protected endpoints reject requests without token"""
@@ -49,127 +128,88 @@ class TestAuthentication:
         response = client.get("/api/v1/auth/me", headers=headers)
         assert response.status_code == 401
 
-    @patch("api.services.auth.PyJWKClient")
-    def test_valid_token_accepted(self, mock_jwk_client):
+    @patch("api.services.auth.get_auth_service")
+    def test_valid_token_accepted(self, mock_get_auth_service):
         """Valid Supabase JWT tokens are accepted"""
-        # Mock the JWKS client
-        mock_signing_key = MagicMock()
-        mock_signing_key.key = "test-key"
-        mock_jwk_client.return_value.get_signing_key_from_jwt.return_value = (
-            mock_signing_key
-        )
+        # Create mock auth service
+        mock_auth_service = Mock(spec=JWTAuthService)
+        mock_get_auth_service.return_value = mock_auth_service
 
-        # Create a test token payload
+        # Mock the verify_token method
         test_payload = {
             "sub": "test-user-id",
             "email": "test@example.com",
             "aud": "authenticated",
             "role": "authenticated",
-            "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp()),
-            "iat": int(datetime.utcnow().timestamp()),
+            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "iat": int(datetime.now(timezone.utc).timestamp()),
         }
+        mock_auth_service.verify_token.return_value = test_payload
+        mock_auth_service.extract_user_id.return_value = "test-user-id"
+        mock_auth_service.extract_user_email.return_value = "test@example.com"
+        mock_auth_service.extract_user_metadata.return_value = {}
 
-        # Mock jwt.decode to return our test payload
-        with patch("jwt.decode", return_value=test_payload):
-            headers = {"Authorization": "Bearer valid-test-token"}
-            response = client.get("/api/v1/auth/me", headers=headers)
+        headers = {"Authorization": "Bearer valid-test-token"}
+        response = client.get("/api/v1/auth/me", headers=headers)
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["user_id"] == "test-user-id"
-            assert data["email"] == "test@example.com"
+        assert response.status_code == 200
+        data = response.json()
+        assert data["user_id"] == "test-user-id"
+        assert data["email"] == "test@example.com"
 
-    @patch("api.services.auth.PyJWKClient")
-    def test_expired_token_rejected(self, mock_jwk_client):
-        """Expired tokens are rejected"""
-        mock_signing_key = MagicMock()
-        mock_signing_key.key = "test-key"
-        mock_jwk_client.return_value.get_signing_key_from_jwt.return_value = (
-            mock_signing_key
-        )
-
-        # Mock jwt.decode to raise ExpiredSignatureError
-        with patch("jwt.decode", side_effect=jwt.ExpiredSignatureError()):
-            headers = {"Authorization": "Bearer expired-token"}
-            response = client.get("/api/v1/auth/me", headers=headers)
-
-            assert response.status_code == 401
-            assert "expired" in response.json()["detail"].lower()
-
-    @patch("api.services.auth.PyJWKClient")
-    def test_wrong_audience_rejected(self, mock_jwk_client):
-        """Tokens with wrong audience are rejected"""
-        mock_signing_key = MagicMock()
-        mock_signing_key.key = "test-key"
-        mock_jwk_client.return_value.get_signing_key_from_jwt.return_value = (
-            mock_signing_key
-        )
-
-        # Mock jwt.decode to raise InvalidAudienceError
-        with patch("jwt.decode", side_effect=jwt.InvalidAudienceError()):
-            headers = {"Authorization": "Bearer wrong-audience-token"}
-            response = client.get("/api/v1/auth/me", headers=headers)
-
-            assert response.status_code == 401
-            assert "audience" in response.json()["detail"].lower()
-
-
-class TestAuthEndpoints:
-    """Test specific auth endpoints"""
-
-    @patch("api.services.auth.PyJWKClient")
-    def test_verify_endpoint(self, mock_jwk_client):
+    @patch("api.services.auth.get_auth_service")
+    def test_verify_endpoint(self, mock_get_auth_service):
         """Token verification endpoint returns correct data"""
-        mock_signing_key = MagicMock()
-        mock_signing_key.key = "test-key"
-        mock_jwk_client.return_value.get_signing_key_from_jwt.return_value = (
-            mock_signing_key
-        )
+        mock_auth_service = Mock(spec=JWTAuthService)
+        mock_get_auth_service.return_value = mock_auth_service
 
         test_payload = {
             "sub": "test-user-id",
             "aud": "authenticated",
-            "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp()),
-            "iat": int(datetime.utcnow().timestamp()),
+            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "iat": int(datetime.now(timezone.utc).timestamp()),
         }
+        mock_auth_service.verify_token.return_value = test_payload
+        mock_auth_service.extract_user_id.return_value = "test-user-id"
+        mock_auth_service.extract_user_email.return_value = None
+        mock_auth_service.extract_user_metadata.return_value = {}
 
-        with patch("jwt.decode", return_value=test_payload):
-            headers = {"Authorization": "Bearer test-token"}
-            response = client.get("/api/v1/auth/verify", headers=headers)
+        headers = {"Authorization": "Bearer test-token"}
+        response = client.get("/api/v1/auth/verify", headers=headers)
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["valid"] == True
-            assert data["user_id"] == "test-user-id"
-            assert "expires_at" in data
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] == True
+        assert data["user_id"] == "test-user-id"
+        assert "expires_at" in data
 
-    @patch("api.services.auth.PyJWKClient")
-    def test_session_endpoint(self, mock_jwk_client):
+    @patch("api.services.auth.get_auth_service")
+    def test_session_endpoint(self, mock_get_auth_service):
         """Session endpoint returns session information"""
-        mock_signing_key = MagicMock()
-        mock_signing_key.key = "test-key"
-        mock_jwk_client.return_value.get_signing_key_from_jwt.return_value = (
-            mock_signing_key
-        )
+        mock_auth_service = Mock(spec=JWTAuthService)
+        mock_get_auth_service.return_value = mock_auth_service
 
         test_payload = {
             "sub": "test-user-id",
             "aud": "authenticated",
             "role": "authenticated",
             "session_id": "test-session-123",
-            "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp()),
-            "iat": int(datetime.utcnow().timestamp()),
+            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "iat": int(datetime.now(timezone.utc).timestamp()),
         }
+        mock_auth_service.verify_token.return_value = test_payload
+        mock_auth_service.extract_user_id.return_value = "test-user-id"
+        mock_auth_service.extract_user_email.return_value = None
+        mock_auth_service.extract_user_metadata.return_value = {}
 
-        with patch("jwt.decode", return_value=test_payload):
-            headers = {"Authorization": "Bearer test-token"}
-            response = client.get("/api/v1/auth/session", headers=headers)
+        headers = {"Authorization": "Bearer test-token"}
+        response = client.get("/api/v1/auth/session", headers=headers)
 
-            assert response.status_code == 200
-            data = response.json()
-            assert data["session_id"] == "test-session-123"
-            assert data["user_id"] == "test-user-id"
-            assert data["role"] == "authenticated"
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == "test-session-123"
+        assert data["user_id"] == "test-user-id"
+        assert data["role"] == "authenticated"
 
 
 class TestConfigLoading:
