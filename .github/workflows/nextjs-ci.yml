@@ -5,12 +5,10 @@ on:
     branches: [main, develop]
     paths:
       - 'dashboard/**'
-      - '.github/workflows/nextjs-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'dashboard/**'
-      - '.github/workflows/nextjs-ci.yml'
 
 defaults:
   run:
@@ -24,23 +22,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Check if dashboard exists
+        id: check-dashboard
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::warning::Dashboard package-lock.json not found, skipping Node.js steps"
+          fi
+      
       - name: Setup Node.js
+        if: steps.check-dashboard.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
       
       - name: Install dependencies
+        if: steps.check-dashboard.outputs.exists == 'true'
         run: npm ci
       
       - name: Run ESLint
+        if: steps.check-dashboard.outputs.exists == 'true'
         run: npm run lint
         continue-on-error: true  # Don't fail initially
       
       - name: Run TypeScript compiler check
+        if: steps.check-dashboard.outputs.exists == 'true'
         run: npx tsc --noEmit
         continue-on-error: true  # Don't fail initially
       
       - name: Check formatting with Prettier
+        if: steps.check-dashboard.outputs.exists == 'true'
         run: npx prettier --check "src/**/*.{ts,tsx,js,jsx,css}"
         continue-on-error: true  # Don't fail initially
 

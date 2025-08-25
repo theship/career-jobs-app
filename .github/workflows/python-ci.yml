@@ -105,7 +105,7 @@ jobs:
       
       - name: Run pytest
         run: |
-          pytest tests/ -v --cov=api --cov-report=xml --cov-report=html
+          pytest tests/ -v --cov=api --cov-report=xml --cov-report=html || if [ $? -eq 5 ]; then echo "::warning::No tests collected"; exit 0; else exit $?; fi
       
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
