@@ -26,9 +26,7 @@ def create_test_job(job_id: str, title: str, **kwargs) -> Dict[str, Any]:
         "company_domain": kwargs.get("company_domain", "test.com"),
         "location": kwargs.get("location", "Remote"),
         "job_url": kwargs.get("job_url", f"https://test.com/jobs/{job_id}"),
-        "posted_at": kwargs.get(
-            "posted_at", datetime.now(timezone.utc).isoformat()
-        ),
+        "posted_at": kwargs.get("posted_at", datetime.now(timezone.utc).isoformat()),
         **kwargs,
     }
     return job_data
@@ -134,9 +132,7 @@ class TestPhase3AcceptanceTests:
         pytest.skip("Requires authentication setup")
 
         # Mock the ingestion endpoint
-        with patch(
-            "api.routes.jobs.JobIngestionOrchestrator"
-        ) as mock_orchestrator:
+        with patch("api.routes.jobs.JobIngestionOrchestrator") as mock_orchestrator:
             mock_instance = Mock()
             mock_orchestrator.return_value = mock_instance
             mock_instance.ingest_from_source.return_value = [
@@ -202,8 +198,7 @@ class TestPhase3AcceptanceTests:
                 title="Senior Data Scientist",
                 company_name="Data Corp",
                 location="Remote",
-                posted_at=datetime.now(timezone.utc)
-                - timedelta(days=15),  # Old job
+                posted_at=datetime.now(timezone.utc) - timedelta(days=15),  # Old job
                 description="Data science role",
                 source_ats="test",
             ),
@@ -214,9 +209,7 @@ class TestPhase3AcceptanceTests:
         mock_connector.fetch_jobs = Mock(return_value=test_jobs)
 
         # Test ingestion with normalization
-        with patch.object(
-            orchestrator, "_store_jobs", return_value=test_jobs[:1]
-        ):
+        with patch.object(orchestrator, "_store_jobs", return_value=test_jobs[:1]):
             jobs = await orchestrator.ingest_from_source(
                 mock_connector,
                 "test",

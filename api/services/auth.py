@@ -69,9 +69,7 @@ class JWTAuthService:
         except jwt.ExpiredSignatureError:
             raise HTTPException(status_code=401, detail="Token has expired")
         except jwt.InvalidAudienceError:
-            raise HTTPException(
-                status_code=401, detail="Invalid token audience"
-            )
+            raise HTTPException(status_code=401, detail="Invalid token audience")
         except jwt.InvalidTokenError as e:
             logger.error(f"JWT validation error: {e}")
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -85,9 +83,7 @@ class JWTAuthService:
         """Extract user ID from token payload"""
         user_id = payload.get("sub")
         if not user_id:
-            raise HTTPException(
-                status_code=401, detail="User ID not found in token"
-            )
+            raise HTTPException(status_code=401, detail="User ID not found in token")
         return user_id
 
     def extract_user_email(self, payload: Dict[str, Any]) -> Optional[str]:

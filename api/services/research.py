@@ -89,9 +89,7 @@ class CompanyResearchService:
         """Generate cache key for company domain"""
         return hashlib.md5(company_domain.lower().encode()).hexdigest()
 
-    def _get_cached_research(
-        self, company_domain: str
-    ) -> Optional[Dict[str, Any]]:
+    def _get_cached_research(self, company_domain: str) -> Optional[Dict[str, Any]]:
         """Retrieve cached research if available and not expired"""
         cache_key = self._get_cache_key(company_domain)
         cache_file = self.cache_dir / f"{cache_key}.json"
@@ -209,9 +207,7 @@ class CompanyResearchService:
 
         return research
 
-    def get_research_quality_score(
-        self, research: Dict[str, Any]
-    ) -> Dict[str, float]:
+    def get_research_quality_score(self, research: Dict[str, Any]) -> Dict[str, float]:
         """
         Calculate quality scores for research output
 
@@ -231,9 +227,7 @@ class CompanyResearchService:
             "aspirations",
         ]
         present_fields = sum(
-            1
-            for field in required_fields
-            if field in research and research[field]
+            1 for field in required_fields if field in research and research[field]
         )
         scores["completeness"] = present_fields / len(required_fields)
 
@@ -259,12 +253,8 @@ class CompanyResearchService:
         for shortcoming in research.get("shortcomings", []):
             descriptions.append(shortcoming.get("description", ""))
 
-        avg_length = sum(len(d) for d in descriptions) / max(
-            1, len(descriptions)
-        )
-        scores["detail_level"] = min(
-            1.0, avg_length / 100
-        )  # Expect ~100 chars
+        avg_length = sum(len(d) for d in descriptions) / max(1, len(descriptions))
+        scores["detail_level"] = min(1.0, avg_length / 100)  # Expect ~100 chars
 
         # Overall score
         scores["overall"] = sum(scores.values()) / len(scores)

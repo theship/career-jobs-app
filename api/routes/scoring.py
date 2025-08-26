@@ -30,12 +30,8 @@ class ScoringRequest(BaseModel):
     job_ids: Optional[List[str]] = Field(
         None, description="Specific job IDs to score (optional)"
     )
-    limit: int = Field(
-        100, ge=1, le=500, description="Maximum number of results"
-    )
-    min_score: float = Field(
-        0.0, ge=0.0, le=1.0, description="Minimum score threshold"
-    )
+    limit: int = Field(100, ge=1, le=500, description="Maximum number of results")
+    min_score: float = Field(0.0, ge=0.0, le=1.0, description="Minimum score threshold")
     experiment_config: Optional[Dict[str, Any]] = Field(
         None, description="Experiment configuration for W&B tracking"
     )
@@ -99,10 +95,7 @@ async def get_resume_data(resume_id: str, supabase):
     try:
         # Get resume data
         response = (
-            supabase.table("resumes")
-            .select("*")
-            .eq("resume_id", resume_id)
-            .execute()
+            supabase.table("resumes").select("*").eq("resume_id", resume_id).execute()
         )
         if not response.data:
             raise HTTPException(status_code=404, detail="Resume not found")
@@ -118,9 +111,7 @@ async def get_resume_data(resume_id: str, supabase):
         )
 
         if not embedding_response.data:
-            raise HTTPException(
-                status_code=404, detail="Resume embedding not found"
-            )
+            raise HTTPException(status_code=404, detail="Resume embedding not found")
 
         resume["embedding"] = np.array(embedding_response.data[0]["embedding"])
 
@@ -162,8 +153,7 @@ async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
 
         # Create embedding lookup
         embedding_lookup = {
-            e["job_id"]: np.array(e["embedding"])
-            for e in embedding_response.data
+            e["job_id"]: np.array(e["embedding"]) for e in embedding_response.data
         }
 
         # Align embeddings with jobs
@@ -203,9 +193,7 @@ async def get_scores(
         # Get scores from database
         response = (
             supabase.table("scores")
-            .select(
-                "*, job_postings!inner(title, company_name, location, posted_at)"
-            )
+            .select("*, job_postings!inner(title, company_name, location, posted_at)")
             .eq("resume_id", resume_id)
             .eq("user_id", current_user["user_id"])
             .order("total_score", desc=True)
@@ -232,19 +220,13 @@ async def get_scores(
                     skill_overlap=float(score["skill_overlap"]),
                     seniority_fit=float(score["seniority_fit"]),
                     geodist_km=(
-                        float(score["geodist_km"])
-                        if score["geodist_km"]
-                        else None
+                        float(score["geodist_km"]) if score["geodist_km"] else None
                     ),
                     recency_bonus=float(score["recency_bonus"]),
                     match_level=(
                         "high"
                         if float(score["total_score"]) > 0.7
-                        else (
-                            "medium"
-                            if float(score["total_score"]) > 0.5
-                            else "low"
-                        )
+                        else ("medium" if float(score["total_score"]) > 0.5 else "low")
                     ),
                 )
             )
@@ -313,10 +295,7 @@ async def run_scoring(
 
         # Initialize ranker with custom weights if provided
         weights = ScoringWeights()
-        if (
-            request.experiment_config
-            and "weights" in request.experiment_config
-        ):
+        if request.experiment_config and "weights" in request.experiment_config:
             weights_dict = request.experiment_config["weights"]
             weights = ScoringWeights(**weights_dict)
 
@@ -462,9 +441,7 @@ async def get_score_breakdown(
 async def export_scores(
     resume_id: str = Query(..., description="Resume ID"),
     format: str = Query("csv", description="Export format (csv or json)"),
-    include_details: bool = Query(
-        True, description="Include detailed breakdowns"
-    ),
+    include_details: bool = Query(True, description="Include detailed breakdowns"),
     current_user: Dict = Depends(get_current_user),
 ):
     """
@@ -508,21 +485,13 @@ async def export_scores(
     explainer = ScoreExplainer()
 
     if format == "csv":
-        content = explainer.export_to_csv(
-            scores, include_breakdowns=include_details
-        )
+        content = explainer.export_to_csv(scores, include_breakdowns=include_details)
         media_type = "text/csv"
-        filename = (
-            f"scores_{resume_id}_{datetime.now().strftime('%Y%m%d')}.csv"
-        )
+        filename = f"scores_{resume_id}_{datetime.now().strftime('%Y%m%d')}.csv"
     else:
-        content = explainer.export_to_json(
-            scores, include_details=include_details
-        )
+        content = explainer.export_to_json(scores, include_details=include_details)
         media_type = "application/json"
-        filename = (
-            f"scores_{resume_id}_{datetime.now().strftime('%Y%m%d')}.json"
-        )
+        filename = f"scores_{resume_id}_{datetime.now().strftime('%Y%m%d')}.json"
 
     from fastapi.responses import Response
 
@@ -578,9 +547,7 @@ async def store_scoring_results(
             .eq("user_id", user_id)
             .execute()
         )
-        existing_job_ids = {
-            score["job_id"] for score in existing_scores.data or []
-        }
+        existing_job_ids = {score["job_id"] for score in existing_scores.data or []}
 
         records = []
         for score in scores[:50]:  # Store top 50
@@ -603,9 +570,7 @@ async def store_scoring_results(
 
         if records:
             supabase.table("scores").insert(records).execute()
-            logger.info(
-                f"Stored {len(records)} new scores for resume {resume_id}"
-            )
+            logger.info(f"Stored {len(records)} new scores for resume {resume_id}")
 
     except Exception as e:
         logger.error(f"Failed to store scoring results: {e}")

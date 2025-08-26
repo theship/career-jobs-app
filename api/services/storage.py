@@ -69,9 +69,7 @@ class StorageService:
             # Generate unique filename
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             file_extension = os.path.splitext(file.filename)[1]
-            unique_filename = (
-                f"{timestamp}_{uuid.uuid4().hex[:8]}{file_extension}"
-            )
+            unique_filename = f"{timestamp}_{uuid.uuid4().hex[:8]}{file_extension}"
 
             # Construct storage path
             if folder:
@@ -87,8 +85,7 @@ class StorageService:
                 path=storage_path,
                 file=content,
                 file_options={
-                    "content-type": file.content_type
-                    or "application/octet-stream",
+                    "content-type": file.content_type or "application/octet-stream",
                     "cache-control": "3600",
                     "upsert": False,
                 },
@@ -157,9 +154,7 @@ class StorageService:
             logger.error(f"Failed to delete file {storage_path}: {e}")
             return False
 
-    async def get_signed_url(
-        self, storage_path: str, expires_in: int = 3600
-    ) -> str:
+    async def get_signed_url(self, storage_path: str, expires_in: int = 3600) -> str:
         """
         Generate a signed URL for temporary file access.
 
@@ -171,9 +166,9 @@ class StorageService:
             A signed URL for file access
         """
         try:
-            response = self.supabase.storage.from_(
-                self.bucket_name
-            ).create_signed_url(storage_path, expires_in=expires_in)
+            response = self.supabase.storage.from_(self.bucket_name).create_signed_url(
+                storage_path, expires_in=expires_in
+            )
 
             if response and "signedURL" in response:
                 return response["signedURL"]
@@ -181,14 +176,10 @@ class StorageService:
                 raise Exception("Could not generate signed URL")
 
         except Exception as e:
-            logger.error(
-                f"Failed to create signed URL for {storage_path}: {e}"
-            )
+            logger.error(f"Failed to create signed URL for {storage_path}: {e}")
             raise Exception(f"Failed to create download link: {str(e)}")
 
-    async def list_user_files(
-        self, user_id: str, folder: Optional[str] = None
-    ) -> list:
+    async def list_user_files(self, user_id: str, folder: Optional[str] = None) -> list:
         """
         List all files for a specific user.
 
@@ -228,9 +219,7 @@ class StorageService:
         try:
             files = await self.list_user_files(user_id)
 
-            total_size = sum(
-                file.get("metadata", {}).get("size", 0) for file in files
-            )
+            total_size = sum(file.get("metadata", {}).get("size", 0) for file in files)
             file_count = len(files)
 
             return {
@@ -238,15 +227,11 @@ class StorageService:
                 "total_size_mb": round(total_size / (1024 * 1024), 2),
                 "file_count": file_count,
                 "storage_limit_mb": 100,  # 100MB per user limit
-                "usage_percentage": round(
-                    (total_size / (100 * 1024 * 1024)) * 100, 2
-                ),
+                "usage_percentage": round((total_size / (100 * 1024 * 1024)) * 100, 2),
             }
 
         except Exception as e:
-            logger.error(
-                f"Failed to get storage usage for user {user_id}: {e}"
-            )
+            logger.error(f"Failed to get storage usage for user {user_id}: {e}")
             return {
                 "total_size_bytes": 0,
                 "total_size_mb": 0,

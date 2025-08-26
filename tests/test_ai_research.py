@@ -237,13 +237,13 @@ class TestCompanyResearch:
             start_time = time.time()
             research1 = service.research_company("stripe.com")
             # first_duration = time.time() - start_time
-  # Duration tracking for future use
+            # Duration tracking for future use
 
             # Second request - should use cache
             start_time = time.time()
             research2 = service.research_company("stripe.com")
             # second_duration = time.time() - start_time
-  # Duration tracking for future use
+            # Duration tracking for future use
 
             # Verify same results
             assert research1["company_name"] == research2["company_name"]
@@ -311,9 +311,7 @@ class TestPitchGeneration:
         resume_data = {
             "skills": ["Python", "payments", "fintech"],
             "years_experience": 5,
-            "experience": [
-                {"title": "Senior Engineer", "company": "FinTech Co"}
-            ],
+            "experience": [{"title": "Senior Engineer", "company": "FinTech Co"}],
         }
 
         job_data = {
@@ -329,9 +327,7 @@ class TestPitchGeneration:
             "aspirations": [{"statement": "Global payments"}],
         }
 
-        pitch = service.generate_pitch(
-            resume_data, job_data, company_research, 0.75
-        )
+        pitch = service.generate_pitch(resume_data, job_data, company_research, 0.75)
 
         # Validate structure
         assert "headline" in pitch
@@ -589,9 +585,7 @@ class TestAcceptanceTests:
 
         service = PitchGeneratorService(api_key="test_key")
 
-        resume_data = {
-            "experience_summary": "Senior engineer with fintech experience"
-        }
+        resume_data = {"experience_summary": "Senior engineer with fintech experience"}
         job_data = {
             "company_name": "Stripe",
             "company_domain": "stripe.com",
@@ -630,9 +624,7 @@ class TestAcceptanceTests:
                                         "url": "https://square.com",
                                     }
                                 ],
-                                "excellence": [
-                                    {"area": "API", "description": "Great"}
-                                ],
+                                "excellence": [{"area": "API", "description": "Great"}],
                                 "shortcomings": [
                                     {"area": "Price", "description": "High"}
                                 ],
@@ -660,13 +652,13 @@ class TestAcceptanceTests:
             start_time = time.time()
             response1 = service.research_company("stripe.com")
             # first_duration = time.time() - start_time
-  # Duration tracking for future use
+            # Duration tracking for future use
 
             # Second request (cached)
             start_time = time.time()
             response2 = service.research_company("stripe.com")
             # second_duration = time.time() - start_time
-  # Duration tracking for future use
+            # Duration tracking for future use
 
             assert response1 == response2
             # API should only be called once due to caching

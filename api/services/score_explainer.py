@@ -79,7 +79,9 @@ class ScoreExplainer:
             insight = "Excellent match! Your resume content strongly aligns with this job description."
             tip = None
         elif score >= 0.70:
-            insight = "Good match. Your background aligns well with the job requirements."
+            insight = (
+                "Good match. Your background aligns well with the job requirements."
+            )
             tip = "Consider tailoring your resume to highlight relevant experiences mentioned in the job description."
         elif score >= 0.50:
             insight = "Fair match. Some alignment between your background and the job."
@@ -112,9 +114,13 @@ class ScoreExplainer:
             elif score >= 0.70:
                 insight = f"Good skills alignment. {exact_count} exact and {fuzzy_count} similar skills matched."
             elif score >= 0.50:
-                insight = f"Moderate skills match. Missing {missing_req} required skills."
+                insight = (
+                    f"Moderate skills match. Missing {missing_req} required skills."
+                )
             else:
-                insight = f"Limited skills overlap. Missing {missing_req} required skills."
+                insight = (
+                    f"Limited skills overlap. Missing {missing_req} required skills."
+                )
 
             if missing_req > 0:
                 missing_list = job_score.skills_details.missing_required[:3]
@@ -252,12 +258,12 @@ class ScoreExplainer:
             )
         elif total >= 0.30:
             match_level = "Possible Match"
-            recommendation = "Some alignment - review requirements carefully before applying."
+            recommendation = (
+                "Some alignment - review requirements carefully before applying."
+            )
         else:
             match_level = "Poor Match"
-            recommendation = (
-                "Limited alignment - consider other opportunities."
-            )
+            recommendation = "Limited alignment - consider other opportunities."
 
         # Find strongest and weakest factors
         strongest = max(insights, key=lambda x: x.contribution)
@@ -265,9 +271,7 @@ class ScoreExplainer:
 
         # Get improvement suggestions
         improvements = [
-            i.improvement_tip
-            for i in insights
-            if i.improvement_tip is not None
+            i.improvement_tip for i in insights if i.improvement_tip is not None
         ]
 
         return {
@@ -349,9 +353,7 @@ class ScoreExplainer:
                 "title": score.title,
                 "company": score.company_name,
                 "total_score": f"{score.total_score:.3f}",
-                "percentile": (
-                    f"{score.percentile:.1f}" if score.percentile else ""
-                ),
+                "percentile": (f"{score.percentile:.1f}" if score.percentile else ""),
             }
 
             if include_breakdowns:
@@ -415,9 +417,7 @@ class ScoreExplainer:
                 if score.skills_details:
                     data["skills_breakdown"] = {
                         "matched": score.skills_details.exact_matches,
-                        "missing_required": score.skills_details.missing_required[
-                            :5
-                        ],
+                        "missing_required": score.skills_details.missing_required[:5],
                     }
 
             export_data.append(data)
@@ -475,9 +475,7 @@ class ScoreExplainer:
                     if job_score.skills_details:
                         for skill in job_score.skills_details.exact_matches:
                             if skill.lower() in sentence.lower():
-                                highlights["key_requirements"].append(
-                                    sentence.strip()
-                                )
+                                highlights["key_requirements"].append(sentence.strip())
                                 break
 
         return highlights

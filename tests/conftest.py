@@ -20,9 +20,7 @@ os.environ["OPENAI_API_KEY"] = "test-openai-key"
 def mock_supabase_client():
     """Mock Supabase client for testing"""
     mock_client = MagicMock()
-    mock_client.table.return_value.select.return_value.execute.return_value.data = (
-        []
-    )
+    mock_client.table.return_value.select.return_value.execute.return_value.data = []
     return mock_client
 
 
