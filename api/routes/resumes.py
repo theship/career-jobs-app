@@ -26,9 +26,9 @@ from ..services.auth import get_current_user
 from ..services.resume_processor import ResumeProcessor
 from ..services.storage import StorageService
 from ..utils.database import (
+    get_authenticated_supabase_client,
     get_supabase_client,
     get_supabase_service_client,
-    get_authenticated_supabase_client,
 )
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])

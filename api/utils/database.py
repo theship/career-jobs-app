@@ -4,9 +4,10 @@ Database utilities for API endpoints
 
 from typing import Optional
 
+from supabase.lib.client_options import ClientOptions
+
 from api.utils.config import get_settings
 from supabase import Client, create_client
-from supabase.lib.client_options import ClientOptions
 
 # Cached Supabase clients
 _supabase_client: Optional[Client] = None
