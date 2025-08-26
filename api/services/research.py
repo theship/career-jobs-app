@@ -36,6 +36,9 @@ class CompanyResearchService:
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
+            logger.warning(
+                "OpenAI API key not configured - research service will not be available"
+            )
             raise ValueError("OpenAI API key required")
 
         openai.api_key = self.api_key

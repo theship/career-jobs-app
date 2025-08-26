@@ -8,8 +8,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from api.auth import get_current_user
-from api.models import User
+from api.services.auth import get_current_user
 from api.services.pitch_generator import PitchGeneratorService
 from api.services.research import CompanyResearchService
 
@@ -68,8 +67,38 @@ class InterviewPrepRequest(BaseModel):
 
 
 # Initialize services (in production, these would be dependency injected)
-pitch_service = PitchGeneratorService()
-research_service = CompanyResearchService()
+# Lazy initialization to avoid startup failures
+pitch_service = None
+research_service = None
+
+
+def get_pitch_service():
+    global pitch_service
+    if pitch_service is None:
+        try:
+            pitch_service = PitchGeneratorService()
+        except ValueError as e:
+            logger.warning(f"Pitch service not available: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Pitch service not configured. Please set OPENAI_API_KEY.",
+            )
+    return pitch_service
+
+
+def get_research_service():
+    global research_service
+    if research_service is None:
+        try:
+            research_service = CompanyResearchService()
+        except ValueError as e:
+            logger.warning(f"Research service not available: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Research service not configured. Please set OPENAI_API_KEY.",
+            )
+    return research_service
+
 
 # In-memory storage for pitches (in production, use database)
 pitch_storage: Dict[str, Dict[str, Any]] = {}
@@ -135,7 +164,7 @@ def _get_mock_skills_score(resume_id: str, job_id: str) -> float:
 @router.post("/generate", response_model=PitchResponse)
 async def generate_pitch(
     request: PitchGenerationRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> PitchResponse:
     """
     Generate a personalized pitch for a job application
@@ -148,7 +177,9 @@ async def generate_pitch(
         Generated pitch with multiple components
     """
     try:
-        logger.info(f"User {current_user.id} generating pitch for job {request.job_id}")
+        logger.info(
+            f"User {current_user.get('id', 'unknown')} generating pitch for job {request.job_id}"
+        )
 
         # Get resume and job data (mock for now)
         resume_data = _get_mock_resume_data(request.resume_id)
@@ -158,7 +189,8 @@ async def generate_pitch(
         company_research = {}
         if request.include_research and job_data.get("company_domain"):
             try:
-                company_research = research_service.research_company(
+                service = get_research_service()
+                company_research = service.research_company(
                     company_domain=job_data["company_domain"],
                     use_cache=True,
                 )
@@ -170,7 +202,8 @@ async def generate_pitch(
         skills_score = _get_mock_skills_score(request.resume_id, request.job_id)
 
         # Generate pitch
-        pitch = pitch_service.generate_pitch(
+        service = get_pitch_service()
+        pitch = service.generate_pitch(
             resume_data=resume_data,
             job_data=job_data,
             company_research=company_research,
@@ -178,7 +211,7 @@ async def generate_pitch(
         )
 
         # Calculate quality scores
-        quality_scores = pitch_service.score_pitch_quality(pitch)
+        quality_scores = service.score_pitch_quality(pitch)
         pitch["quality_scores"] = quality_scores
 
         # Store pitch for later retrieval
@@ -202,7 +235,7 @@ async def generate_pitch(
 @router.post("/email-template")
 async def generate_email_template(
     request: EmailTemplateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> Dict[str, str]:
     """
     Generate email template from existing pitch
@@ -221,7 +254,8 @@ async def generate_email_template(
             raise HTTPException(status_code=404, detail="Pitch not found")
 
         # Generate email template
-        email = pitch_service.generate_email_template(
+        service = get_pitch_service()
+        email = service.generate_email_template(
             pitch=pitch,
             recipient_name=request.recipient_name,
         )
@@ -238,7 +272,7 @@ async def generate_email_template(
 @router.post("/interview-prep")
 async def generate_interview_prep(
     request: InterviewPrepRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Generate interview preparation materials
@@ -261,7 +295,8 @@ async def generate_interview_prep(
         company_research = {}
         if company_domain:
             try:
-                company_research = research_service.research_company(
+                service = get_research_service()
+                company_research = service.research_company(
                     company_domain=company_domain,
                     use_cache=True,
                 )
@@ -269,7 +304,8 @@ async def generate_interview_prep(
                 logger.warning(f"Could not get company research: {e}")
 
         # Generate interview prep
-        prep = pitch_service.generate_interview_prep(
+        service = get_pitch_service()
+        prep = service.generate_interview_prep(
             pitch=pitch,
             company_research=company_research,
         )
@@ -303,7 +339,7 @@ async def generate_interview_prep(
 @router.get("/quality/{pitch_id}")
 async def get_pitch_quality(
     pitch_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Get quality assessment for a generated pitch
@@ -322,7 +358,8 @@ async def get_pitch_quality(
             raise HTTPException(status_code=404, detail="Pitch not found")
 
         # Calculate quality scores
-        scores = pitch_service.score_pitch_quality(pitch)
+        service = get_pitch_service()
+        scores = service.score_pitch_quality(pitch)
 
         # Generate improvement suggestions
         suggestions = []

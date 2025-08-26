@@ -8,8 +8,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, HttpUrl
 
-from api.auth import get_current_user
-from api.models import User
+from api.services.auth import get_current_user
 from api.services.research import CompanyResearchService
 
 logger = logging.getLogger(__name__)
@@ -56,13 +55,28 @@ class ClearCacheRequest(BaseModel):
 
 
 # Initialize service (in production, this would be dependency injected)
-research_service = CompanyResearchService()
+# Lazy initialization to avoid startup failures
+research_service = None
+
+
+def get_research_service():
+    global research_service
+    if research_service is None:
+        try:
+            research_service = CompanyResearchService()
+        except ValueError as e:
+            logger.warning(f"Research service not available: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Research service not configured. Please set OPENAI_API_KEY.",
+            )
+    return research_service
 
 
 @router.post("/generate", response_model=CompanyResearchResponse)
 async def generate_company_research(
     request: CompanyResearchRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> CompanyResearchResponse:
     """
     Generate or retrieve company research
@@ -76,17 +90,18 @@ async def generate_company_research(
     """
     try:
         logger.info(
-            f"User {current_user.id} requesting research for {request.company_domain}"
+            f"User {current_user.get('id', 'unknown')} requesting research for {request.company_domain}"
         )
 
         # Generate or retrieve research
-        research = research_service.research_company(
+        service = get_research_service()
+        research = service.research_company(
             company_domain=request.company_domain,
             use_cache=request.use_cache,
         )
 
         # Calculate quality scores
-        quality_scores = research_service.get_research_quality_score(research)
+        quality_scores = service.get_research_quality_score(research)
         research["quality_scores"] = quality_scores
 
         # Log quality warning if score is low
@@ -111,7 +126,7 @@ async def generate_company_research(
 async def get_company_research(
     company_domain: str,
     use_cache: bool = Query(True, description="Use cached results if available"),
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> CompanyResearchResponse:
     """
     Get company research by domain
@@ -125,15 +140,14 @@ async def get_company_research(
         Company research data
     """
     try:
-        research = research_service.research_company(
+        service = get_research_service()
+        research = service.research_company(
             company_domain=company_domain,
             use_cache=use_cache,
         )
 
         # Add quality scores
-        research["quality_scores"] = research_service.get_research_quality_score(
-            research
-        )
+        research["quality_scores"] = service.get_research_quality_score(research)
 
         return CompanyResearchResponse(**research)
 
@@ -147,7 +161,7 @@ async def get_company_research(
 @router.post("/cache/clear")
 async def clear_research_cache(
     request: ClearCacheRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> Dict[str, str]:
     """
     Clear research cache
@@ -160,14 +174,15 @@ async def clear_research_cache(
         Status message
     """
     try:
-        research_service.clear_cache(company_domain=request.company_domain)
+        service = get_research_service()
+        service.clear_cache(company_domain=request.company_domain)
 
         if request.company_domain:
             message = f"Cleared cache for {request.company_domain}"
         else:
             message = "Cleared all research cache"
 
-        logger.info(f"User {current_user.id}: {message}")
+        logger.info(f"User {current_user.get('id', 'unknown')}: {message}")
         return {"status": "success", "message": message}
 
     except Exception as e:
@@ -178,7 +193,7 @@ async def clear_research_cache(
 @router.get("/quality/{company_domain}")
 async def get_research_quality(
     company_domain: str,
-    current_user: User = Depends(get_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Get quality scores for existing research
@@ -192,7 +207,8 @@ async def get_research_quality(
     """
     try:
         # Get cached research (don't generate new)
-        research = research_service._get_cached_research(company_domain)
+        service = get_research_service()
+        research = service._get_cached_research(company_domain)
 
         if not research:
             raise HTTPException(
@@ -201,7 +217,7 @@ async def get_research_quality(
             )
 
         # Calculate quality scores
-        scores = research_service.get_research_quality_score(research)
+        scores = service.get_research_quality_score(research)
 
         # Generate improvement suggestions
         suggestions = []
