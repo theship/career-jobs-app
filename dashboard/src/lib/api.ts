@@ -28,7 +28,7 @@ class APIClient {
     
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...headers,
+      ...(headers as Record<string, string>),
     }
     
     if (authToken) {
