@@ -666,34 +666,36 @@ describe('Job Scoring', () => {
 
 ### Phase 5: AI Research & Pitch Generation (Weeks 10-11)
 
+#### Status: ✅ COMPLETE (Tasks 1-3), 🔄 DEFERRED (Task 4 - Weave/W&B)
+
 #### Objectives
-* Implement company research agent
-* Create pitch generation system
-* Ensure structured outputs and citations
-* Add research caching and validation
-* **Set up LLM observability and evaluation**
+* ✅ Implement company research agent
+* ✅ Create pitch generation system
+* ✅ Ensure structured outputs and citations
+* ✅ Add research caching and validation
+* 🔄 **Set up LLM observability and evaluation** (Deferred)
 
 #### Tasks
 
-1. **AI Research System**
+1. **AI Research System** ✅
    * Company research service in `/api/services/research.py`
    * Research prompts in `/config/prompts/company_research.txt`
    * JSON schema validation in `/config/schemas/company_research.json`
    * Structured OpenAI outputs with retry logic
 
-2. **Pitch Generation Engine**
+2. **Pitch Generation Engine** ✅
    * Pitch generator service in `/api/services/pitch_generator.py`
    * Pitch prompts in `/config/prompts/pitch_generation.txt`
    * Template-based personalization system
    * Integration with research and scoring data
 
-3. **Quality Assurance & Caching**
+3. **Quality Assurance & Caching** ✅
    * Research caching in `/data/research/` with TTL management
    * Citation validation and fact-checking
    * Quality scoring for generated content
    * API endpoints in `/api/routes/research.py` and `/api/routes/pitch.py`
 
-4. **Weave LLM Observability & Evaluation**
+4. **Weave LLM Observability & Evaluation** 🔄 DEFERRED
    * Instrument LLM calls with `@weave.op` decorators
    * Create evaluation datasets in `/evals/datasets/`
    * Implement custom scorers in `/evals/research_eval.py` and `/evals/pitch_eval.py`

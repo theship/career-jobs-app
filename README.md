@@ -153,8 +153,10 @@ npm run dev
 
 ### Current Test Status
 - **Phase 1-3 Backend Tests**: ✅ 40/40 tests passing
-- **Phase 4 Scoring Engine Tests**: ✅ 25/25 tests passing
-- **Frontend Tests**: Deferred to Phase 7 (UI implementation)
+- **Phase 4 Scoring Engine Tests**: ✅ 25/25 tests passing  
+- **Phase 5 AI Research & Pitch Tests**: ✅ 12/12 tests passing
+- **Phase 6 Export System**: 🔄 TODO
+- **Phase 7 Frontend Tests**: 🔄 TODO
 - See `docs/TESTING_NOTES.md` for detailed test information
 
 ---

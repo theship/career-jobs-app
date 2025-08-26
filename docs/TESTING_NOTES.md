@@ -8,10 +8,13 @@
 - **Phase 2 (Resume Processing)**: ✅ COMPLETE  
 - **Phase 3 (Job Ingestion)**: ✅ COMPLETE
 - **Phase 4 (Scoring Engine)**: ✅ COMPLETE
+- **Phase 5 (AI Research & Pitch)**: ✅ COMPLETE (without Weave)
+- **Phase 6 (Export System)**: 🔄 TODO
+- **Phase 7 (Frontend UI)**: 🔄 TODO
 
-### Test Summary: 65/65 Tests Passing ✅
+### Test Summary: 77/77 Tests Passing ✅
 
-All tests are now passing including Phase 4 scoring engine tests.
+All tests are now passing including Phase 5 AI Research & Pitch Generation tests.
 
 ## Phase 1 Test Status
 
@@ -192,8 +195,58 @@ pytest tests/test_scoring_engine.py --cov=scoring_engine --cov=api/services --co
 - `POST /api/v1/scores/export` - Export scores as CSV/JSON
 - `POST /api/v1/scores/optimize-weights` - Create W&B optimization sweep
 
-## Phase 5-6 Testing Plans
+## Phase 5 Test Status
 
-- **AI Research**: Mock OpenAI responses, validate structured outputs
-- **Export System**: Test CSV generation, Google Drive integration
-- **Frontend**: Add React Testing Library tests, Playwright E2E tests
+### AI Research & Pitch Generation Tests (Completed 2025-08-26)
+
+#### ✅ All Tests Passing (12/12)
+
+- **Company Research**: Structured data generation with JSON schema validation
+- **Research Caching**: TTL-based caching to avoid redundant API calls
+- **Pitch Generation**: Personalized content based on resume, job, and company data
+- **Quality Scoring**: Scoring algorithms for both research and pitch quality
+- **Email Templates**: Generation of email subject and body from pitch
+- **Interview Prep**: Creation of interview preparation materials
+- **URL Validation**: Basic hallucination detection via URL format checking
+
+### Key Features Implemented
+
+1. **Company Research Service**
+   - OpenAI integration for structured data generation
+   - JSON schema validation for output consistency
+   - Caching with configurable TTL (default 1 week)
+   - Quality scoring with improvement suggestions
+
+2. **Pitch Generation Service**
+   - Personalized pitches based on multiple data sources
+   - Email template generation
+   - Interview preparation materials
+   - Quality scoring and validation
+
+3. **API Endpoints**
+   - `/api/v1/research/generate` - Generate company research
+   - `/api/v1/research/{company_domain}` - Get cached research
+   - `/api/v1/pitch/generate` - Generate personalized pitch
+   - `/api/v1/pitch/email-template` - Create email from pitch
+   - `/api/v1/pitch/interview-prep` - Generate interview materials
+
+### What's NOT Implemented (Deferred)
+
+- **Weave LLM Observability**: Tracing, evaluation datasets, custom scorers
+- **W&B Integration**: Experiment tracking for LLM calls
+- **Advanced Hallucination Detection**: URL reachability checks, fact verification
+
+### Running Phase 5 Tests
+
+```bash
+# Run AI research tests
+pytest tests/test_ai_research.py -v
+
+# Run with coverage
+pytest tests/test_ai_research.py --cov=api/services --cov=api/routes --cov-report=term-missing
+```
+
+## Phase 6-7 Testing Plans
+
+- **Phase 6 Export System**: Test CSV generation, Google Drive integration, batch exports
+- **Phase 7 Frontend**: Add React Testing Library tests, Playwright E2E tests, implement UI components
