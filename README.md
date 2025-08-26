@@ -102,7 +102,38 @@ Add a tiny alias in the sandbox:
 > ```
 > Then just type `gp` after every local push.
 
-### 4) Stop & cleanup
+### 4) Running the Application
+
+#### Backend API Server
+```bash
+# Start the FastAPI backend server
+python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+
+# API will be available at:
+# - http://localhost:8000
+# - API docs: http://localhost:8000/docs
+```
+
+#### Frontend Dashboard
+```bash
+# Navigate to dashboard directory
+cd dashboard
+
+# Install dependencies (first time)
+npm install
+
+# Start the Next.js development server
+npm run dev
+
+# Dashboard will be available at:
+# - http://localhost:3000
+```
+
+#### Stop Services
+- **Backend**: Press `Ctrl+C` in the terminal running uvicorn
+- **Frontend**: Press `Ctrl+C` in the terminal running npm
+
+### 5) Stop & cleanup Daytona sandbox
 
 - Do nothing: sandbox **auto‑stops after 45 min idle**, then **auto‑archives 60 min later**.
 - Or stop immediately when you're done:

@@ -33,6 +33,10 @@ fuzzywuzzy>=0.18.0  # For skill matching
 python-Levenshtein>=0.25.0  # Speed up fuzzywuzzy
 wandb>=0.18.0  # Weights & Biases for experiment tracking
 
+# Phase 5: AI Research & Pitch Generation
+jsonschema>=4.20.0  # For validating structured outputs
+tenacity>=8.2.0  # For retry logic on API calls
+
 # Utilities
 pyyaml>=6.0.0  # For config files
 python-jose[cryptography]>=3.3.0  # Additional JWT support

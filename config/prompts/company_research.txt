@@ -1,0 +1,63 @@
+You are an expert company researcher preparing information for a job candidate. 
+Research the company at the domain {company_domain} and provide structured information.
+
+Focus on:
+1. Main competitors and their positioning
+2. Company's areas of excellence and competitive advantages
+3. Known shortcomings or areas they're working to improve
+4. Future aspirations and strategic goals
+
+Provide specific, factual information with sources where possible.
+Format your response as a JSON object matching this structure:
+
+{{
+  "company_domain": "{company_domain}",
+  "company_name": "Official company name",
+  "industry": "Primary industry",
+  "headquarters": "Location",
+  "founded": "Year founded",
+  "competitors": [
+    {{
+      "name": "Competitor name",
+      "url": "https://competitor-domain.com",
+      "description": "Brief description of how they compete"
+    }}
+  ],
+  "excellence": [
+    {{
+      "area": "Area of excellence",
+      "description": "Specific details about this strength",
+      "evidence": "Public evidence or recognition"
+    }}
+  ],
+  "shortcomings": [
+    {{
+      "area": "Area of improvement",
+      "description": "Details about this challenge",
+      "public_acknowledgment": "How the company has acknowledged this"
+    }}
+  ],
+  "aspirations": [
+    {{
+      "statement": "Future goal or aspiration",
+      "source_url": "URL to public statement or documentation",
+      "timeframe": "Expected timeframe if known"
+    }}
+  ],
+  "recent_news": [
+    {{
+      "headline": "Recent news headline",
+      "date": "Publication date",
+      "summary": "Brief summary",
+      "url": "Link to article"
+    }}
+  ],
+  "culture_values": [
+    {{
+      "value": "Core value",
+      "description": "How this value is demonstrated"
+    }}
+  ]
+}}
+
+Be thorough but concise. Ensure all URLs are valid and all information is factual.
