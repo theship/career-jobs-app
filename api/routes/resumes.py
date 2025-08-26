@@ -1,6 +1,9 @@
 """Resume management routes."""
 
+import csv
 import hashlib
+import io
+import json
 import logging
 from datetime import datetime
 from typing import List, Optional
@@ -82,9 +85,21 @@ async def upload_resume(
         logger.info("Extracting text from file")
         text_content = await resume_processor.extract_text(file)
 
-        # Extract skills using multi-stage pipeline
+        # Check for custom vocabulary
+        custom_vocab = None
+        vocab_response = (
+            supabase.table("user_skills_vocab")
+            .select("vocab_data")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if vocab_response.data:
+            custom_vocab = vocab_response.data[0]["vocab_data"]
+            logger.info(f"Using custom skills vocabulary with {len(custom_vocab)} skills")
+
+        # Extract skills using multi-stage pipeline with optional custom vocab
         logger.info("Extracting skills from resume")
-        skills_data = await resume_processor.extract_skills(text_content)
+        skills_data = await resume_processor.extract_skills(text_content, custom_vocab)
 
         # Generate embeddings
         logger.info("Generating embeddings")
@@ -399,8 +414,20 @@ async def reprocess_resume(
 
         resume = response.data[0]
 
-        # Re-extract skills with latest pipeline
-        skills_data = await resume_processor.extract_skills(resume["text_content"])
+        # Check for custom vocabulary
+        custom_vocab = None
+        vocab_response = (
+            supabase.table("user_skills_vocab")
+            .select("vocab_data")
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if vocab_response.data:
+            custom_vocab = vocab_response.data[0]["vocab_data"]
+            logger.info(f"Using custom skills vocabulary for reprocessing")
+
+        # Re-extract skills with latest pipeline and optional custom vocab
+        skills_data = await resume_processor.extract_skills(resume["text_content"], custom_vocab)
 
         # Re-generate embeddings if needed
         embedding = await resume_processor.generate_embedding(resume["text_content"])
@@ -448,4 +475,159 @@ async def reprocess_resume(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to reprocess resume: {str(e)}",
+        )
+
+
+@router.post("/skills-vocab")
+async def upload_skills_vocabulary(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """
+    Upload a custom skills vocabulary CSV file for the user.
+    The CSV must contain columns: skill, category, aliases, tags
+    """
+    try:
+        # Validate file type
+        if not file.filename.endswith(".csv"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only CSV files are supported",
+            )
+
+        # Read and validate CSV content
+        content = await file.read()
+        csv_text = content.decode("utf-8")
+        reader = csv.DictReader(io.StringIO(csv_text))
+        
+        # Validate required columns
+        required_columns = {"skill", "category", "aliases", "tags"}
+        if not reader.fieldnames:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="CSV file is empty or invalid",
+            )
+        
+        missing_columns = required_columns - set(reader.fieldnames)
+        if missing_columns:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Missing required columns: {', '.join(missing_columns)}",
+            )
+
+        # Parse and validate rows
+        vocab_data = []
+        for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is 1)
+            if not row.get("skill"):
+                continue  # Skip empty skill rows
+            
+            vocab_entry = {
+                "skill": row["skill"].strip(),
+                "category": row["category"].strip() if row["category"] else "",
+                "aliases": [a.strip() for a in row["aliases"].split("|") if a.strip()] if row["aliases"] else [],
+                "tags": [t.strip() for t in row["tags"].split(",") if t.strip()] if row["tags"] else [],
+            }
+            vocab_data.append(vocab_entry)
+
+        if not vocab_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="CSV file contains no valid skill entries",
+            )
+
+        # Use authenticated Supabase client
+        supabase = get_authenticated_supabase_client(credentials.credentials)
+        user_id = current_user["user_id"]
+
+        # Check if user already has custom vocab
+        existing_vocab = (
+            supabase.table("user_skills_vocab")
+            .select("id")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        # Store or update the vocabulary
+        vocab_record = {
+            "user_id": user_id,
+            "vocab_data": vocab_data,
+            "uploaded_at": datetime.utcnow().isoformat(),
+            "skills_count": len(vocab_data),
+        }
+
+        if existing_vocab.data:
+            # Update existing record
+            response = (
+                supabase.table("user_skills_vocab")
+                .update(vocab_record)
+                .eq("user_id", user_id)
+                .execute()
+            )
+        else:
+            # Insert new record
+            response = (
+                supabase.table("user_skills_vocab")
+                .insert(vocab_record)
+                .execute()
+            )
+
+        if not response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save skills vocabulary",
+            )
+
+        return {
+            "message": "Skills vocabulary uploaded successfully",
+            "skills_count": len(vocab_data),
+            "sample_skills": [v["skill"] for v in vocab_data[:5]],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to upload skills vocabulary: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload skills vocabulary: {str(e)}",
+        )
+
+
+@router.get("/skills-vocab")
+async def get_skills_vocabulary(
+    current_user: dict = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Get the user's custom skills vocabulary if it exists."""
+    try:
+        supabase = get_authenticated_supabase_client(credentials.credentials)
+        user_id = current_user["user_id"]
+
+        response = (
+            supabase.table("user_skills_vocab")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not response.data:
+            return {
+                "has_custom_vocab": False,
+                "message": "No custom skills vocabulary found",
+            }
+
+        vocab = response.data[0]
+        return {
+            "has_custom_vocab": True,
+            "skills_count": vocab["skills_count"],
+            "uploaded_at": vocab["uploaded_at"],
+            "sample_skills": [v["skill"] for v in vocab["vocab_data"][:10]],
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get skills vocabulary: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get skills vocabulary: {str(e)}",
         )

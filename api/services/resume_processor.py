@@ -129,7 +129,7 @@ class ResumeProcessor:
             logger.error(f"DOCX extraction failed: {e}")
             raise ValueError(f"Failed to extract text from DOCX: {e}")
 
-    async def extract_skills(self, text: str) -> SkillExtractionResult:
+    async def extract_skills(self, text: str, custom_vocab: Optional[List[Dict[str, Any]]] = None) -> SkillExtractionResult:
         """
         Multi-stage skill extraction pipeline.
 
@@ -138,7 +138,16 @@ class ResumeProcessor:
         2. Embedding-based candidate retrieval (if coverage < 70%)
         3. OpenAI function calling with closed-world constraint (if still needed)
         4. Pydantic validation and merging
+        
+        Args:
+            text: Resume text to extract skills from
+            custom_vocab: Optional custom skills vocabulary from user
         """
+        # Use custom vocab if provided, otherwise use default
+        original_vocab = None
+        if custom_vocab:
+            original_vocab = self.skills_vocab
+            self.skills_vocab = self._process_custom_vocab(custom_vocab)
         all_skills = {}
         evidence_spans = {}
         confidence_scores = {}
@@ -198,6 +207,10 @@ class ResumeProcessor:
             else None
         )
 
+        # Restore original vocab if we used custom vocab
+        if original_vocab is not None:
+            self.skills_vocab = original_vocab
+
         return SkillExtractionResult(
             skills=list(all_skills.values()),
             method=method,
@@ -206,6 +219,23 @@ class ResumeProcessor:
             coverage=min(coverage, 100.0),
             years_experience=filtered_years if filtered_years else None,
         )
+    
+    def _process_custom_vocab(self, vocab_data: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Process user's custom vocabulary into the expected format."""
+        vocab = {}
+        for entry in vocab_data:
+            skill = entry["skill"]
+            vocab[skill.lower()] = {
+                "canonical": skill,
+                "category": entry.get("category", "Other"),
+                "aliases": entry.get("aliases", []),
+                "tags": entry.get("tags", []),
+            }
+            # Add aliases as keys
+            for alias in entry.get("aliases", []):
+                if alias.lower() not in vocab:
+                    vocab[alias.lower()] = vocab[skill.lower()]
+        return vocab
 
     def _extract_skills_fuzzy(self, text: str) -> Dict[str, Dict[str, Any]]:
         """Stage 1: Extract skills using fuzzy matching."""

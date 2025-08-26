@@ -46,8 +46,7 @@ flowchart TD
   SCORE-->SCORES[(scores)]
   API-->RESEARCH[Company Research Agent]
   RESEARCH-->R[(company_research)]
-  API-->|CSV| OUT1[(download)]
-  API-->|Drive| OUT2[(Google Drive)]
+  API-->|CSV Export| BROWSER[Browser Download]
   subgraph DB[Supabase Postgres + pgvector + RLS]
     JOBS
     JOBS_VER
@@ -82,7 +81,7 @@ flowchart TD
 
 - **Supabase**: Database, auth, storage, and edge functions
 - **Vercel/Railway**: Frontend and backend deployment
-- **Google Drive API**: Export functionality
+- **Email Service**: Resend or SendGrid for notifications
 
 ## Data Model
 
@@ -302,9 +301,9 @@ POST /api/v1/pitch/email-template - Generate email from pitch
 POST /api/v1/pitch/interview-prep - Interview preparation guide
 GET  /api/v1/pitch/quality/{id}  - Pitch quality assessment
 
-# Export (TODO)
-POST /api/v1/export/csv          - Download ranked results
-POST /api/v1/export/drive        - Upload to Google Drive
+# Export
+GET  /api/v1/scores/export       - Download scores as CSV
+POST /api/v1/resumes/skills-vocab - Upload custom skills vocabulary
 ```
 
 ### Response Format

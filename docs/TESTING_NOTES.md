@@ -248,5 +248,5 @@ pytest tests/test_ai_research.py --cov=api/services --cov=api/routes --cov-repor
 
 ## Phase 6-7 Testing Plans
 
-- **Phase 6 Export System**: Test CSV generation, Google Drive integration, batch exports
+- **Phase 6 Export System**: Test CSV generation, browser download, batch exports, custom skills vocab
 - **Phase 7 Frontend**: Add React Testing Library tests, Playwright E2E tests, implement UI components

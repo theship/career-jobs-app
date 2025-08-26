@@ -170,7 +170,7 @@
 ### Phase 6: Export & Integration (Weeks 12-13)
 
 - CSV export functionality
-- Google Drive integration
+- Browser download integration
 - Email notifications
 
 ## 🛠️ Development Environment Commands

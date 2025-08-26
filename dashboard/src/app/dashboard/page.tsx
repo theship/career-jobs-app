@@ -137,6 +137,9 @@ export default function DashboardPage() {
               <Link href="/jobs" className="nav-link">
                 Browse Jobs
               </Link>
+              <Link href="/matches" className="nav-link">
+                My Matches
+              </Link>
               <Link href="/profile" className="nav-link">
                 Profile
               </Link>
