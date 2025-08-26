@@ -7,10 +7,11 @@
 - **Phase 1 (Foundation & Authentication)**: ✅ COMPLETE
 - **Phase 2 (Resume Processing)**: ✅ COMPLETE  
 - **Phase 3 (Job Ingestion)**: ✅ COMPLETE
+- **Phase 4 (Scoring Engine)**: ✅ COMPLETE
 
-### Test Summary: 40/40 Tests Passing ✅
+### Test Summary: 65/65 Tests Passing ✅
 
-All tests are now passing including Phase 3 job ingestion tests.
+All tests are now passing including Phase 4 scoring engine tests.
 
 ## Phase 1 Test Status
 
@@ -136,9 +137,63 @@ pytest tests/test_job_ingestion.py --cov=ingestion --cov-report=term-missing
 - `GET /api/v1/jobs/stats/summary` - Job statistics
 - `POST /api/v1/jobs/ingest` - Trigger ingestion (requires auth)
 
-## Phase 4-6 Testing Plans
+## Phase 4 Test Status
 
-- **Scoring Engine**: Test vector similarity, ranking algorithms
+### Scoring Engine Tests (Completed 2025-08-26)
+
+#### ✅ All Tests Passing (25/25)
+
+- **Vector Similarity**: Cosine, Euclidean, dot product calculations
+- **Skills Matching**: Exact, alias, and fuzzy matching with weighted scoring  
+- **Geographic Scoring**: Distance-based scoring with remote/hybrid support
+- **Job Ranking**: Multi-factor algorithm combining all scoring components
+- **W&B Integration**: Experiment tracking and weight optimization
+- **Score Explainer**: Human-readable insights and export functionality
+- **API Endpoints**: `/scores/run`, `/scores/breakdown`, `/scores/export`, `/scores/optimize-weights`
+
+### Key Features Implemented
+
+1. **Multi-factor Scoring Algorithm**
+   - Cosine similarity (50% weight)
+   - Skills overlap (20% weight)
+   - Seniority fit (10% weight)
+   - Geographic score (10% weight)
+   - Recency bonus (10% weight)
+
+2. **Skills Matching Features**
+   - Skill normalization and alias mapping
+   - Fuzzy matching with configurable threshold
+   - Weighted scoring for required vs preferred skills
+
+3. **Geographic Scoring**
+   - Geocoding support via Nominatim
+   - Distance-based scoring with thresholds
+   - Remote/hybrid position handling
+
+4. **Experiment Tracking**
+   - W&B integration for tracking scoring runs
+   - Sweep configuration for weight optimization
+   - Artifact storage for weights and datasets
+
+### Running Phase 4 Tests
+
+```bash
+# Run scoring engine tests
+pytest tests/test_scoring_engine.py -v
+
+# Run with coverage
+pytest tests/test_scoring_engine.py --cov=scoring_engine --cov=api/services --cov=api/routes/scoring --cov-report=term-missing
+```
+
+### API Endpoints to Test
+
+- `POST /api/v1/scores/run` - Run batch scoring for resume
+- `GET /api/v1/scores/breakdown/{job_id}` - Get detailed score breakdown
+- `POST /api/v1/scores/export` - Export scores as CSV/JSON
+- `POST /api/v1/scores/optimize-weights` - Create W&B optimization sweep
+
+## Phase 5-6 Testing Plans
+
 - **AI Research**: Mock OpenAI responses, validate structured outputs
 - **Export System**: Test CSV generation, Google Drive integration
 - **Frontend**: Add React Testing Library tests, Playwright E2E tests
