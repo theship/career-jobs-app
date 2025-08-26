@@ -246,7 +246,53 @@ pytest tests/test_ai_research.py -v
 pytest tests/test_ai_research.py --cov=api/services --cov=api/routes --cov-report=term-missing
 ```
 
-## Phase 6-7 Testing Plans
+## Phase 6 Testing (Completed)
 
-- **Phase 6 Export System**: Test CSV generation, browser download, batch exports, custom skills vocab
-- **Phase 7 Frontend**: Add React Testing Library tests, Playwright E2E tests, implement UI components
+### What's Implemented
+- **Matches Table**: Sortable/filterable table at `/matches` route
+- **CSV Export**: Browser download from matches table
+- **Custom Skills Vocabulary**: Upload CSV to customize skill extraction
+- **API Endpoints**: 
+  - `GET /api/v1/scores/export` - Download scores as CSV
+  - `POST /api/v1/resumes/skills-vocab` - Upload custom vocabulary
+  - `GET /api/v1/resumes/skills-vocab` - Get user's vocabulary
+
+### Manual Testing Checklist
+1. **Matches Table**:
+   - Navigate to `/matches` after login
+   - Verify table displays job matches with scores
+   - Test sorting by clicking column headers
+   - Test filtering by score threshold and location
+   - Verify pagination works for >20 results
+
+2. **CSV Export**:
+   - Click "Download CSV" button on matches page
+   - Verify CSV downloads with correct filename format
+   - Check CSV contains all visible columns plus scoring details
+   - Confirm CSV opens correctly in Excel/Google Sheets
+
+3. **Skills Vocabulary**:
+   - Upload a custom skills CSV (skill,category,aliases,tags columns)
+   - Re-process a resume to verify custom skills are extracted
+   - Download template CSV and verify format
+   - Test invalid CSV rejection (missing columns)
+
+### Test Commands
+```bash
+# Test the matches table and export endpoints
+curl -X GET "http://localhost:8000/api/v1/scores?resume_id=<id>&limit=50" \
+  -H "Authorization: Bearer <token>"
+
+curl -X POST "http://localhost:8000/api/v1/scores/export?resume_id=<id>&format=csv" \
+  -H "Authorization: Bearer <token>"
+
+# Test skills vocabulary upload
+curl -X POST "http://localhost:8000/api/v1/resumes/skills-vocab" \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@skills.csv"
+```
+
+## Phase 7 Testing Plans
+
+- **Frontend Polish**: Add React Testing Library tests, Playwright E2E tests
+- **Email Notifications**: Integration with Resend/SendGrid for match alerts
