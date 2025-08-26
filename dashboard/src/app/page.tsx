@@ -1,103 +1,206 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
+import Link from 'next/link'
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+    checkUser()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="spinner"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="border-b border-border bg-surface/50 backdrop-blur-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-gradient-red">Career Jobs App</h1>
+            </div>
+            <div className="flex items-center space-x-6">
+              {user ? (
+                <>
+                  <Link href="/dashboard" className="nav-link">
+                    Dashboard
+                  </Link>
+                  <Link href="/jobs" className="nav-link">
+                    Browse Jobs
+                  </Link>
+                  <Link href="/profile" className="nav-link">
+                    Profile
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      await supabase.auth.signOut()
+                      router.refresh()
+                    }}
+                    className="btn-ghost text-sm"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="nav-link">
+                    Sign In
+                  </Link>
+                  <Link href="/register" className="btn-primary text-sm">
+                    Get Started
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative section-spacing overflow-hidden">
+        {/* Background gradient mesh */}
+        <div className="absolute inset-0 bg-gradient-radial-dark opacity-50"></div>
+        <div className="absolute inset-0 bg-gradient-red-subtle"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-light mb-6">
+            <span className="text-gradient">Find Your Perfect</span>
+            <br />
+            <span className="text-gradient-red font-medium">Job Match</span>
+          </h1>
+          
+          <p className="text-xl text-text-secondary max-w-3xl mx-auto mb-12 leading-relaxed">
+            AI-powered job matching, personalized pitches, and smart application tracking 
+            designed to accelerate your career journey.
+          </p>
+
+          {user ? (
+            <div className="space-y-4">
+              <Link href="/dashboard" className="btn-primary inline-block text-lg">
+                Go to Dashboard
+              </Link>
+            </div>
+          ) : (
+            <div className="flex gap-4 justify-center">
+              <Link href="/register" className="btn-primary inline-block text-lg">
+                Start Free Trial
+              </Link>
+              <Link href="/login" className="btn-secondary inline-block text-lg">
+                Sign In
+              </Link>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-16">
+            <div>
+              <div className="text-3xl font-light text-accent-red mb-1">10k+</div>
+              <div className="text-text-secondary text-sm">Active Jobs</div>
+            </div>
+            <div>
+              <div className="text-3xl font-light text-accent-red mb-1">95%</div>
+              <div className="text-text-secondary text-sm">Match Accuracy</div>
+            </div>
+            <div>
+              <div className="text-3xl font-light text-accent-red mb-1">3x</div>
+              <div className="text-text-secondary text-sm">Faster Applications</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="section-spacing border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-light text-text-primary mb-4">
+              Everything You Need to <span className="text-gradient-red">Succeed</span>
+            </h2>
+            <p className="text-text-secondary text-lg max-w-2xl mx-auto">
+              Our AI-powered platform provides comprehensive tools for your job search journey
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="card group">
+              <div className="text-accent-red mb-4 text-2xl">📄</div>
+              <h3 className="text-xl font-medium text-text-primary mb-3 group-hover:text-gradient-red transition-all">
+                Smart Resume Parsing
+              </h3>
+              <p className="text-text-secondary leading-relaxed">
+                Upload your resume and let our AI extract and analyze your skills, 
+                experience, and achievements for optimal job matching.
+              </p>
+            </div>
+
+            <div className="card group">
+              <div className="text-accent-red mb-4 text-2xl">🎯</div>
+              <h3 className="text-xl font-medium text-text-primary mb-3 group-hover:text-gradient-red transition-all">
+                AI Job Matching
+              </h3>
+              <p className="text-text-secondary leading-relaxed">
+                Get personalized job recommendations based on your skills, experience, 
+                and career goals with our advanced matching algorithm.
+              </p>
+            </div>
+
+            <div className="card group">
+              <div className="text-accent-red mb-4 text-2xl">✨</div>
+              <h3 className="text-xl font-medium text-text-primary mb-3 group-hover:text-gradient-red transition-all">
+                Personalized Pitches
+              </h3>
+              <p className="text-text-secondary leading-relaxed">
+                Generate compelling, tailored pitches for each application using 
+                AI-powered insights and company research.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="section-spacing border-t border-border">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-light text-text-primary mb-4">
+            Ready to Transform Your <span className="text-gradient-red">Career</span>?
+          </h2>
+          <p className="text-text-secondary text-lg mb-8">
+            Join thousands of professionals who've accelerated their job search with AI
+          </p>
+          {!user && (
+            <Link href="/register" className="btn-primary inline-block text-lg">
+              Get Started for Free
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-text-muted text-sm">
+            © {new Date().getFullYear()} Career Jobs App. All rights reserved.
+          </p>
+        </div>
       </footer>
     </div>
-  );
+  )
 }

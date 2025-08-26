@@ -27,8 +27,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# lib/  # Commented out - blocks frontend lib folder
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -136,7 +137,8 @@ data/processed/
 data/raw/
 data/private/
 *.csv
-*.json
+# *.json  # Commented out - too broad, blocks package-lock.json
+data/*.json
 *.xlsx
 *.xls
 

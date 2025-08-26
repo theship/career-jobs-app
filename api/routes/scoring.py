@@ -175,6 +175,69 @@ async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
 
 
 # API Endpoints
+@router.get("/", response_model=List[ScoreResponse])
+async def get_scores(
+    resume_id: str = Query(..., description="Resume ID to get scores for"),
+    limit: int = Query(50, description="Maximum number of scores to return"),
+    current_user: Dict = Depends(get_current_user),
+):
+    """
+    Get stored scores for a resume
+
+    Returns previously calculated scores from the database.
+    If no scores exist, returns empty list (client should call /run to calculate).
+    """
+    supabase = get_supabase_client()
+
+    try:
+        # Get scores from database
+        response = (
+            supabase.table("scores")
+            .select("*, job_postings!inner(title, company_name, location, posted_at)")
+            .eq("resume_id", resume_id)
+            .eq("user_id", current_user["user_id"])
+            .order("total_score", desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+        if not response.data:
+            return []
+
+        # Convert to response format
+        results = []
+        for idx, score in enumerate(response.data, 1):
+            job = score.get("job_postings", {})
+            results.append(
+                ScoreResponse(
+                    job_id=score["job_id"],
+                    title=job.get("title", "Unknown"),
+                    company_name=job.get("company_name", "Unknown"),
+                    total_score=float(score["total_score"]),
+                    rank=idx,
+                    percentile=100 - (idx / len(response.data) * 100),
+                    cosine_sim=float(score["cosine_sim"]),
+                    skill_overlap=float(score["skill_overlap"]),
+                    seniority_fit=float(score["seniority_fit"]),
+                    geodist_km=(
+                        float(score["geodist_km"]) if score["geodist_km"] else None
+                    ),
+                    recency_bonus=float(score["recency_bonus"]),
+                    match_level=(
+                        "high"
+                        if float(score["total_score"]) > 0.7
+                        else "medium" if float(score["total_score"]) > 0.5 else "low"
+                    ),
+                )
+            )
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Error fetching scores: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/run", response_model=BatchScoringResponse)
 async def run_scoring(
     request: ScoringRequest,
@@ -476,28 +539,38 @@ async def store_scoring_results(
 ):
     """Store scoring results in database for caching and history"""
     try:
+        # First, check which scores already exist
+        existing_scores = (
+            supabase.table("scores")
+            .select("job_id")
+            .eq("resume_id", resume_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        existing_job_ids = {score["job_id"] for score in existing_scores.data or []}
+
         records = []
         for score in scores[:50]:  # Store top 50
+            # Skip if score already exists for this job
+            if score.job_id in existing_job_ids:
+                continue
+
             record = {
                 "resume_id": resume_id,
                 "job_id": score.job_id,
                 "user_id": user_id,
-                "job_title": score.title,
-                "company_name": score.company_name,
-                "score": score.total_score,
-                "rank": score.rank,
-                "percentile": score.percentile,
                 "cosine_sim": score.cosine_sim,
                 "skill_overlap": score.skill_overlap,
                 "seniority_fit": score.seniority_fit,
-                "geodist_km": score.geodist_km,
+                "geodist_km": score.geodist_km if score.geodist_km else None,
                 "recency_bonus": score.recency_bonus,
-                "scored_at": datetime.now(timezone.utc).isoformat(),
+                "total_score": score.total_score,
             }
             records.append(record)
 
         if records:
-            supabase.table("scoring_results").insert(records).execute()
+            supabase.table("scores").insert(records).execute()
+            logger.info(f"Stored {len(records)} new scores for resume {resume_id}")
 
     except Exception as e:
         logger.error(f"Failed to store scoring results: {e}")

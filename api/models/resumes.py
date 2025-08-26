@@ -31,16 +31,17 @@ class ResumeUpdate(BaseModel):
     skills: Optional[List[str]] = None
 
 
-class Resume(ResumeBase):
-    """Complete resume model."""
+class Resume(BaseModel):
+    """Complete resume model matching database schema."""
 
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    file_path: str
-    text_content: str
-    embedding: Optional[List[float]] = None
-    created_at: datetime
-    updated_at: datetime
+    resume_id: int = Field(..., description="Resume ID")
+    user_id: str = Field(..., description="User ID (UUID)")
+    filename: str = Field(..., description="Original filename")
+    storage_path: str = Field(..., description="Storage path in bucket")
+    sha256: Optional[str] = Field(None, description="File hash")
+    text_content: Optional[str] = Field(None, description="Extracted text")
+    embedding: Optional[Any] = Field(None, description="Vector embedding")
+    created_at: datetime = Field(..., description="Creation timestamp")
 
     class Config:
         from_attributes = True

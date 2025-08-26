@@ -4,16 +4,19 @@ Database utilities for API endpoints
 
 from typing import Optional
 
+from supabase.lib.client_options import ClientOptions
+
 from api.utils.config import get_settings
 from supabase import Client, create_client
 
-# Cached Supabase client
+# Cached Supabase clients
 _supabase_client: Optional[Client] = None
+_supabase_service_client: Optional[Client] = None
 
 
 def get_supabase_client() -> Client:
     """
-    Get or create a Supabase client instance
+    Get or create a Supabase client instance (uses anon key, respects RLS)
 
     Returns:
         Supabase client
@@ -27,6 +30,43 @@ def get_supabase_client() -> Client:
         )
 
     return _supabase_client
+
+
+def get_supabase_service_client() -> Client:
+    """
+    Get or create a Supabase service client instance (bypasses RLS)
+
+    Returns:
+        Supabase service client
+    """
+    global _supabase_service_client
+
+    if _supabase_service_client is None:
+        settings = get_settings()
+        _supabase_service_client = create_client(
+            settings.supabase_url, settings.supabase_service_role_key
+        )
+
+    return _supabase_service_client
+
+
+def get_authenticated_supabase_client(token: str) -> Client:
+    """
+    Create a Supabase client authenticated with user's JWT token
+
+    Args:
+        token: JWT token from the request
+
+    Returns:
+        Authenticated Supabase client
+    """
+    settings = get_settings()
+    options = ClientOptions()
+    options.headers = {"Authorization": f"Bearer {token}"}
+
+    return create_client(
+        settings.supabase_url, settings.supabase_anon_key, options=options
+    )
 
 
 # Alias for compatibility with existing code
