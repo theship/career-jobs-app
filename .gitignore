@@ -136,7 +136,8 @@ data/processed/
 data/raw/
 data/private/
 *.csv
-*.json
+# *.json  # Commented out - too broad, blocks package-lock.json
+data/*.json
 *.xlsx
 *.xls
 
