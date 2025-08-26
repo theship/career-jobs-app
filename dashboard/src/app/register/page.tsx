@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { useNotification } from '@/contexts/NotificationContext'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -13,6 +14,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { showSuccess, showError } = useNotification()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,8 +42,8 @@ export default function RegisterPage() {
         setError(error.message)
       } else {
         // Show success message
-        alert('Registration successful! Please check your email to verify your account.')
-        router.push('/login')
+        showSuccess('Registration successful! Please check your email to verify your account.')
+        setTimeout(() => router.push('/login'), 2000)
       }
     } catch (err) {
       setError('An unexpected error occurred')

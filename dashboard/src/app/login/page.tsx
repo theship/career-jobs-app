@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { useNotification } from '@/contexts/NotificationContext'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { showInfo } = useNotification()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -148,14 +150,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="btn-secondary text-sm py-2"
-                onClick={() => alert('Google sign-in not implemented yet')}
+                onClick={() => showInfo('Google sign-in coming soon!')}
               >
                 Google
               </button>
               <button
                 type="button"
                 className="btn-secondary text-sm py-2"
-                onClick={() => alert('GitHub sign-in not implemented yet')}
+                onClick={() => showInfo('GitHub sign-in coming soon!')}
               >
                 GitHub
               </button>

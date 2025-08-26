@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { apiClient } from '@/lib/api'
 import Link from 'next/link'
+import { useNotification } from '@/contexts/NotificationContext'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   const [uploadingResume, setUploadingResume] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { showSuccess, showError } = useNotification()
 
   useEffect(() => {
     checkAuth()
@@ -33,20 +35,31 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       // Fetch user's resumes
-      const resumesData = await apiClient.getResumes()
-      setResumes(resumesData)
+      try {
+        const resumesData = await apiClient.getResumes()
+        setResumes(resumesData || [])
+        
+        // If user has resumes, fetch scores for the first one
+        if (resumesData && resumesData.length > 0) {
+          const scoresData = await apiClient.getScores(resumesData[0].resume_id)
+          setScores(scoresData || [])
+        }
+      } catch (resumeError) {
+        console.log('No resumes yet:', resumeError)
+        setResumes([])
+      }
 
       // Fetch recent jobs
-      const jobsData = await apiClient.getJobs({ limit: 5 })
-      setJobs(jobsData)
-
-      // If user has resumes, fetch scores for the first one
-      if (resumesData && resumesData.length > 0) {
-        const scoresData = await apiClient.getScores(resumesData[0].resume_id)
-        setScores(scoresData)
+      try {
+        const jobsData = await apiClient.getJobs({ limit: 5 })
+        setJobs(jobsData || [])
+      } catch (jobError) {
+        console.log('Could not fetch jobs:', jobError)
+        setJobs([])
       }
     } catch (error) {
       console.error('Error fetching data:', error)
+      // Don't show error for initial data fetch - it's expected when no data exists
     } finally {
       setLoading(false)
     }
@@ -71,10 +84,10 @@ export default function DashboardPage() {
         setScores(scoresData)
       }
       
-      alert('Resume uploaded and analyzed successfully!')
-    } catch (error) {
+      showSuccess('Resume uploaded and analyzed successfully!')
+    } catch (error: any) {
       console.error('Error uploading resume:', error)
-      alert('Failed to upload resume. Please try again.')
+      showError(error.message || 'Failed to upload resume. Please try again.')
     } finally {
       setUploadingResume(false)
     }
@@ -178,7 +191,7 @@ export default function DashboardPage() {
               )}
               
               {uploadingResume && (
-                <p className="text-sm text-text-secondary mt-2">Uploading and analyzing...</p>
+                <p className="text-sm text-text-secondary mt-2">Uploading and analyzing resume...</p>
               )}
             </div>
 
