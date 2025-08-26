@@ -308,7 +308,7 @@ class ResumeProcessor:
             if match:
                 try:
                     return float(match.group(1))
-                except:
+                except (ValueError, AttributeError):
                     pass
 
         return None

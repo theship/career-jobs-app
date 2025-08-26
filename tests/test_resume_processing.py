@@ -25,14 +25,14 @@ def sample_resume_text():
     return """
     John Doe
     Software Engineer
-    
+
     SKILLS:
     - Python (5 years)
     - JavaScript, React
     - Docker, Kubernetes
     - Machine Learning with PyTorch
     - RESTful API development
-    
+
     EXPERIENCE:
     Senior Software Engineer at TechCorp
     - Developed scalable microservices using Python and FastAPI

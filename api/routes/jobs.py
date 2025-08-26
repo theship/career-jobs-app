@@ -11,9 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from api.services.auth import get_current_user
-from api.utils.config import get_settings
 from api.utils.database import get_supabase_client
-from ingestion.orchestrator import JobIngestionOrchestrator, run_ingestion_cycle
+from ingestion.orchestrator import JobIngestionOrchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])

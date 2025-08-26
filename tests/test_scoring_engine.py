@@ -5,17 +5,17 @@ Tests for Phase 4: Scoring Engine
 import json
 import time
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
 
 from api.services.experiments import ExperimentConfig, ExperimentTracker
 from api.services.score_explainer import ScoreExplainer
-from scoring_engine.geo_scorer import GeoScorer, Location
+from scoring_engine.geo_scorer import GeoScorer
 from scoring_engine.ranker import JobRanker, JobScore, ScoringWeights
 from scoring_engine.similarity import SimilarityThresholds, VectorSimilarityCalculator
-from scoring_engine.skills_matcher import SkillsMatcher, SkillsScore
+from scoring_engine.skills_matcher import SkillsMatcher
 
 
 class TestVectorSimilarity:
@@ -172,7 +172,7 @@ class TestGeoScorer:
 
         score = scorer.calculate_geo_score("San Francisco, CA", "Remote", "Remote")
 
-        assert score.is_remote == True
+        assert score.is_remote is True
         assert score.score == 1.0
         assert score.distance_km == 0
 
@@ -196,7 +196,7 @@ class TestGeoScorer:
 
             # Same city
             score = scorer.calculate_geo_score("San Francisco, CA", "San Francisco, CA")
-            assert score.location_match == True
+            assert score.location_match is True
             assert score.score == 1.0
 
             # Nearby city (~50km)
@@ -308,7 +308,7 @@ class TestJobRanker:
             recency_bonus=0.05,
         )
 
-        assert weights.validate() == True
+        assert weights.validate() is True
 
         # Test normalization
         weights = ScoringWeights(
@@ -319,7 +319,7 @@ class TestJobRanker:
             recency_bonus=1.0,
         )
         weights.normalize()
-        assert weights.validate() == True
+        assert weights.validate() is True
         assert weights.cosine_similarity == 0.2
 
 
@@ -586,7 +586,6 @@ class TestAcceptanceTests:
         # Verify weight constraints
         params = sweep_config["parameters"]
         max_sum = sum(p["max"] for p in params.values())
-        min_sum = sum(p["min"] for p in params.values())
 
         # Max weights should not exceed reasonable bounds
         assert max_sum <= 2.0  # Some flexibility for optimization
