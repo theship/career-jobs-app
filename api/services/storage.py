@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import UploadFile
+
 from supabase import Client, create_client
 
 from ..utils.config import settings
