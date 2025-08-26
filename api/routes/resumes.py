@@ -5,7 +5,15 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Security, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Security,
+    UploadFile,
+    status,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -17,7 +25,11 @@ from ..models.resumes import Resume, ResumeCreate, ResumeUpdate, ResumeVersion
 from ..services.auth import get_current_user
 from ..services.resume_processor import ResumeProcessor
 from ..services.storage import StorageService
-from ..utils.database import get_supabase_client, get_supabase_service_client, get_authenticated_supabase_client
+from ..utils.database import (
+    get_supabase_client,
+    get_supabase_service_client,
+    get_authenticated_supabase_client,
+)
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
 
@@ -36,20 +48,24 @@ async def upload_resume(
     """Upload and process a new resume."""
     logger.info(f"Upload request from user: {current_user.get('user_id')}")
     logger.info(f"Current user data: {current_user}")
-    logger.info(f"File: {file.filename}, Size: {file.size if hasattr(file, 'size') else 'unknown'}")
-    
+    logger.info(
+        f"File: {file.filename}, Size: {file.size if hasattr(file, 'size') else 'unknown'}"
+    )
+
     # Use authenticated Supabase client with user's JWT
     supabase = get_authenticated_supabase_client(credentials.credentials)
     user_id = current_user["user_id"]
-    
+
     # Check if user exists in app_user table
-    user_check = supabase.table("app_user").select("user_id").eq("user_id", user_id).execute()
-    
+    user_check = (
+        supabase.table("app_user").select("user_id").eq("user_id", user_id).execute()
+    )
+
     if not user_check.data:
         # Create user in app_user table
         logger.info(f"Creating app_user record for {user_id}")
         supabase.table("app_user").insert({"user_id": user_id}).execute()
-    
+
     # Validate file type
     if not file.filename.endswith((".pdf", ".docx", ".txt")):
         raise HTTPException(
@@ -58,7 +74,7 @@ async def upload_resume(
         )
 
     # Validate file size (max 10MB)
-    if hasattr(file, 'size') and file.size and file.size > 10 * 1024 * 1024:
+    if hasattr(file, "size") and file.size and file.size > 10 * 1024 * 1024:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File size exceeds 10MB limit.",
@@ -103,28 +119,31 @@ async def upload_resume(
         }
 
         # Save to database (already have supabase client from above)
-        
+
         # Prepare data for insertion (matching schema.sql columns)
         # Compute SHA256 hash of the file
         import hashlib
+
         file_content = await file.read()
         await file.seek(0)  # Reset file pointer
         file_hash = hashlib.sha256(file_content).digest()
-        
+
         insert_data = {
             "user_id": current_user["user_id"],
             "filename": resume_data["name"],
             "storage_path": resume_data["file_path"],
             "text_content": resume_data["text_content"],
-            "embedding": embedding.tolist() if hasattr(embedding, 'tolist') else embedding,
+            "embedding": (
+                embedding.tolist() if hasattr(embedding, "tolist") else embedding
+            ),
             "sha256": file_hash.hex(),  # Store as hex string for JSON compatibility
         }
-        
+
         response = supabase.table("resumes").insert(insert_data).execute()
-        
+
         if not response.data:
             raise Exception("Failed to save resume to database")
-            
+
         return Resume(**response.data[0])
 
     except Exception as e:
@@ -148,7 +167,7 @@ async def list_resumes(
 ):
     """List all resumes for the current user."""
     supabase = get_authenticated_supabase_client(credentials.credentials)
-    
+
     response = (
         supabase.table("resumes")
         .select("*")
@@ -156,7 +175,7 @@ async def list_resumes(
         .order("created_at", desc=True)
         .execute()
     )
-    
+
     return [Resume(**row) for row in response.data] if response.data else []
 
 
@@ -168,7 +187,7 @@ async def get_resume(
 ):
     """Get a specific resume by ID."""
     supabase = get_authenticated_supabase_client(credentials.credentials)
-    
+
     response = (
         supabase.table("resumes")
         .select("*")
@@ -176,7 +195,7 @@ async def get_resume(
         .eq("user_id", current_user["user_id"])
         .execute()
     )
-    
+
     if not response.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
@@ -194,7 +213,7 @@ async def update_resume(
 ):
     """Update a resume's metadata."""
     supabase = get_authenticated_supabase_client(credentials.credentials)
-    
+
     # First, get current resume
     current_response = (
         supabase.table("resumes")
@@ -203,28 +222,28 @@ async def update_resume(
         .eq("user_id", current_user["user_id"])
         .execute()
     )
-    
+
     if not current_response.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
         )
-    
+
     current_resume = current_response.data[0]
-    
+
     # Create version record
     version_data = {
         "resume_id": current_resume["resume_id"],
         "storage_path": current_resume.get("storage_path", resume.get("file_path", "")),
         "sha256": current_resume.get("sha256"),
     }
-    
+
     supabase.table("resume_versions").insert(version_data).execute()
-    
+
     # Update resume
     update_data_dict = {}
     if update_data.name is not None:
         update_data_dict["filename"] = update_data.name
-    
+
     if update_data_dict:
         response = (
             supabase.table("resumes")
@@ -233,15 +252,15 @@ async def update_resume(
             .eq("user_id", current_user["user_id"])
             .execute()
         )
-        
+
         if not response.data:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update resume"
+                detail="Failed to update resume",
             )
-        
+
         return Resume(**response.data[0])
-    
+
     return Resume(**current_resume)
 
 
@@ -253,7 +272,7 @@ async def delete_resume(
 ):
     """Delete a resume and its associated data."""
     supabase = get_authenticated_supabase_client(credentials.credentials)
-    
+
     # Check ownership and get resume
     response = (
         supabase.table("resumes")
@@ -262,23 +281,25 @@ async def delete_resume(
         .eq("user_id", current_user["user_id"])
         .execute()
     )
-    
+
     if not response.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
         )
-    
+
     resume = response.data[0]
-    
+
     # Delete from storage
-    await storage_service.delete_resume(resume.get("storage_path", resume.get("file_path", "")))
-    
+    await storage_service.delete_resume(
+        resume.get("storage_path", resume.get("file_path", ""))
+    )
+
     # Delete versions first (foreign key constraint)
     supabase.table("resume_versions").delete().eq("resume_id", int(resume_id)).execute()
-    
+
     # Delete resume
     supabase.table("resumes").delete().eq("resume_id", int(resume_id)).execute()
-    
+
     return {"message": "Resume deleted successfully"}
 
 
@@ -290,7 +311,7 @@ async def reprocess_resume(
 ):
     """Reprocess a resume with updated extraction logic."""
     supabase = get_authenticated_supabase_client(credentials.credentials)
-    
+
     response = (
         supabase.table("resumes")
         .select("*")
@@ -298,38 +319,38 @@ async def reprocess_resume(
         .eq("user_id", current_user["user_id"])
         .execute()
     )
-    
+
     if not response.data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
         )
-    
+
     resume = response.data[0]
-    
+
     try:
         # Re-extract skills with latest pipeline
         skills_data = await resume_processor.extract_skills(resume["text_content"])
-        
+
         # Re-generate embeddings if needed
-        embedding = await resume_processor.generate_embedding(
-            resume["text_content"]
-        )
-        
+        embedding = await resume_processor.generate_embedding(resume["text_content"])
+
         # Update resume
         update_data = {
-            "embedding": embedding.tolist() if hasattr(embedding, 'tolist') else embedding,
+            "embedding": (
+                embedding.tolist() if hasattr(embedding, "tolist") else embedding
+            ),
         }
-        
+
         result = (
             supabase.table("resumes")
             .update(update_data)
             .eq("resume_id", int(resume_id))
             .execute()
         )
-        
+
         if not result.data:
             raise Exception("Failed to update resume")
-        
+
         return {
             "message": "Resume reprocessed successfully",
             "resume": Resume(**result.data[0]),

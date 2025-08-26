@@ -52,21 +52,19 @@ def get_supabase_service_client() -> Client:
 def get_authenticated_supabase_client(token: str) -> Client:
     """
     Create a Supabase client authenticated with user's JWT token
-    
+
     Args:
         token: JWT token from the request
-    
+
     Returns:
         Authenticated Supabase client
     """
     settings = get_settings()
     options = ClientOptions()
     options.headers = {"Authorization": f"Bearer {token}"}
-    
+
     return create_client(
-        settings.supabase_url,
-        settings.supabase_anon_key,
-        options=options
+        settings.supabase_url, settings.supabase_anon_key, options=options
     )
 
 

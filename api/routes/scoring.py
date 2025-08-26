@@ -183,12 +183,12 @@ async def get_scores(
 ):
     """
     Get stored scores for a resume
-    
+
     Returns previously calculated scores from the database.
     If no scores exist, returns empty list (client should call /run to calculate).
     """
     supabase = get_supabase_client()
-    
+
     try:
         # Get scores from database
         response = (
@@ -200,10 +200,10 @@ async def get_scores(
             .limit(limit)
             .execute()
         )
-        
+
         if not response.data:
             return []
-        
+
         # Convert to response format
         results = []
         for idx, score in enumerate(response.data, 1):
@@ -219,14 +219,20 @@ async def get_scores(
                     cosine_sim=float(score["cosine_sim"]),
                     skill_overlap=float(score["skill_overlap"]),
                     seniority_fit=float(score["seniority_fit"]),
-                    geodist_km=float(score["geodist_km"]) if score["geodist_km"] else None,
+                    geodist_km=(
+                        float(score["geodist_km"]) if score["geodist_km"] else None
+                    ),
                     recency_bonus=float(score["recency_bonus"]),
-                    match_level="high" if float(score["total_score"]) > 0.7 else "medium" if float(score["total_score"]) > 0.5 else "low",
+                    match_level=(
+                        "high"
+                        if float(score["total_score"]) > 0.7
+                        else "medium" if float(score["total_score"]) > 0.5 else "low"
+                    ),
                 )
             )
-        
+
         return results
-        
+
     except Exception as e:
         logger.error(f"Error fetching scores: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -542,13 +548,13 @@ async def store_scoring_results(
             .execute()
         )
         existing_job_ids = {score["job_id"] for score in existing_scores.data or []}
-        
+
         records = []
         for score in scores[:50]:  # Store top 50
             # Skip if score already exists for this job
             if score.job_id in existing_job_ids:
                 continue
-                
+
             record = {
                 "resume_id": resume_id,
                 "job_id": score.job_id,
