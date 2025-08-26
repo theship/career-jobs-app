@@ -11,10 +11,10 @@ import numpy as np
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from api.auth import get_current_user
+from api.services.auth import get_current_user
 from api.services.experiments import ExperimentConfig, ExperimentTracker
 from api.services.score_explainer import ScoreExplainer
-from api.utils.db import get_supabase_client
+from api.utils.database import get_supabase_client
 from scoring_engine.ranker import JobRanker, JobScore, ScoringWeights
 
 logger = logging.getLogger(__name__)

@@ -269,13 +269,42 @@ total_score = 0.50 * cosine_similarity +
 ### Key Endpoints
 
 ```http
-POST /resumes              - Upload and process résumé
-GET  /jobs/recent         - Last 7 days of job postings
-POST /scores/run          - Generate scores for résumé vs jobs
-GET  /research/{domain}   - Company research data
-POST /pitch/generate      - Create personalized pitch
-GET  /export/csv          - Download ranked results
-POST /export/drive        - Upload to Google Drive
+# Authentication
+GET  /api/v1/auth/me         - Get current user
+GET  /api/v1/auth/session    - Check session status
+
+# Resumes
+POST /api/v1/resumes/upload  - Upload and process résumé
+GET  /api/v1/resumes/        - List user resumes
+PUT  /api/v1/resumes/{id}    - Update resume
+DELETE /api/v1/resumes/{id}  - Delete resume
+
+# Jobs
+GET  /api/v1/jobs            - List job postings
+POST /api/v1/jobs/search     - Search jobs
+POST /api/v1/jobs/ingest     - Ingest new jobs from ATS
+GET  /api/v1/jobs/{id}       - Get job details
+
+# Scoring
+POST /api/v1/scores/run      - Generate scores for résumé vs jobs
+GET  /api/v1/scores/breakdown/{job_id} - Detailed score breakdown
+POST /api/v1/scores/optimize-weights - Optimize scoring weights
+
+# Research (Phase 5)
+POST /api/v1/research/generate        - Generate company research
+GET  /api/v1/research/{domain}        - Get cached research
+GET  /api/v1/research/quality/{domain} - Research quality scores
+POST /api/v1/research/cache/clear     - Clear research cache
+
+# Pitch Generation (Phase 5)
+POST /api/v1/pitch/generate      - Create personalized pitch
+POST /api/v1/pitch/email-template - Generate email from pitch
+POST /api/v1/pitch/interview-prep - Interview preparation guide
+GET  /api/v1/pitch/quality/{id}  - Pitch quality assessment
+
+# Export (TODO)
+POST /api/v1/export/csv          - Download ranked results
+POST /api/v1/export/drive        - Upload to Google Drive
 ```
 
 ### Response Format
@@ -361,7 +390,7 @@ Based on successful AIEWF patterns from civic-steward-visionboard:
 ```text
 career-jobs-app/
 ├── [AIEWF files above...]
-├── api/                   # 🔨 TO BE CREATED - FastAPI backend
+├── api/                   # ✅ IMPLEMENTED - FastAPI backend
 │   ├── __init__.py
 │   ├── main.py           # FastAPI application entry point
 │   ├── models/           # Database models and schemas
@@ -376,27 +405,32 @@ career-jobs-app/
 │   │   ├── jobs.py       # Job CRUD and search
 │   │   ├── resumes.py    # Resume upload and processing
 │   │   ├── scoring.py    # Job scoring and ranking
-│   │   └── export.py     # CSV/Drive export
+│   │   ├── research.py   # ✅ Company research endpoints (Phase 5)
+│   │   ├── pitch.py      # ✅ Pitch generation endpoints (Phase 5)
+│   │   └── export.py     # CSV/Drive export (TODO)
 │   ├── services/         # Business logic layer
 │   │   ├── __init__.py
 │   │   ├── auth.py       # JWT verification
 │   │   ├── embeddings.py # OpenAI embedding service
 │   │   ├── skill_extractor.py # Multi-stage skill extraction (dict/fuzzy/LLM)
 │   │   ├── storage.py    # File storage service
-│   │   └── research.py   # Company research service
+│   │   ├── research.py   # ✅ Company research service (Phase 5)
+│   │   ├── pitch_generator.py # ✅ Pitch generation service (Phase 5)
+│   │   ├── score_explainer.py # Score explanation service
+│   │   └── experiments.py # W&B experiment tracking
 │   ├── utils/            # Shared utilities
 │   │   ├── __init__.py
 │   │   ├── db.py         # Database connection
 │   │   ├── cache.py      # Redis/memory caching
 │   │   └── validators.py # Input validation
 │   └── static/           # Static assets (favicons, etc.)
-├── scoring_engine/        # 🔨 TO BE CREATED - Core matching logic
+├── scoring_engine/        # ✅ IMPLEMENTED - Core matching logic
 │   ├── __init__.py
 │   ├── similarity.py     # Vector similarity calculations
 │   ├── skills_matcher.py # Skill overlap analysis
 │   ├── geo_scorer.py     # Geographic scoring
 │   └── ranker.py         # Final ranking algorithm
-├── ingestion/            # 🔨 TO BE CREATED - Job data ingestion
+├── ingestion/            # ✅ IMPLEMENTED - Job data ingestion
 │   ├── __init__.py
 │   ├── connectors/       # ATS-specific connectors
 │   │   ├── __init__.py
@@ -410,7 +444,7 @@ career-jobs-app/
 │   └── orchestrator.py   # Ingestion scheduling/management
 ├── config/
 │   └── skills_vocab.csv  # canonical skills list (see dev-plan.md / Phase 2)
-├── dashboard/            # 🔨 TO BE CREATED - Next.js frontend
+├── dashboard/            # ✅ BASIC SETUP - Next.js frontend
 │   ├── package.json
 │   ├── next.config.ts
 │   ├── tsconfig.json
@@ -431,22 +465,21 @@ career-jobs-app/
 │   │   │   └── utils.ts
 │   │   └── types/        # TypeScript definitions
 │   └── public/           # Static assets
-├── config/               # 🔨 TO BE CREATED - Configuration management
-│   ├── settings.yaml     # Application settings
-│   ├── ats_sources.yaml  # ATS connector configurations
-│   ├── prompts/          # AI prompt templates
-│   │   ├── company_research.txt
-│   │   ├── pitch_generation.txt
-│   │   └── skill_extraction.txt
-│   └── schemas/          # JSON schemas for validation
-│       ├── job_posting.json
-│       ├── resume.json
-│       └── company_research.json
-├── data/                 # 🔨 TO BE CREATED - Data management
+├── config/               # ✅ PARTIALLY IMPLEMENTED - Configuration management
+│   ├── skills_vocab.csv  # ✅ Canonical skills list
+│   ├── prompts/          # ✅ AI prompt templates
+│   │   ├── company_research.txt # ✅ Phase 5
+│   │   ├── pitch_generation.txt # ✅ Phase 5
+│   │   └── skill_extraction.txt # TODO
+│   └── schemas/          # ✅ JSON schemas for validation
+│       ├── job_posting.json     # TODO
+│       ├── resume.json           # TODO
+│       └── company_research.json # ✅ Phase 5
+├── data/                 # ✅ PARTIALLY IMPLEMENTED - Data management
 │   ├── raw/              # Raw ATS data
 │   ├── processed/        # Normalized job data
 │   ├── embeddings/       # Cached embedding vectors
-│   ├── research/         # Cached company research data
+│   ├── research/         # ✅ Cached company research data (Phase 5)
 │   └── exports/          # Generated CSV exports
 ├── experiments/          # 🔨 TO BE CREATED - W&B experiment configs
 │   ├── scoring_sweeps.yaml
@@ -466,7 +499,7 @@ career-jobs-app/
 │   ├── run_experiments.py # W&B experiment runner
 │   ├── run_evaluations.py # Weave evaluation runner
 │   └── backup_data.py    # Data backup utilities
-├── tests/                # 🔨 TO BE CREATED - Comprehensive testing
+├── tests/                # ✅ IMPLEMENTED - Comprehensive testing
 │   ├── __init__.py
 │   ├── api/              # API endpoint tests
 │   ├── scoring_engine/   # Scoring algorithm tests

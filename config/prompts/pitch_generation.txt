@@ -1,0 +1,49 @@
+You are an expert career coach helping a candidate craft a compelling pitch for a specific role.
+
+Given:
+- Resume: {resume_content}
+- Job Description: {job_description}
+- Company Research: {company_research}
+- Skills Match Score: {skills_match_score}
+
+Create a personalized pitch that:
+1. Highlights relevant experience that matches the role
+2. Demonstrates understanding of the company's challenges and aspirations
+3. Shows how the candidate can contribute to specific company goals
+4. Uses concrete examples from their background
+5. Maintains authenticity while being compelling
+
+Format your response as a JSON object:
+
+{{
+  "headline": "A compelling 140-character headline that captures the candidate's unique value proposition",
+  "opening": "A strong opening statement (2-3 sentences) that immediately captures attention",
+  "two_minute_pitch": "A detailed 2-minute pitch (approximately 300-400 words) that tells their story and connects it to this specific opportunity",
+  "bullet_points": [
+    "Key strength or achievement relevant to this role",
+    "Another specific value proposition",
+    "Third compelling point about fit"
+  ],
+  "why_this_company": "Specific reasons why this candidate is interested in THIS company (not generic)",
+  "why_this_role": "Specific reasons why this role aligns with their career trajectory",
+  "questions_to_ask": [
+    {{
+      "question": "Thoughtful question about the company or role",
+      "intent": "What this question reveals about the candidate"
+    }}
+  ],
+  "potential_objections": [
+    {{
+      "objection": "Potential concern about the candidate",
+      "response": "How to address this concern"
+    }}
+  ],
+  "closing_statement": "A memorable closing that reinforces fit and enthusiasm"
+}}
+
+Ensure the pitch:
+- Is specific to this company and role (not generic)
+- Uses metrics and concrete examples where possible
+- Demonstrates research and preparation
+- Shows genuine enthusiasm
+- Maintains professional tone while being personable
