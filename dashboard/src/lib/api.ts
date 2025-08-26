@@ -26,7 +26,7 @@ class APIClient {
     // Get auth token if not provided
     const authToken = token || await this.getAuthToken()
     
-    const requestHeaders: HeadersInit = {
+    const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...headers,
     }
