@@ -39,10 +39,26 @@ export default function DashboardPage() {
         const resumesData = await apiClient.getResumes()
         setResumes(resumesData || [])
         
-        // If user has resumes, fetch scores for the first one
+        // If user has resumes, fetch or calculate scores for the first one
         if (resumesData && resumesData.length > 0) {
-          const scoresData = await apiClient.getScores(resumesData[0].resume_id)
-          setScores(scoresData || [])
+          try {
+            // First try to get existing scores
+            let scoresData = await apiClient.getScores(resumesData[0].resume_id)
+            
+            // If no scores exist, calculate them
+            if (!scoresData || scoresData.length === 0) {
+              console.log('No existing scores, calculating new ones...')
+              const scoringResult = await apiClient.runScoring(resumesData[0].resume_id)
+              if (scoringResult && scoringResult.results) {
+                scoresData = scoringResult.results
+              }
+            }
+            
+            setScores(scoresData || [])
+          } catch (scoreError) {
+            console.log('Could not fetch or calculate scores:', scoreError)
+            setScores([])
+          }
         }
       } catch (resumeError) {
         console.log('No resumes yet:', resumeError)
@@ -79,9 +95,14 @@ export default function DashboardPage() {
       
       // Trigger scoring for the new resume
       if (result.resume_id) {
-        await apiClient.runScoring(result.resume_id)
-        const scoresData = await apiClient.getScores(result.resume_id)
-        setScores(scoresData)
+        const scoringResult = await apiClient.runScoring(result.resume_id)
+        if (scoringResult && scoringResult.results) {
+          setScores(scoringResult.results)
+        } else {
+          // If no results returned, try fetching stored scores
+          const scoresData = await apiClient.getScores(result.resume_id)
+          setScores(scoresData || [])
+        }
       }
       
       showSuccess('Resume uploaded and analyzed successfully!')
@@ -122,6 +143,7 @@ export default function DashboardPage() {
               <button
                 onClick={async () => {
                   await supabase.auth.signOut()
+                  setUser(null)  // Clear user state
                   router.push('/')
                 }}
                 className="btn-ghost text-sm"

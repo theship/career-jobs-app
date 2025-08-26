@@ -180,14 +180,14 @@ export default function RegisterPage() {
               <button
                 type="button"
                 className="btn-secondary text-sm py-2"
-                onClick={() => alert('Google sign-up not implemented yet')}
+                onClick={() => showInfo('Google sign-up coming soon!')}
               >
                 Google
               </button>
               <button
                 type="button"
                 className="btn-secondary text-sm py-2"
-                onClick={() => alert('GitHub sign-up not implemented yet')}
+                onClick={() => showInfo('GitHub sign-up coming soon!')}
               >
                 GitHub
               </button>
