@@ -201,13 +201,19 @@ class TestCompanyResearch:
                                 "company_name": "Stripe",
                                 "industry": "Fintech",
                                 "competitors": [
-                                    {"name": "Square", "url": "https://square.com"}
+                                    {
+                                        "name": "Square",
+                                        "url": "https://square.com",
+                                    }
                                 ],
                                 "excellence": [
                                     {"area": "API", "description": "Great API"}
                                 ],
                                 "shortcomings": [
-                                    {"area": "Price", "description": "Expensive"}
+                                    {
+                                        "area": "Price",
+                                        "description": "Expensive",
+                                    }
                                 ],
                                 "aspirations": [
                                     {
@@ -305,7 +311,9 @@ class TestPitchGeneration:
         resume_data = {
             "skills": ["Python", "payments", "fintech"],
             "years_experience": 5,
-            "experience": [{"title": "Senior Engineer", "company": "FinTech Co"}],
+            "experience": [
+                {"title": "Senior Engineer", "company": "FinTech Co"}
+            ],
         }
 
         job_data = {
@@ -321,7 +329,9 @@ class TestPitchGeneration:
             "aspirations": [{"statement": "Global payments"}],
         }
 
-        pitch = service.generate_pitch(resume_data, job_data, company_research, 0.75)
+        pitch = service.generate_pitch(
+            resume_data, job_data, company_research, 0.75
+        )
 
         # Validate structure
         assert "headline" in pitch
@@ -413,10 +423,16 @@ class TestPitchGeneration:
             "two_minute_pitch": "Detailed pitch here",
             "bullet_points": ["Key point 1", "Key point 2"],
             "questions_to_ask": [
-                {"question": "About team structure?", "intent": "Understand dynamics"}
+                {
+                    "question": "About team structure?",
+                    "intent": "Understand dynamics",
+                }
             ],
             "potential_objections": [
-                {"objection": "Lack of experience", "response": "Transferable skills"}
+                {
+                    "objection": "Lack of experience",
+                    "response": "Transferable skills",
+                }
             ],
         }
 
@@ -573,7 +589,9 @@ class TestAcceptanceTests:
 
         service = PitchGeneratorService(api_key="test_key")
 
-        resume_data = {"experience_summary": "Senior engineer with fintech experience"}
+        resume_data = {
+            "experience_summary": "Senior engineer with fintech experience"
+        }
         job_data = {
             "company_name": "Stripe",
             "company_domain": "stripe.com",
@@ -607,9 +625,14 @@ class TestAcceptanceTests:
                                 "company_name": "Stripe",
                                 "industry": "Fintech",
                                 "competitors": [
-                                    {"name": "Square", "url": "https://square.com"}
+                                    {
+                                        "name": "Square",
+                                        "url": "https://square.com",
+                                    }
                                 ],
-                                "excellence": [{"area": "API", "description": "Great"}],
+                                "excellence": [
+                                    {"area": "API", "description": "Great"}
+                                ],
                                 "shortcomings": [
                                     {"area": "Price", "description": "High"}
                                 ],
@@ -661,7 +684,10 @@ class TestAcceptanceTests:
                     "statement": "Global expansion",
                     "source_url": "https://stripe.com/news",
                 },
-                {"statement": "New products", "source_url": "https://stripe.com/blog"},
+                {
+                    "statement": "New products",
+                    "source_url": "https://stripe.com/blog",
+                },
             ],
         }
 

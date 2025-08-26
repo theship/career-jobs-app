@@ -11,7 +11,9 @@ class ResumeBase(BaseModel):
     """Base resume model."""
 
     name: str = Field(..., description="Resume name/title")
-    skills: Optional[List[str]] = Field(default=[], description="Extracted skills")
+    skills: Optional[List[str]] = Field(
+        default=[], description="Extracted skills"
+    )
     skills_metadata: Optional[Dict[str, Any]] = Field(
         default={},
         description="Metadata about skill extraction (confidence, evidence, etc.)",
@@ -41,7 +43,9 @@ class Resume(BaseModel):
     text_content: Optional[str] = Field(None, description="Extracted text")
     embedding: Optional[Any] = Field(None, description="Vector embedding")
     created_at: datetime = Field(..., description="Creation timestamp")
-    skills_count: Optional[int] = Field(0, description="Number of extracted skills")
+    skills_count: Optional[int] = Field(
+        0, description="Number of extracted skills"
+    )
 
     class Config:
         from_attributes = True

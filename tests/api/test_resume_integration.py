@@ -96,13 +96,19 @@ class TestResumeUploadIntegration:
                 "years_experience": mock_skill_result.years_experience,
             }
         )
-        mock_processor.extract_skills = AsyncMock(return_value=mock_skill_result)
+        mock_processor.extract_skills = AsyncMock(
+            return_value=mock_skill_result
+        )
 
         # Mock embedding generation
-        mock_processor.generate_embedding = AsyncMock(return_value=[0.1] * 3072)
+        mock_processor.generate_embedding = AsyncMock(
+            return_value=[0.1] * 3072
+        )
 
         # Mock Supabase storage
-        with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
+        with patch(
+            "api.routes.resumes.get_supabase_client"
+        ) as mock_get_supabase:
             mock_supabase = Mock()
             mock_get_supabase.return_value = mock_supabase
 
@@ -111,7 +117,9 @@ class TestResumeUploadIntegration:
             mock_supabase.storage = mock_storage
             mock_bucket = Mock()
             mock_storage.from_.return_value = mock_bucket
-            mock_bucket.upload = Mock(return_value={"path": "test-user-id/resume.pdf"})
+            mock_bucket.upload = Mock(
+                return_value={"path": "test-user-id/resume.pdf"}
+            )
 
             # Mock database insert
             mock_table = Mock()
@@ -156,7 +164,9 @@ class TestResumeUploadIntegration:
             assert len(data["resume"]["skills"]) == 7
             assert data["skills"]["coverage"] == 85.0
             assert data["skills"]["years_experience"]["Python"] == 5.0
-            assert data["message"] == "Resume uploaded and processed successfully"
+            assert (
+                data["message"] == "Resume uploaded and processed successfully"
+            )
 
     @patch("api.services.auth.get_auth_service")
     def test_upload_invalid_file_type(self, mock_get_auth_service):
@@ -170,10 +180,18 @@ class TestResumeUploadIntegration:
         mock_auth_service.extract_user_id.return_value = "test-user-id"
 
         # Create invalid file
-        files = {"file": ("resume.exe", b"Invalid content", "application/x-msdownload")}
+        files = {
+            "file": (
+                "resume.exe",
+                b"Invalid content",
+                "application/x-msdownload",
+            )
+        }
 
         headers = {"Authorization": "Bearer test-token"}
-        response = client.post("/api/v1/resumes/upload", files=files, headers=headers)
+        response = client.post(
+            "/api/v1/resumes/upload", files=files, headers=headers
+        )
 
         assert response.status_code == 400
         assert "Invalid file type" in response.json()["detail"]
@@ -194,7 +212,9 @@ class TestResumeUploadIntegration:
         files = {"file": ("resume.pdf", large_content, "application/pdf")}
 
         headers = {"Authorization": "Bearer test-token"}
-        response = client.post("/api/v1/resumes/upload", files=files, headers=headers)
+        response = client.post(
+            "/api/v1/resumes/upload", files=files, headers=headers
+        )
 
         assert response.status_code == 413
         assert "File too large" in response.json()["detail"]
@@ -214,7 +234,9 @@ class TestResumeListAndRetrieve:
         mock_auth_service.verify_token.return_value = test_payload
         mock_auth_service.extract_user_id.return_value = "test-user-id"
 
-        with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
+        with patch(
+            "api.routes.resumes.get_supabase_client"
+        ) as mock_get_supabase:
             mock_supabase = Mock()
             mock_get_supabase.return_value = mock_supabase
 
@@ -258,7 +280,9 @@ class TestResumeListAndRetrieve:
         mock_auth_service.verify_token.return_value = test_payload
         mock_auth_service.extract_user_id.return_value = "test-user-id"
 
-        with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
+        with patch(
+            "api.routes.resumes.get_supabase_client"
+        ) as mock_get_supabase:
             mock_supabase = Mock()
             mock_get_supabase.return_value = mock_supabase
 
@@ -274,7 +298,10 @@ class TestResumeListAndRetrieve:
                         "text_content": "Resume content",
                         "skills": ["Python", "FastAPI"],
                         "skills_metadata": {
-                            "confidence_scores": {"Python": 1.0, "FastAPI": 0.9},
+                            "confidence_scores": {
+                                "Python": 1.0,
+                                "FastAPI": 0.9,
+                            },
                             "coverage": 75.0,
                         },
                     }
@@ -282,7 +309,9 @@ class TestResumeListAndRetrieve:
             )
 
             headers = {"Authorization": "Bearer test-token"}
-            response = client.get("/api/v1/resumes/resume-123", headers=headers)
+            response = client.get(
+                "/api/v1/resumes/resume-123", headers=headers
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -301,7 +330,9 @@ class TestResumeListAndRetrieve:
         mock_auth_service.verify_token.return_value = test_payload
         mock_auth_service.extract_user_id.return_value = "test-user-id"
 
-        with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
+        with patch(
+            "api.routes.resumes.get_supabase_client"
+        ) as mock_get_supabase:
             mock_supabase = Mock()
             mock_get_supabase.return_value = mock_supabase
 
@@ -320,7 +351,9 @@ class TestResumeListAndRetrieve:
             )
 
             headers = {"Authorization": "Bearer test-token"}
-            response = client.delete("/api/v1/resumes/resume-123", headers=headers)
+            response = client.delete(
+                "/api/v1/resumes/resume-123", headers=headers
+            )
 
             assert response.status_code == 200
             assert response.json()["message"] == "Resume deleted successfully"

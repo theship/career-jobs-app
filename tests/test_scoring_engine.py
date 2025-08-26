@@ -14,7 +14,10 @@ from api.services.experiments import ExperimentConfig, ExperimentTracker
 from api.services.score_explainer import ScoreExplainer
 from scoring_engine.geo_scorer import GeoScorer
 from scoring_engine.ranker import JobRanker, JobScore, ScoringWeights
-from scoring_engine.similarity import SimilarityThresholds, VectorSimilarityCalculator
+from scoring_engine.similarity import (
+    SimilarityThresholds,
+    VectorSimilarityCalculator,
+)
 from scoring_engine.skills_matcher import SkillsMatcher
 
 
@@ -63,7 +66,9 @@ class TestVectorSimilarity:
 
         assert len(scores) == 4
         assert scores[0].cosine_similarity == pytest.approx(1.0)
-        assert scores[1].cosine_similarity == pytest.approx(1.0)  # Same direction
+        assert scores[1].cosine_similarity == pytest.approx(
+            1.0
+        )  # Same direction
         assert scores[2].cosine_similarity == pytest.approx(0.0)  # Zero vector
         assert scores[3].cosine_similarity == pytest.approx(-1.0)  # Opposite
 
@@ -136,14 +141,18 @@ class TestSkillsMatcher:
         required_skills = ["Python", "Java", "C++"]
         preferred_skills = ["JavaScript", "React"]
 
-        score = matcher.match_skills(resume_skills, required_skills, preferred_skills)
+        score = matcher.match_skills(
+            resume_skills, required_skills, preferred_skills
+        )
 
         # With our implementation, the score calculation is different
         # We're matching skills from job requirements against resume
         # Python matches (1 out of 3 required)
         # JavaScript matches (1 out of 2 preferred)
         # The actual weighted score depends on the implementation
-        assert 0.3 < score.weighted_score < 0.7  # Reasonable range for partial match
+        assert (
+            0.3 < score.weighted_score < 0.7
+        )  # Reasonable range for partial match
 
 
 class TestGeoScorer:
@@ -170,7 +179,9 @@ class TestGeoScorer:
         """Test scoring for remote positions"""
         scorer = GeoScorer()
 
-        score = scorer.calculate_geo_score("San Francisco, CA", "Remote", "Remote")
+        score = scorer.calculate_geo_score(
+            "San Francisco, CA", "Remote", "Remote"
+        )
 
         assert score.is_remote is True
         assert score.score == 1.0
@@ -195,12 +206,16 @@ class TestGeoScorer:
             mock_geocode.side_effect = mock_geocode_func
 
             # Same city
-            score = scorer.calculate_geo_score("San Francisco, CA", "San Francisco, CA")
+            score = scorer.calculate_geo_score(
+                "San Francisco, CA", "San Francisco, CA"
+            )
             assert score.location_match is True
             assert score.score == 1.0
 
             # Nearby city (~50km)
-            score = scorer.calculate_geo_score("San Francisco, CA", "San Jose, CA")
+            score = scorer.calculate_geo_score(
+                "San Francisco, CA", "San Jose, CA"
+            )
             assert score.distance_km < 100
             assert score.score > 0.5  # Should be commutable
 
@@ -424,7 +439,9 @@ class TestScoreExplainer:
 
         csv_output = explainer.export_to_csv(scores)
 
-        assert "job_id,title,company,total_score" in csv_output.replace(" ", "")
+        assert "job_id,title,company,total_score" in csv_output.replace(
+            " ", ""
+        )
         assert "job1" in csv_output
         assert "0.790" in csv_output
 

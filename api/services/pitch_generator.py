@@ -53,7 +53,8 @@ class PitchGeneratorService:
             Generate a compelling pitch that connects their experience to this specific opportunity."""
 
     @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
     )
     def _call_openai(self, prompt: str) -> Dict[str, Any]:
         """Call OpenAI API with retry logic"""
@@ -119,7 +120,11 @@ class PitchGeneratorService:
                 f"{education.get('degree', 'Degree')} from {education.get('school', 'University')}"
             )
 
-        return ". ".join(summary_parts) if summary_parts else "Experienced professional"
+        return (
+            ". ".join(summary_parts)
+            if summary_parts
+            else "Experienced professional"
+        )
 
     def generate_pitch(
         self,
@@ -200,7 +205,9 @@ class PitchGeneratorService:
 
         return pitch
 
-    def personalize_template(self, template: str, variables: Dict[str, Any]) -> str:
+    def personalize_template(
+        self, template: str, variables: Dict[str, Any]
+    ) -> str:
         """
         Personalize a template with variables
 
@@ -230,7 +237,11 @@ class PitchGeneratorService:
         Returns:
             Email subject and body
         """
-        greeting = f"Dear {recipient_name}" if recipient_name else "Dear Hiring Manager"
+        greeting = (
+            f"Dear {recipient_name}"
+            if recipient_name
+            else "Dear Hiring Manager"
+        )
 
         # Create email subject
         subject = f"Application for {pitch.get('job_title', 'Position')} - {pitch.get('headline', 'Experienced Professional')[:50]}"
@@ -240,7 +251,8 @@ class PitchGeneratorService:
             greeting + ",",
             "",
             pitch.get(
-                "opening", "I am writing to express my interest in this position."
+                "opening",
+                "I am writing to express my interest in this position.",
             ),
             "",
             "Why I'm excited about this opportunity:",
@@ -291,13 +303,16 @@ class PitchGeneratorService:
             "potential_objections": pitch.get("potential_objections", []),
             "company_insights": {
                 "strengths_to_mention": [
-                    e["area"] for e in company_research.get("excellence", [])[:3]
+                    e["area"]
+                    for e in company_research.get("excellence", [])[:3]
                 ],
                 "challenges_to_address": [
-                    s["area"] for s in company_research.get("shortcomings", [])[:2]
+                    s["area"]
+                    for s in company_research.get("shortcomings", [])[:2]
                 ],
                 "goals_to_support": [
-                    a["statement"] for a in company_research.get("aspirations", [])[:3]
+                    a["statement"]
+                    for a in company_research.get("aspirations", [])[:3]
                 ],
             },
             "preparation_checklist": [
@@ -332,7 +347,9 @@ class PitchGeneratorService:
             "bullet_points",
             "closing_statement",
         ]
-        present = sum(1 for field in required_fields if field in pitch and pitch[field])
+        present = sum(
+            1 for field in required_fields if field in pitch and pitch[field]
+        )
         scores["completeness"] = present / len(required_fields)
 
         # Check headline quality (length)
@@ -348,7 +365,8 @@ class PitchGeneratorService:
         # Check personalization (presence of questions and objection handling)
         scores["personalization"] = (
             1.0
-            if pitch.get("questions_to_ask") and pitch.get("potential_objections")
+            if pitch.get("questions_to_ask")
+            and pitch.get("potential_objections")
             else 0.5
         )
 

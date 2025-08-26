@@ -42,7 +42,9 @@ def sample_resume_text():
 
 
 @pytest.mark.asyncio
-async def test_skill_extraction_fuzzy_matching(resume_processor, sample_resume_text):
+async def test_skill_extraction_fuzzy_matching(
+    resume_processor, sample_resume_text
+):
     """Test skill extraction using fuzzy matching."""
     # Mock the vocabulary
     resume_processor.skills_vocab = {
@@ -116,7 +118,11 @@ async def test_skill_extraction_fuzzy_matching(resume_processor, sample_resume_t
     assert "Python" in result.skills
     assert "JavaScript" in result.skills
     assert "Docker" in result.skills
-    assert result.method in ["fuzzy_matching", "fuzzy_and_embeddings", "full_pipeline"]
+    assert result.method in [
+        "fuzzy_matching",
+        "fuzzy_and_embeddings",
+        "full_pipeline",
+    ]
     assert result.coverage > 0
     assert isinstance(result.confidence_scores, dict)
     assert isinstance(result.evidence_spans, dict)
@@ -124,7 +130,9 @@ async def test_skill_extraction_fuzzy_matching(resume_processor, sample_resume_t
 
 def test_extract_years_experience(resume_processor):
     """Test extracting years of experience for skills."""
-    text = "I have 5 years of Python experience and 3+ years working with React"
+    text = (
+        "I have 5 years of Python experience and 3+ years working with React"
+    )
 
     years_python = resume_processor._extract_years_for_skill(text, "Python")
     years_react = resume_processor._extract_years_for_skill(text, "React")
@@ -223,7 +231,9 @@ async def test_generate_embedding(resume_processor):
         resume_processor.openai_client.embeddings, "create"
     ) as mock_create:
         mock_response = Mock()
-        mock_response.data = [Mock(embedding=[0.1, 0.2, 0.3] * 1024)]  # 3072 dimensions
+        mock_response.data = [
+            Mock(embedding=[0.1, 0.2, 0.3] * 1024)
+        ]  # 3072 dimensions
         mock_create.return_value = mock_response
 
         embedding = await resume_processor.generate_embedding("Test text")
@@ -242,7 +252,9 @@ JavaScript,Languages,JS,frontend|web
 """
 
     with patch("builtins.open", create=True) as mock_open:
-        mock_open.return_value.__enter__.return_value = io.StringIO(csv_content)
+        mock_open.return_value.__enter__.return_value = io.StringIO(
+            csv_content
+        )
 
         with patch("os.path.exists", return_value=True):
             vocab = resume_processor._load_skills_vocabulary()
@@ -266,7 +278,9 @@ def test_skills_vocabulary_missing_file(resume_processor):
 
 
 @pytest.mark.asyncio
-async def test_multi_stage_pipeline_integration(resume_processor, sample_resume_text):
+async def test_multi_stage_pipeline_integration(
+    resume_processor, sample_resume_text
+):
     """Test the complete multi-stage skill extraction pipeline."""
     # Mock OpenAI calls
     with patch.object(

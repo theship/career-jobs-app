@@ -25,7 +25,8 @@ class TestJobNormalizer:
 
         # Test abbreviation expansion
         assert (
-            normalizer.normalize_title("Sr Software Eng") == "Senior Software Engineer"
+            normalizer.normalize_title("Sr Software Eng")
+            == "Senior Software Engineer"
         )
         assert normalizer.normalize_title("Jr Dev") == "Junior Developer"
         assert (
@@ -35,9 +36,13 @@ class TestJobNormalizer:
 
         # Test cleaning
         assert (
-            normalizer.normalize_title("  Software   Engineer  ") == "Software Engineer"
+            normalizer.normalize_title("  Software   Engineer  ")
+            == "Software Engineer"
         )
-        assert normalizer.normalize_title("Software@Engineer#") == "SoftwareEngineer"
+        assert (
+            normalizer.normalize_title("Software@Engineer#")
+            == "SoftwareEngineer"
+        )
 
     def test_normalize_experience_level(self):
         """Test experience level normalization"""
@@ -54,10 +59,15 @@ class TestJobNormalizer:
         """Test inferring experience level from job title"""
         normalizer = JobNormalizer()
 
-        assert normalizer.infer_experience_level("Senior Software Engineer") == "Senior"
+        assert (
+            normalizer.infer_experience_level("Senior Software Engineer")
+            == "Senior"
+        )
         assert normalizer.infer_experience_level("Junior Developer") == "Entry"
         assert normalizer.infer_experience_level("Staff Engineer") == "Staff"
-        assert normalizer.infer_experience_level("VP Engineering") == "Executive"
+        assert (
+            normalizer.infer_experience_level("VP Engineering") == "Executive"
+        )
         assert normalizer.infer_experience_level("Software Engineer") == "Mid"
 
     def test_normalize_employment_type(self):
@@ -91,7 +101,10 @@ class TestJobNormalizer:
             location="Remote",
             posted_at=datetime.now(timezone.utc),
             description="Looking for Python and JavaScript developer with React experience",
-            requirements=["5 years Python", "Experience with Docker and Kubernetes"],
+            requirements=[
+                "5 years Python",
+                "Experience with Docker and Kubernetes",
+            ],
             source_ats="test",
         )
 
@@ -174,7 +187,9 @@ class TestGreenhouseConnector:
         }
 
         with patch.object(
-            connector, "_make_request", new=AsyncMock(return_value=mock_response)
+            connector,
+            "_make_request",
+            new=AsyncMock(return_value=mock_response),
         ):
             jobs = await connector.fetch_jobs(limit=10)
 
@@ -237,7 +252,9 @@ class TestLeverConnector:
         }
 
         with patch.object(
-            connector, "_make_request", new=AsyncMock(return_value=mock_response)
+            connector,
+            "_make_request",
+            new=AsyncMock(return_value=mock_response),
         ):
             jobs = await connector.fetch_jobs(limit=10)
 
@@ -252,9 +269,17 @@ class TestLeverConnector:
         connector = LeverConnector("test-api-key")
 
         assert connector._determine_remote_type("Remote", "") == "Remote"
-        assert connector._determine_remote_type("San Francisco", "Hybrid") == "Hybrid"
-        assert connector._determine_remote_type("Office - NYC", "") == "On-site"
-        assert connector._determine_remote_type("Distributed team", "") == "Remote"
+        assert (
+            connector._determine_remote_type("San Francisco", "Hybrid")
+            == "Hybrid"
+        )
+        assert (
+            connector._determine_remote_type("Office - NYC", "") == "On-site"
+        )
+        assert (
+            connector._determine_remote_type("Distributed team", "")
+            == "Remote"
+        )
 
     def test_extract_skills_from_lists(self):
         """Test extracting skills from Lever job lists"""
@@ -312,7 +337,11 @@ class TestJobIngestionOrchestrator:
             ]
 
             jobs = await orchestrator.ingest_from_source(
-                mock_connector, "greenhouse", limit=10, normalize=True, store=True
+                mock_connector,
+                "greenhouse",
+                limit=10,
+                normalize=True,
+                store=True,
             )
 
             assert len(jobs) == 1
@@ -350,8 +379,12 @@ class TestJobIngestionOrchestrator:
                     "location": "Remote",
                 },
             ]
-            mock_table.select.return_value.execute.return_value.data = mock_jobs
-            mock_table.delete.return_value.eq.return_value.execute.return_value = Mock()
+            mock_table.select.return_value.execute.return_value.data = (
+                mock_jobs
+            )
+            mock_table.delete.return_value.eq.return_value.execute.return_value = (
+                Mock()
+            )
 
             duplicates_removed = await orchestrator.deduplicate_jobs()
 
@@ -396,7 +429,9 @@ class TestJobIngestionOrchestrator:
             mock_table.select.return_value.is_.return_value.limit.return_value.execute.return_value.data = (
                 mock_jobs
             )
-            mock_table.update.return_value.eq.return_value.execute.return_value = Mock()
+            mock_table.update.return_value.eq.return_value.execute.return_value = (
+                Mock()
+            )
 
             updated = await orchestrator.update_job_embeddings(batch_size=2)
 

@@ -66,7 +66,9 @@ async def upload_resume(
         # Generate unique filename and storage path
         file_hash = hashlib.sha256(file_content).hexdigest()
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        storage_filename = f"{user_id}/{timestamp}_{file_hash[:8]}_{file.filename}"
+        storage_filename = (
+            f"{user_id}/{timestamp}_{file_hash[:8]}_{file.filename}"
+        )
 
         # Upload to Supabase Storage
         logger.info(f"Uploading file to storage: {storage_filename}")
@@ -101,7 +103,9 @@ async def upload_resume(
         }
 
         logger.info("Creating resume record in database")
-        insert_response = supabase.table("resumes").insert(resume_data).execute()
+        insert_response = (
+            supabase.table("resumes").insert(resume_data).execute()
+        )
 
         if not insert_response.data:
             raise HTTPException(
@@ -128,7 +132,9 @@ async def upload_resume(
             ]
 
             try:
-                supabase.table("resume_skills").insert(skills_records).execute()
+                supabase.table("resume_skills").insert(
+                    skills_records
+                ).execute()
             except Exception as e:
                 logger.warning(f"Failed to store skills: {e}")
 
@@ -209,7 +215,8 @@ async def get_resume(
 
         if not response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resume not found",
             )
 
         resume = response.data[0]
@@ -261,7 +268,8 @@ async def update_resume(
 
         if not check_response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resume not found",
             )
 
         # Build update data
@@ -271,7 +279,8 @@ async def update_resume(
 
         if not update_dict:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields to update",
             )
 
         # Update resume
@@ -336,7 +345,8 @@ async def delete_resume(
 
         if not check_response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resume not found",
             )
 
         storage_path = check_response.data[0]["storage_path"]
@@ -349,7 +359,9 @@ async def delete_resume(
                 logger.warning(f"Failed to delete file from storage: {e}")
 
         # Delete skills first (foreign key constraint)
-        supabase.table("resume_skills").delete().eq("resume_id", resume_id).execute()
+        supabase.table("resume_skills").delete().eq(
+            "resume_id", resume_id
+        ).execute()
 
         # Delete resume
         supabase.table("resumes").delete().eq("resume_id", resume_id).execute()
@@ -389,16 +401,21 @@ async def reprocess_resume(
 
         if not response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Resume not found",
             )
 
         resume = response.data[0]
 
         # Re-extract skills with latest pipeline
-        skills_data = await resume_processor.extract_skills(resume["text_content"])
+        skills_data = await resume_processor.extract_skills(
+            resume["text_content"]
+        )
 
         # Re-generate embeddings if needed
-        embedding = await resume_processor.generate_embedding(resume["text_content"])
+        embedding = await resume_processor.generate_embedding(
+            resume["text_content"]
+        )
 
         # Update resume with new embedding
         (
@@ -409,7 +426,9 @@ async def reprocess_resume(
         )
 
         # Delete old skills
-        supabase.table("resume_skills").delete().eq("resume_id", resume_id).execute()
+        supabase.table("resume_skills").delete().eq(
+            "resume_id", resume_id
+        ).execute()
 
         # Store new skills
         if skills_data.skills:

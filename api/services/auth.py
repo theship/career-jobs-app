@@ -5,13 +5,11 @@ Uses Supabase's JWT Signing Keys (RS256/ES256)
 
 import logging
 import os
-from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
-import httpx
 import jwt
-from fastapi import Depends, HTTPException, Security
+from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 
@@ -71,7 +69,9 @@ class JWTAuthService:
         except jwt.ExpiredSignatureError:
             raise HTTPException(status_code=401, detail="Token has expired")
         except jwt.InvalidAudienceError:
-            raise HTTPException(status_code=401, detail="Invalid token audience")
+            raise HTTPException(
+                status_code=401, detail="Invalid token audience"
+            )
         except jwt.InvalidTokenError as e:
             logger.error(f"JWT validation error: {e}")
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -85,7 +85,9 @@ class JWTAuthService:
         """Extract user ID from token payload"""
         user_id = payload.get("sub")
         if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found in token")
+            raise HTTPException(
+                status_code=401, detail="User ID not found in token"
+            )
         return user_id
 
     def extract_user_email(self, payload: Dict[str, Any]) -> Optional[str]:

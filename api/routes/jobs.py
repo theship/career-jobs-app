@@ -130,7 +130,12 @@ async def get_job(job_id: str):
     """
     supabase = get_supabase_client()
 
-    response = supabase.table("job_postings").select("*").eq("job_id", job_id).execute()
+    response = (
+        supabase.table("job_postings")
+        .select("*")
+        .eq("job_id", job_id)
+        .execute()
+    )
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -213,7 +218,10 @@ async def find_similar_jobs(job_id: str, limit: int = Query(10, ge=1, le=50)):
 
     # Get reference job
     ref_response = (
-        supabase.table("job_postings").select("*").eq("job_id", job_id).execute()
+        supabase.table("job_postings")
+        .select("*")
+        .eq("job_id", job_id)
+        .execute()
     )
 
     if not ref_response.data:
@@ -308,7 +316,9 @@ async def trigger_ingestion(
 
     except Exception as e:
         logger.error(f"Ingestion failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Ingestion failed: {str(e)}"
+        )
 
 
 @router.post("/refresh-embeddings")
@@ -328,7 +338,9 @@ async def refresh_job_embeddings(
     """
     try:
         orchestrator = JobIngestionOrchestrator()
-        updated = await orchestrator.update_job_embeddings(batch_size=batch_size)
+        updated = await orchestrator.update_job_embeddings(
+            batch_size=batch_size
+        )
 
         return {
             "message": f"Successfully updated {updated} job embeddings",
@@ -370,7 +382,9 @@ async def cleanup_jobs(current_user: dict = Depends(get_current_user)):
 
     except Exception as e:
         logger.error(f"Cleanup failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Cleanup failed: {str(e)}"
+        )
 
 
 @router.get("/stats/summary", response_model=dict)
@@ -385,7 +399,9 @@ async def get_job_stats():
 
     # Get total jobs
     total_response = (
-        supabase.table("job_postings").select("job_id", count="exact").execute()
+        supabase.table("job_postings")
+        .select("job_id", count="exact")
+        .execute()
     )
     total_jobs = total_response.count
 
@@ -393,7 +409,9 @@ async def get_job_stats():
     active_jobs = total_jobs
 
     # Get unique companies
-    companies_response = supabase.table("job_postings").select("company_name").execute()
+    companies_response = (
+        supabase.table("job_postings").select("company_name").execute()
+    )
     unique_companies = len(
         set(
             job["company_name"]
@@ -414,7 +432,9 @@ async def get_job_stats():
         jobs_by_experience[level] = jobs_by_experience.get(level, 0) + 1
 
     # Get jobs by remote type
-    remote_response = supabase.table("job_postings").select("remote_type").execute()
+    remote_response = (
+        supabase.table("job_postings").select("remote_type").execute()
+    )
     jobs_by_remote = {}
     for job in remote_response.data:
         remote = job.get("remote_type", "Not Specified")

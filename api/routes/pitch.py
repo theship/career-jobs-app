@@ -54,7 +54,9 @@ class EmailTemplateRequest(BaseModel):
     """Request model for email template generation"""
 
     pitch_id: str = Field(..., description="ID of previously generated pitch")
-    recipient_name: Optional[str] = Field(None, description="Name of recipient")
+    recipient_name: Optional[str] = Field(
+        None, description="Name of recipient"
+    )
 
 
 class InterviewPrepRequest(BaseModel):
@@ -62,7 +64,8 @@ class InterviewPrepRequest(BaseModel):
 
     pitch_id: str = Field(..., description="ID of previously generated pitch")
     interview_type: str = Field(
-        "general", description="Type of interview: general, technical, behavioral"
+        "general",
+        description="Type of interview: general, technical, behavioral",
     )
 
 
@@ -108,7 +111,14 @@ def _get_mock_resume_data(resume_id: str) -> Dict[str, Any]:
     """Mock function to get resume data (replace with real DB query)"""
     return {
         "resume_id": resume_id,
-        "skills": ["Python", "JavaScript", "React", "Django", "PostgreSQL", "Docker"],
+        "skills": [
+            "Python",
+            "JavaScript",
+            "React",
+            "Django",
+            "PostgreSQL",
+            "Docker",
+        ],
         "years_experience": 5,
         "seniority": "senior",
         "location": "San Francisco, CA",
@@ -121,7 +131,11 @@ def _get_mock_resume_data(resume_id: str) -> Dict[str, Any]:
             }
         ],
         "education": [
-            {"degree": "BS Computer Science", "school": "UC Berkeley", "year": "2018"}
+            {
+                "degree": "BS Computer Science",
+                "school": "UC Berkeley",
+                "year": "2018",
+            }
         ],
         "highlights": [
             "Led team of 5 engineers",
@@ -199,7 +213,9 @@ async def generate_pitch(
                 # Continue without research
 
         # Get skills matching score
-        skills_score = _get_mock_skills_score(request.resume_id, request.job_id)
+        skills_score = _get_mock_skills_score(
+            request.resume_id, request.job_id
+        )
 
         # Generate pitch
         service = get_pitch_service()
@@ -266,7 +282,9 @@ async def generate_email_template(
         raise
     except Exception as e:
         logger.error(f"Failed to generate email template: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate email template")
+        raise HTTPException(
+            status_code=500, detail="Failed to generate email template"
+        )
 
 
 @router.post("/interview-prep")
@@ -333,7 +351,9 @@ async def generate_interview_prep(
         raise
     except Exception as e:
         logger.error(f"Failed to generate interview prep: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate interview prep")
+        raise HTTPException(
+            status_code=500, detail="Failed to generate interview prep"
+        )
 
 
 @router.get("/quality/{pitch_id}")

@@ -125,7 +125,9 @@ async def generate_company_research(
 @router.get("/{company_domain}", response_model=CompanyResearchResponse)
 async def get_company_research(
     company_domain: str,
-    use_cache: bool = Query(True, description="Use cached results if available"),
+    use_cache: bool = Query(
+        True, description="Use cached results if available"
+    ),
     current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> CompanyResearchResponse:
     """
@@ -147,7 +149,9 @@ async def get_company_research(
         )
 
         # Add quality scores
-        research["quality_scores"] = service.get_research_quality_score(research)
+        research["quality_scores"] = service.get_research_quality_score(
+            research
+        )
 
         return CompanyResearchResponse(**research)
 

@@ -139,7 +139,8 @@ class ExperimentTracker:
                 self.current_run.log(
                     {
                         "scoring/num_jobs": len(scores),
-                        "scoring/mean_score": sum(score_values) / len(score_values),
+                        "scoring/mean_score": sum(score_values)
+                        / len(score_values),
                         "scoring/max_score": max(score_values),
                         "scoring/min_score": min(score_values),
                         "scoring/processing_time_ms": processing_time_ms,
@@ -228,7 +229,9 @@ class ExperimentTracker:
         except Exception as e:
             logger.error(f"Failed to log weight optimization: {e}")
 
-    def save_weights_artifact(self, weights: ScoringWeights, artifact_name: str):
+    def save_weights_artifact(
+        self, weights: ScoringWeights, artifact_name: str
+    ):
         """
         Save scoring weights as W&B artifact
 

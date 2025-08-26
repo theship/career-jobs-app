@@ -3,15 +3,14 @@
 import io
 import logging
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import openai
 from docx import Document
 from pdfminer.high_level import extract_text
 from pdfminer.layout import LAParams
-from rapidfuzz import fuzz, process
+from rapidfuzz import fuzz
 
 from ..models.resumes import SkillExtractionResult
 from ..utils.config import settings
@@ -25,7 +24,9 @@ class ResumeProcessor:
     def __init__(self):
         """Initialize the resume processor."""
         self.skills_vocab = self._load_skills_vocabulary()
-        self.openai_client = openai.AsyncClient(api_key=settings.openai_api_key)
+        self.openai_client = openai.AsyncClient(
+            api_key=settings.openai_api_key
+        )
 
     def _load_skills_vocabulary(self) -> Dict[str, Dict[str, Any]]:
         """Load skills vocabulary from CSV."""
@@ -49,10 +50,13 @@ class ResumeProcessor:
                     if skill:
                         vocab[skill.lower()] = {
                             "canonical": skill,
-                            "category": row.get("category", "").strip() or "Other",
+                            "category": row.get("category", "").strip()
+                            or "Other",
                             "aliases": [
                                 a.strip()
-                                for a in (row.get("aliases", "") or "").split("|")
+                                for a in (row.get("aliases", "") or "").split(
+                                    "|"
+                                )
                                 if a.strip()
                             ],
                             "tags": [
@@ -161,7 +165,9 @@ class ResumeProcessor:
         # Stage 2: Embedding-based retrieval if coverage < 70%
         if coverage < 70 and settings.openai_api_key:
             try:
-                stage2_skills = await self._extract_skills_embeddings(text, all_skills)
+                stage2_skills = await self._extract_skills_embeddings(
+                    text, all_skills
+                )
                 for skill, data in stage2_skills.items():
                     if skill not in all_skills:
                         all_skills[skill] = data["canonical"]
@@ -170,7 +176,9 @@ class ResumeProcessor:
                         if "years" in data:
                             years_experience[skill] = data["years"]
 
-                coverage = len(all_skills) / max(len(self.skills_vocab), 1) * 100
+                coverage = (
+                    len(all_skills) / max(len(self.skills_vocab), 1) * 100
+                )
                 method = "fuzzy_and_embeddings"
             except Exception as e:
                 logger.warning(f"Embedding extraction failed: {e}")
@@ -178,7 +186,9 @@ class ResumeProcessor:
         # Stage 3: OpenAI function calling if still low coverage
         if coverage < 70 and settings.openai_api_key:
             try:
-                stage3_skills = await self._extract_skills_openai(text, all_skills)
+                stage3_skills = await self._extract_skills_openai(
+                    text, all_skills
+                )
                 for skill, data in stage3_skills.items():
                     if skill not in all_skills:
                         all_skills[skill] = data["canonical"]
@@ -187,7 +197,9 @@ class ResumeProcessor:
                         if "years" in data:
                             years_experience[skill] = data["years"]
 
-                coverage = len(all_skills) / max(len(self.skills_vocab), 1) * 100
+                coverage = (
+                    len(all_skills) / max(len(self.skills_vocab), 1) * 100
+                )
                 method = "full_pipeline"
             except Exception as e:
                 logger.warning(f"OpenAI extraction failed: {e}")
@@ -283,17 +295,23 @@ class ResumeProcessor:
         skill_len = len(skill)
         window_size = skill_len + 10  # Allow some flexibility
 
-        for i in range(0, len(text_lower) - window_size + 1, 50):  # Step by 50 chars
-            window = text_lower[i : i + window_size]
+        for i in range(
+            0, len(text_lower) - window_size + 1, 50
+        ):  # Step by 50 chars
+            window = text_lower[i:i + window_size]
             ratio = fuzz.partial_ratio(skill_lower, window)
             if ratio > 85:
-                spans.append({"start": i, "end": min(i + skill_len, len(text))})
+                spans.append(
+                    {"start": i, "end": min(i + skill_len, len(text))}
+                )
                 if len(spans) >= 3:
                     break
 
         return spans
 
-    def _extract_years_for_skill(self, text: str, skill: str) -> Optional[float]:
+    def _extract_years_for_skill(
+        self, text: str, skill: str
+    ) -> Optional[float]:
         """Extract years of experience for a specific skill."""
         # Look for patterns like "5 years of Python" or "Python (3 years)"
         patterns = [
@@ -320,7 +338,8 @@ class ResumeProcessor:
         try:
             # Generate embedding for the resume text
             response = await self.openai_client.embeddings.create(
-                model="text-embedding-3-small", input=text[:8000]  # Limit text length
+                model="text-embedding-3-small",
+                input=text[:8000],  # Limit text length
             )
             text_embedding = response.data[0].embedding
 
@@ -335,7 +354,9 @@ class ResumeProcessor:
                 return {}
 
             # Batch generate embeddings for remaining skills
-            skill_texts = [s["canonical"] for s in remaining_skills[:50]]  # Limit to 50
+            skill_texts = [
+                s["canonical"] for s in remaining_skills[:50]
+            ]  # Limit to 50
             skill_response = await self.openai_client.embeddings.create(
                 model="text-embedding-3-small", input=skill_texts
             )
@@ -356,7 +377,9 @@ class ResumeProcessor:
                         "canonical": canonical,
                         "spans": [],  # No exact spans for embedding matches
                         "confidence": float(similarity),
-                        "years": self._extract_years_for_skill(text, canonical),
+                        "years": self._extract_years_for_skill(
+                            text, canonical
+                        ),
                     }
 
             return found_skills
@@ -372,7 +395,12 @@ class ResumeProcessor:
         try:
             # Prepare vocabulary list for the prompt
             vocab_list = list(
-                set([skill["canonical"] for skill in self.skills_vocab.values()])
+                set(
+                    [
+                        skill["canonical"]
+                        for skill in self.skills_vocab.values()
+                    ]
+                )
             )
 
             # Create the function definition
@@ -419,7 +447,9 @@ class ResumeProcessor:
             prompt = prompt_template.format(
                 text=text[:4000],  # Limit text length
                 existing_skills=(
-                    ", ".join(existing_skills.keys()) if existing_skills else "None"
+                    ", ".join(existing_skills.keys())
+                    if existing_skills
+                    else "None"
                 ),
                 vocabulary_sample=", ".join(
                     vocab_list[:50]
@@ -445,7 +475,9 @@ class ResumeProcessor:
             if response.choices[0].message.function_call:
                 import json
 
-                result = json.loads(response.choices[0].message.function_call.arguments)
+                result = json.loads(
+                    response.choices[0].message.function_call.arguments
+                )
 
                 found_skills = {}
                 for skill_item in result.get("skills", []):
@@ -479,8 +511,8 @@ class ResumeProcessor:
                 return f.read()
 
         # Default prompt if file doesn't exist
-        return """Extract technical skills from the following resume text. 
-        
+        return """Extract technical skills from the following resume text.
+
 Resume Text:
 {text}
 

@@ -47,7 +47,9 @@ class TestJWTAuthService:
             "email": "test@example.com",
             "aud": "authenticated",
             "role": "authenticated",
-            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "exp": int(
+                (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
+            ),
             "iat": int(datetime.now(timezone.utc).timestamp()),
         }
 
@@ -59,10 +61,14 @@ class TestJWTAuthService:
             # Mock the signing key
             mock_signing_key = Mock()
             mock_signing_key.key = "test-key"
-            mock_jwk_instance.get_signing_key_from_jwt.return_value = mock_signing_key
+            mock_jwk_instance.get_signing_key_from_jwt.return_value = (
+                mock_signing_key
+            )
 
             # Mock jwt.decode
-            with patch("api.services.auth.jwt.decode", return_value=test_payload):
+            with patch(
+                "api.services.auth.jwt.decode", return_value=test_payload
+            ):
                 service = JWTAuthService()
                 result = service.verify_token("test-token")
 
@@ -78,10 +84,13 @@ class TestJWTAuthService:
 
             mock_signing_key = Mock()
             mock_signing_key.key = "test-key"
-            mock_jwk_instance.get_signing_key_from_jwt.return_value = mock_signing_key
+            mock_jwk_instance.get_signing_key_from_jwt.return_value = (
+                mock_signing_key
+            )
 
             with patch(
-                "api.services.auth.jwt.decode", side_effect=jwt.ExpiredSignatureError()
+                "api.services.auth.jwt.decode",
+                side_effect=jwt.ExpiredSignatureError(),
             ):
                 service = JWTAuthService()
 
@@ -100,10 +109,13 @@ class TestJWTAuthService:
 
             mock_signing_key = Mock()
             mock_signing_key.key = "test-key"
-            mock_jwk_instance.get_signing_key_from_jwt.return_value = mock_signing_key
+            mock_jwk_instance.get_signing_key_from_jwt.return_value = (
+                mock_signing_key
+            )
 
             with patch(
-                "api.services.auth.jwt.decode", side_effect=jwt.InvalidAudienceError()
+                "api.services.auth.jwt.decode",
+                side_effect=jwt.InvalidAudienceError(),
             ):
                 service = JWTAuthService()
 
@@ -141,7 +153,9 @@ class TestAuthenticationEndpoints:
             "email": "test@example.com",
             "aud": "authenticated",
             "role": "authenticated",
-            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "exp": int(
+                (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
+            ),
             "iat": int(datetime.now(timezone.utc).timestamp()),
         }
         mock_auth_service.verify_token.return_value = test_payload
@@ -166,7 +180,9 @@ class TestAuthenticationEndpoints:
         test_payload = {
             "sub": "test-user-id",
             "aud": "authenticated",
-            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "exp": int(
+                (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
+            ),
             "iat": int(datetime.now(timezone.utc).timestamp()),
         }
         mock_auth_service.verify_token.return_value = test_payload
@@ -194,7 +210,9 @@ class TestAuthenticationEndpoints:
             "aud": "authenticated",
             "role": "authenticated",
             "session_id": "test-session-123",
-            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+            "exp": int(
+                (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
+            ),
             "iat": int(datetime.now(timezone.utc).timestamp()),
         }
         mock_auth_service.verify_token.return_value = test_payload

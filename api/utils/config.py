@@ -75,7 +75,9 @@ def load_yaml_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
         Configuration dictionary
     """
     if config_path is None:
-        config_path = Path(__file__).parent.parent.parent / "config" / "settings.yaml"
+        config_path = (
+            Path(__file__).parent.parent.parent / "config" / "settings.yaml"
+        )
 
     if not config_path.exists():
         logger.warning(f"Config file not found: {config_path}")
@@ -108,7 +110,11 @@ def _replace_env_vars(config: Any) -> Any:
         return {k: _replace_env_vars(v) for k, v in config.items()}
     elif isinstance(config, list):
         return [_replace_env_vars(item) for item in config]
-    elif isinstance(config, str) and config.startswith("${") and config.endswith("}"):
+    elif (
+        isinstance(config, str)
+        and config.startswith("${")
+        and config.endswith("}")
+    ):
         # Parse environment variable with default value
         var_spec = config[2:-1]
         if ":" in var_spec:
@@ -133,14 +139,16 @@ def load_settings() -> Settings:
     Returns:
         Settings instance
     """
-    # Load YAML config
-    yaml_config = load_yaml_config()
+    # Load YAML config (for future use)
+    load_yaml_config()
 
     # Create settings with environment variables taking precedence
     settings = get_settings()
 
     # Log configuration status
-    logger.info(f"Loaded configuration for environment: {settings.environment}")
+    logger.info(
+        f"Loaded configuration for environment: {settings.environment}"
+    )
 
     return settings
 
