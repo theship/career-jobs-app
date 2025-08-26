@@ -31,6 +31,7 @@ onnxruntime>=1.20.0  # Optional: for offline NER model
 # Utilities
 pyyaml>=6.0.0  # For config files
 python-jose[cryptography]>=3.3.0  # Additional JWT support
+geopy>=2.4.0  # For geocoding locations in job normalization
 
 # Testing
 pytest>=8.3.0
