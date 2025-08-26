@@ -28,6 +28,11 @@ onnxruntime>=1.20.0  # Optional: for offline NER model
 # Note: spacy removed due to Python 3.13 incompatibility
 # Using OpenAI function calling + fuzzy matching instead
 
+# Phase 4: Scoring Engine
+fuzzywuzzy>=0.18.0  # For skill matching
+python-Levenshtein>=0.25.0  # Speed up fuzzywuzzy
+wandb>=0.18.0  # Weights & Biases for experiment tracking
+
 # Utilities
 pyyaml>=6.0.0  # For config files
 python-jose[cryptography]>=3.3.0  # Additional JWT support

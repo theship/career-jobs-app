@@ -122,6 +122,7 @@ Add a tiny alias in the sandbox:
 
 ### Current Test Status
 - **Phase 1-3 Backend Tests**: ✅ 40/40 tests passing
+- **Phase 4 Scoring Engine Tests**: ✅ 25/25 tests passing
 - **Frontend Tests**: Deferred to Phase 7 (UI implementation)
 - See `docs/TESTING_NOTES.md` for detailed test information
 
