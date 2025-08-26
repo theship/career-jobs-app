@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-  const { showSuccess, showError } = useNotification()
+  const { showSuccess, showError, showInfo } = useNotification()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
