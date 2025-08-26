@@ -3,25 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 0%;
-    --surface: 0 0% 6.7%;
-    --surface-hover: 0 0% 10.2%;
-    --border: 0 0% 16.5%;
-    --border-hover: 0 0% 26.7%;
-    --text-primary: 0 0% 100%;
-    --text-secondary: 0 0% 62.7%;
-    --text-muted: 0 0% 40%;
-    --accent-red: 0 84.2% 60.2%;
-    --accent-red-dark: 0 72.2% 50.6%;
-  }
-
-  html {
-    @apply dark;
-  }
-
   body {
-    @apply bg-background text-text-primary;
+    @apply bg-black text-white antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 }
@@ -29,38 +12,76 @@
 @layer components {
   /* Card styles */
   .card {
-    @apply bg-surface border border-border rounded-lg p-6 transition-all duration-200 hover:border-border-hover hover:-translate-y-0.5;
+    background: #111111;
+    border: 1px solid #2A2A2A;
+    @apply rounded-lg p-6 transition-all duration-200 hover:-translate-y-0.5;
+  }
+  
+  .card:hover {
+    border-color: #444444;
   }
 
   /* Button styles */
   .btn-primary {
-    @apply bg-gradient-red-button text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-glow-red hover:shadow-glow-red-hover hover:scale-[1.02];
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    @apply text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02];
+  }
+  
+  .btn-primary:hover {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
   }
 
   .btn-secondary {
-    @apply bg-transparent text-text-primary border border-border px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:border-accent-red hover:text-accent-red;
+    background: transparent;
+    border: 1px solid #333333;
+    @apply text-white px-6 py-3 rounded-lg font-medium transition-all duration-200;
+  }
+  
+  .btn-secondary:hover {
+    border-color: #DC2626;
+    color: #EF4444;
   }
 
   .btn-ghost {
-    @apply bg-transparent text-text-secondary px-4 py-2 rounded-lg transition-all duration-200 hover:text-text-primary hover:bg-surface;
+    @apply bg-transparent px-4 py-2 rounded-lg transition-all duration-200;
+    color: #A0A0A0;
+  }
+  
+  .btn-ghost:hover {
+    background: #111111;
+    color: #FFFFFF;
   }
 
   /* Input styles */
   .input-dark {
-    @apply bg-background border border-border text-text-primary px-4 py-3 rounded-lg transition-all duration-200 focus:border-text-muted focus:outline-none focus:ring-1 focus:ring-text-muted/20;
+    background: #0A0A0A;
+    border: 1px solid #2A2A2A;
+    color: #FFFFFF;
+    @apply px-4 py-3 rounded-lg transition-all duration-200 focus:outline-none;
+  }
+  
+  .input-dark:focus {
+    border-color: #666666;
   }
 
   .input-label {
-    @apply block text-sm font-medium text-text-secondary mb-2;
+    color: #A0A0A0;
+    @apply block text-sm font-medium mb-2;
   }
 
   /* Navigation styles */
   .nav-link {
-    @apply text-text-secondary hover:text-text-primary transition-colors duration-200;
+    color: #A0A0A0;
+    @apply transition-colors duration-200;
+  }
+  
+  .nav-link:hover {
+    color: #FFFFFF;
   }
 
   .nav-link-active {
-    @apply text-accent-red;
+    color: #EF4444;
   }
 
   /* Section styles */
@@ -70,16 +91,23 @@
 
   /* Text gradient styles */
   .text-gradient {
-    @apply bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent;
+    background: linear-gradient(to right, #FFFFFF, #A0A0A0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .text-gradient-red {
-    @apply bg-gradient-to-r from-accent-red to-accent-red-dark bg-clip-text text-transparent;
+    background: linear-gradient(to right, #EF4444, #DC2626);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* Loading spinner */
   .spinner {
-    @apply animate-spin rounded-full h-12 w-12 border-b-2 border-accent-red;
+    @apply animate-spin rounded-full h-12 w-12;
+    border-bottom: 2px solid #EF4444;
   }
 
   /* Match score colors */
@@ -101,6 +129,30 @@
 }
 
 @layer utilities {
+  /* Dark theme colors as utilities */
+  .bg-background { background-color: #000000; }
+  .bg-surface { background-color: #111111; }
+  .bg-surface-hover { background-color: #1A1A1A; }
+  
+  .text-text-primary { color: #FFFFFF; }
+  .text-text-secondary { color: #A0A0A0; }
+  .text-text-muted { color: #666666; }
+  
+  .text-accent-red { color: #EF4444; }
+  .text-accent-red-dark { color: #DC2626; }
+  .text-accent-red-light { color: #FCA5A5; }
+  
+  .border-border { border-color: #2A2A2A; }
+  .border-border-hover { border-color: #444444; }
+  
+  .bg-gradient-radial-dark {
+    background: radial-gradient(circle at center, #111111 0%, #000000 100%);
+  }
+  
+  .bg-gradient-red-subtle {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%);
+  }
+
   /* Scrollbar styles */
   .scrollbar-dark::-webkit-scrollbar {
     width: 8px;
@@ -108,28 +160,15 @@
   }
 
   .scrollbar-dark::-webkit-scrollbar-track {
-    @apply bg-background;
+    background: #000000;
   }
 
   .scrollbar-dark::-webkit-scrollbar-thumb {
-    @apply bg-border rounded;
+    background: #2A2A2A;
+    border-radius: 4px;
   }
 
   .scrollbar-dark::-webkit-scrollbar-thumb:hover {
-    @apply bg-border-hover;
-  }
-
-  /* Animation utilities */
-  .animate-glow {
-    animation: glow 2s ease-in-out infinite alternate;
-  }
-
-  @keyframes glow {
-    from {
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
-    }
-    to {
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
-    }
+    background: #444444;
   }
 }
