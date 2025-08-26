@@ -420,9 +420,9 @@ career-jobs-app/
 │   │   └── experiments.py # W&B experiment tracking
 │   ├── utils/            # Shared utilities
 │   │   ├── __init__.py
-│   │   ├── db.py         # Database connection
-│   │   ├── cache.py      # Redis/memory caching
-│   │   └── validators.py # Input validation
+│   │   ├── database.py   # Supabase client connections  
+│   │   ├── config.py     # Application configuration
+│   │   └── cache.py      # Redis/memory caching (placeholder)
 │   └── static/           # Static assets (favicons, etc.)
 ├── scoring_engine/        # ✅ IMPLEMENTED - Core matching logic
 │   ├── __init__.py

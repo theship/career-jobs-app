@@ -3,7 +3,6 @@ Tests for Job Ingestion System (Phase 3)
 Tests for ATS connectors, normalization, and orchestration
 """
 
-import asyncio
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -91,7 +90,10 @@ class TestJobNormalizer:
             location="Remote",
             posted_at=datetime.now(timezone.utc),
             description="Looking for Python and JavaScript developer with React experience",
-            requirements=["5 years Python", "Experience with Docker and Kubernetes"],
+            requirements=[
+                "5 years Python",
+                "Experience with Docker and Kubernetes",
+            ],
             source_ats="test",
         )
 
@@ -174,7 +176,9 @@ class TestGreenhouseConnector:
         }
 
         with patch.object(
-            connector, "_make_request", new=AsyncMock(return_value=mock_response)
+            connector,
+            "_make_request",
+            new=AsyncMock(return_value=mock_response),
         ):
             jobs = await connector.fetch_jobs(limit=10)
 
@@ -237,7 +241,9 @@ class TestLeverConnector:
         }
 
         with patch.object(
-            connector, "_make_request", new=AsyncMock(return_value=mock_response)
+            connector,
+            "_make_request",
+            new=AsyncMock(return_value=mock_response),
         ):
             jobs = await connector.fetch_jobs(limit=10)
 
@@ -312,7 +318,11 @@ class TestJobIngestionOrchestrator:
             ]
 
             jobs = await orchestrator.ingest_from_source(
-                mock_connector, "greenhouse", limit=10, normalize=True, store=True
+                mock_connector,
+                "greenhouse",
+                limit=10,
+                normalize=True,
+                store=True,
             )
 
             assert len(jobs) == 1

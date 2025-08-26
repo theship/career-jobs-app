@@ -27,8 +27,7 @@ class ResumeCreate(ResumeBase):
 class ResumeUpdate(BaseModel):
     """Model for updating a resume."""
 
-    name: Optional[str] = None
-    skills: Optional[List[str]] = None
+    filename: Optional[str] = None
 
 
 class Resume(BaseModel):
@@ -42,6 +41,7 @@ class Resume(BaseModel):
     text_content: Optional[str] = Field(None, description="Extracted text")
     embedding: Optional[Any] = Field(None, description="Vector embedding")
     created_at: datetime = Field(..., description="Creation timestamp")
+    skills_count: Optional[int] = Field(0, description="Number of extracted skills")
 
     class Config:
         from_attributes = True

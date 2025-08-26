@@ -131,7 +131,8 @@ class CompanyResearchService:
         logger.info(f"Cached research for {company_domain}")
 
     @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
     )
     def _call_openai(self, prompt: str) -> Dict[str, Any]:
         """Call OpenAI API with retry logic"""
@@ -219,7 +220,12 @@ class CompanyResearchService:
         scores = {}
 
         # Check completeness
-        required_fields = ["competitors", "excellence", "shortcomings", "aspirations"]
+        required_fields = [
+            "competitors",
+            "excellence",
+            "shortcomings",
+            "aspirations",
+        ]
         present_fields = sum(
             1 for field in required_fields if field in research and research[field]
         )

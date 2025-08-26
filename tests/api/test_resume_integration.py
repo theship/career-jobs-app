@@ -3,14 +3,10 @@ Integration tests for Resume Processing Pipeline (Phase 2)
 Tests the complete flow from upload to skill extraction
 """
 
-import io
-import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
 
 from api.main import app
 from api.services.auth import JWTAuthService
@@ -170,7 +166,13 @@ class TestResumeUploadIntegration:
         mock_auth_service.extract_user_id.return_value = "test-user-id"
 
         # Create invalid file
-        files = {"file": ("resume.exe", b"Invalid content", "application/x-msdownload")}
+        files = {
+            "file": (
+                "resume.exe",
+                b"Invalid content",
+                "application/x-msdownload",
+            )
+        }
 
         headers = {"Authorization": "Bearer test-token"}
         response = client.post("/api/v1/resumes/upload", files=files, headers=headers)
@@ -274,7 +276,10 @@ class TestResumeListAndRetrieve:
                         "text_content": "Resume content",
                         "skills": ["Python", "FastAPI"],
                         "skills_metadata": {
-                            "confidence_scores": {"Python": 1.0, "FastAPI": 0.9},
+                            "confidence_scores": {
+                                "Python": 1.0,
+                                "FastAPI": 0.9,
+                            },
                             "coverage": 75.0,
                         },
                     }

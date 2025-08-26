@@ -63,7 +63,11 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring"""
-    return {"status": "healthy", "service": "career-jobs-api", "version": "0.1.0"}
+    return {
+        "status": "healthy",
+        "service": "career-jobs-api",
+        "version": "0.1.0",
+    }
 
 
 # Import and include routers

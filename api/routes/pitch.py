@@ -62,7 +62,8 @@ class InterviewPrepRequest(BaseModel):
 
     pitch_id: str = Field(..., description="ID of previously generated pitch")
     interview_type: str = Field(
-        "general", description="Type of interview: general, technical, behavioral"
+        "general",
+        description="Type of interview: general, technical, behavioral",
     )
 
 
@@ -108,7 +109,14 @@ def _get_mock_resume_data(resume_id: str) -> Dict[str, Any]:
     """Mock function to get resume data (replace with real DB query)"""
     return {
         "resume_id": resume_id,
-        "skills": ["Python", "JavaScript", "React", "Django", "PostgreSQL", "Docker"],
+        "skills": [
+            "Python",
+            "JavaScript",
+            "React",
+            "Django",
+            "PostgreSQL",
+            "Docker",
+        ],
         "years_experience": 5,
         "seniority": "senior",
         "location": "San Francisco, CA",
@@ -121,7 +129,11 @@ def _get_mock_resume_data(resume_id: str) -> Dict[str, Any]:
             }
         ],
         "education": [
-            {"degree": "BS Computer Science", "school": "UC Berkeley", "year": "2018"}
+            {
+                "degree": "BS Computer Science",
+                "school": "UC Berkeley",
+                "year": "2018",
+            }
         ],
         "highlights": [
             "Led team of 5 engineers",

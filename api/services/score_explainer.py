@@ -285,8 +285,14 @@ class ScoreExplainer:
                 "match_level": match_level,
                 "recommendation": recommendation,
             },
-            "strengths": {"factor": strongest.factor, "insight": strongest.insight},
-            "weaknesses": {"factor": weakest.factor, "insight": weakest.insight},
+            "strengths": {
+                "factor": strongest.factor,
+                "insight": strongest.insight,
+            },
+            "weaknesses": {
+                "factor": weakest.factor,
+                "insight": weakest.insight,
+            },
             "factor_breakdown": [
                 {
                     "factor": i.factor,
@@ -317,7 +323,14 @@ class ScoreExplainer:
         output = io.StringIO()
 
         # Define columns
-        columns = ["rank", "job_id", "title", "company", "total_score", "percentile"]
+        columns = [
+            "rank",
+            "job_id",
+            "title",
+            "company",
+            "total_score",
+            "percentile",
+        ]
 
         if include_breakdowns:
             columns.extend(
@@ -340,7 +353,7 @@ class ScoreExplainer:
                 "title": score.title,
                 "company": score.company_name,
                 "total_score": f"{score.total_score:.3f}",
-                "percentile": f"{score.percentile:.1f}" if score.percentile else "",
+                "percentile": (f"{score.percentile:.1f}" if score.percentile else ""),
             }
 
             if include_breakdowns:
@@ -448,7 +461,12 @@ class ScoreExplainer:
         # Extract key requirements met
         if job_description:
             # Simple keyword extraction for requirements
-            requirement_keywords = ["required", "must have", "essential", "mandatory"]
+            requirement_keywords = [
+                "required",
+                "must have",
+                "essential",
+                "mandatory",
+            ]
             sentences = job_description.split(".")
 
             for sentence in sentences:

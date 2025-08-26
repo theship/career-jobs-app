@@ -3,7 +3,6 @@ Phase 3 Backend Acceptance Tests
 Tests that match the specifications in docs/dev-plan.md
 """
 
-import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 from unittest.mock import Mock, patch
@@ -12,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
-from ingestion.connectors.base import ATSConnector, JobListing
+from ingestion.connectors.base import JobListing
 from ingestion.normalizers.normalizer import JobNormalizer
 
 client = TestClient(app)
@@ -132,9 +131,6 @@ class TestPhase3AcceptanceTests:
         # In a real test, we'd set up proper auth headers
         pytest.skip("Requires authentication setup")
 
-        # First ingestion
-        job_data = create_test_job(job_id="test-123", title="Engineer")
-
         # Mock the ingestion endpoint
         with patch("api.routes.jobs.JobIngestionOrchestrator") as mock_orchestrator:
             mock_instance = Mock()
@@ -151,8 +147,9 @@ class TestPhase3AcceptanceTests:
             ]
 
             # First ingestion
-            response1 = client.post(
-                "/api/v1/jobs/ingest", json={"sources": ["test"], "store": True}
+            client.post(
+                "/api/v1/jobs/ingest",
+                json={"sources": ["test"], "store": True},
             )
 
             # Second ingestion with updated title
@@ -167,8 +164,9 @@ class TestPhase3AcceptanceTests:
                 )
             ]
 
-            response2 = client.post(
-                "/api/v1/jobs/ingest", json={"sources": ["test"], "store": True}
+            client.post(
+                "/api/v1/jobs/ingest",
+                json={"sources": ["test"], "store": True},
             )
 
             # In a real implementation, we'd check:

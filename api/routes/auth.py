@@ -5,9 +5,9 @@ Handles user authentication and profile endpoints
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
-from api.services.auth import get_current_user, get_current_user_optional
+from api.services.auth import get_current_user
 
 router = APIRouter()
 

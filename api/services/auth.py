@@ -5,13 +5,11 @@ Uses Supabase's JWT Signing Keys (RS256/ES256)
 
 import logging
 import os
-from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
-import httpx
 import jwt
-from fastapi import Depends, HTTPException, Security
+from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 

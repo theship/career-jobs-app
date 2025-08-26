@@ -4,7 +4,7 @@ API routes for job scoring and ranking
 
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -226,7 +226,7 @@ async def get_scores(
                     match_level=(
                         "high"
                         if float(score["total_score"]) > 0.7
-                        else "medium" if float(score["total_score"]) > 0.5 else "low"
+                        else ("medium" if float(score["total_score"]) > 0.5 else "low")
                     ),
                 )
             )

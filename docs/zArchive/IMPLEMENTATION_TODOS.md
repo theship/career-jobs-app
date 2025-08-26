@@ -35,7 +35,7 @@
    ├── models/ (jobs.py, resumes.py, scores.py, research.py)
    ├── routes/ (auth.py, jobs.py, resumes.py, scoring.py, export.py)  
    ├── services/ (auth.py, embeddings.py, storage.py, research.py)
-   ├── utils/ (db.py, cache.py, validators.py)
+   ├── utils/ (database.py - Supabase clients, config.py)
    └── static/
    ```
 

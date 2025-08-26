@@ -53,7 +53,8 @@ class PitchGeneratorService:
             Generate a compelling pitch that connects their experience to this specific opportunity."""
 
     @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
     )
     def _call_openai(self, prompt: str) -> Dict[str, Any]:
         """Call OpenAI API with retry logic"""
@@ -240,7 +241,8 @@ class PitchGeneratorService:
             greeting + ",",
             "",
             pitch.get(
-                "opening", "I am writing to express my interest in this position."
+                "opening",
+                "I am writing to express my interest in this position.",
             ),
             "",
             "Why I'm excited about this opportunity:",

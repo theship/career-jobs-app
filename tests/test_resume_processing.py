@@ -25,14 +25,14 @@ def sample_resume_text():
     return """
     John Doe
     Software Engineer
-    
+
     SKILLS:
     - Python (5 years)
     - JavaScript, React
     - Docker, Kubernetes
     - Machine Learning with PyTorch
     - RESTful API development
-    
+
     EXPERIENCE:
     Senior Software Engineer at TechCorp
     - Developed scalable microservices using Python and FastAPI
@@ -116,7 +116,11 @@ async def test_skill_extraction_fuzzy_matching(resume_processor, sample_resume_t
     assert "Python" in result.skills
     assert "JavaScript" in result.skills
     assert "Docker" in result.skills
-    assert result.method in ["fuzzy_matching", "fuzzy_and_embeddings", "full_pipeline"]
+    assert result.method in [
+        "fuzzy_matching",
+        "fuzzy_and_embeddings",
+        "full_pipeline",
+    ]
     assert result.coverage > 0
     assert isinstance(result.confidence_scores, dict)
     assert isinstance(result.evidence_spans, dict)

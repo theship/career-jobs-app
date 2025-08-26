@@ -3,15 +3,14 @@
 import io
 import logging
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import openai
 from docx import Document
 from pdfminer.high_level import extract_text
 from pdfminer.layout import LAParams
-from rapidfuzz import fuzz, process
+from rapidfuzz import fuzz
 
 from ..models.resumes import SkillExtractionResult
 from ..utils.config import settings
@@ -308,7 +307,7 @@ class ResumeProcessor:
             if match:
                 try:
                     return float(match.group(1))
-                except:
+                except (ValueError, AttributeError):
                     pass
 
         return None
@@ -320,7 +319,8 @@ class ResumeProcessor:
         try:
             # Generate embedding for the resume text
             response = await self.openai_client.embeddings.create(
-                model="text-embedding-3-small", input=text[:8000]  # Limit text length
+                model="text-embedding-3-small",
+                input=text[:8000],  # Limit text length
             )
             text_embedding = response.data[0].embedding
 
@@ -479,8 +479,8 @@ class ResumeProcessor:
                 return f.read()
 
         # Default prompt if file doesn't exist
-        return """Extract technical skills from the following resume text. 
-        
+        return """Extract technical skills from the following resume text.
+
 Resume Text:
 {text}
 

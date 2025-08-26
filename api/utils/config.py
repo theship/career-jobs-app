@@ -133,8 +133,8 @@ def load_settings() -> Settings:
     Returns:
         Settings instance
     """
-    # Load YAML config
-    yaml_config = load_yaml_config()
+    # Load YAML config (for future use)
+    load_yaml_config()
 
     # Create settings with environment variables taking precedence
     settings = get_settings()

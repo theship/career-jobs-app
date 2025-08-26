@@ -52,18 +52,24 @@ def get_supabase_service_client() -> Client:
 
 def get_authenticated_supabase_client(token: str) -> Client:
     """
-    Create a Supabase client authenticated with user's JWT token
+    Create a Supabase client authenticated with user's JWT token.
+
+    This ensures that Row Level Security (RLS) policies are properly enforced
+    based on the authenticated user's permissions.
 
     Args:
-        token: JWT token from the request
+        token: User's JWT token from the Authorization header
 
     Returns:
         Authenticated Supabase client
     """
     settings = get_settings()
+
+    # Create client options with auth header
     options = ClientOptions()
     options.headers = {"Authorization": f"Bearer {token}"}
 
+    # Create a new client with user's JWT
     return create_client(
         settings.supabase_url, settings.supabase_anon_key, options=options
     )

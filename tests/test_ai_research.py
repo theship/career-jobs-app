@@ -4,9 +4,7 @@ Tests for Phase 5: AI Research & Pitch Generation
 
 import json
 import time
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -201,13 +199,19 @@ class TestCompanyResearch:
                                 "company_name": "Stripe",
                                 "industry": "Fintech",
                                 "competitors": [
-                                    {"name": "Square", "url": "https://square.com"}
+                                    {
+                                        "name": "Square",
+                                        "url": "https://square.com",
+                                    }
                                 ],
                                 "excellence": [
                                     {"area": "API", "description": "Great API"}
                                 ],
                                 "shortcomings": [
-                                    {"area": "Price", "description": "Expensive"}
+                                    {
+                                        "area": "Price",
+                                        "description": "Expensive",
+                                    }
                                 ],
                                 "aspirations": [
                                     {
@@ -232,12 +236,14 @@ class TestCompanyResearch:
             # First request - should call API
             start_time = time.time()
             research1 = service.research_company("stripe.com")
-            first_duration = time.time() - start_time
+            # first_duration = time.time() - start_time
+            # Duration tracking for future use
 
             # Second request - should use cache
             start_time = time.time()
             research2 = service.research_company("stripe.com")
-            second_duration = time.time() - start_time
+            # second_duration = time.time() - start_time
+            # Duration tracking for future use
 
             # Verify same results
             assert research1["company_name"] == research2["company_name"]
@@ -413,10 +419,16 @@ class TestPitchGeneration:
             "two_minute_pitch": "Detailed pitch here",
             "bullet_points": ["Key point 1", "Key point 2"],
             "questions_to_ask": [
-                {"question": "About team structure?", "intent": "Understand dynamics"}
+                {
+                    "question": "About team structure?",
+                    "intent": "Understand dynamics",
+                }
             ],
             "potential_objections": [
-                {"objection": "Lack of experience", "response": "Transferable skills"}
+                {
+                    "objection": "Lack of experience",
+                    "response": "Transferable skills",
+                }
             ],
         }
 
@@ -607,7 +619,10 @@ class TestAcceptanceTests:
                                 "company_name": "Stripe",
                                 "industry": "Fintech",
                                 "competitors": [
-                                    {"name": "Square", "url": "https://square.com"}
+                                    {
+                                        "name": "Square",
+                                        "url": "https://square.com",
+                                    }
                                 ],
                                 "excellence": [{"area": "API", "description": "Great"}],
                                 "shortcomings": [
@@ -636,12 +651,14 @@ class TestAcceptanceTests:
             # First request
             start_time = time.time()
             response1 = service.research_company("stripe.com")
-            first_duration = time.time() - start_time
+            # first_duration = time.time() - start_time
+            # Duration tracking for future use
 
             # Second request (cached)
             start_time = time.time()
             response2 = service.research_company("stripe.com")
-            second_duration = time.time() - start_time
+            # second_duration = time.time() - start_time
+            # Duration tracking for future use
 
             assert response1 == response2
             # API should only be called once due to caching
@@ -661,7 +678,10 @@ class TestAcceptanceTests:
                     "statement": "Global expansion",
                     "source_url": "https://stripe.com/news",
                 },
-                {"statement": "New products", "source_url": "https://stripe.com/blog"},
+                {
+                    "statement": "New products",
+                    "source_url": "https://stripe.com/blog",
+                },
             ],
         }
 
