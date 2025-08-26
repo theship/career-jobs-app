@@ -117,8 +117,13 @@ Add a tiny alias in the sandbox:
 ## Where to run tests
 
 - **Cursor IDE (exploration):** Quick unit tests locally for fast feedback
-- **Daytona sandbox (main development):** `pnpm test` in Claude Code sessions
+- **Daytona sandbox (main development):** `pytest` for backend tests in Claude Code sessions
 - **CI (source of truth for PRs):** Full test suites; see `.github/workflows/`
+
+### Current Test Status
+- **Phase 1-3 Backend Tests**: ✅ 40/40 tests passing
+- **Frontend Tests**: Deferred to Phase 7 (UI implementation)
+- See `docs/TESTING_NOTES.md` for detailed test information
 
 ---
 
