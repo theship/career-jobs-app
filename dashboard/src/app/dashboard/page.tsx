@@ -82,28 +82,28 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="spinner"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="border-b border-border bg-surface/50 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gray-900">
+              <Link href="/" className="text-xl font-bold text-gradient-red">
                 Career Jobs App
               </Link>
             </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/jobs" className="text-gray-700 hover:text-blue-600">
+            <div className="flex items-center space-x-6">
+              <Link href="/jobs" className="nav-link">
                 Browse Jobs
               </Link>
-              <Link href="/profile" className="text-gray-700 hover:text-blue-600">
+              <Link href="/profile" className="nav-link">
                 Profile
               </Link>
               <button
@@ -111,7 +111,7 @@ export default function DashboardPage() {
                   await supabase.auth.signOut()
                   router.push('/')
                 }}
-                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm"
+                className="btn-ghost text-sm"
               >
                 Sign Out
               </button>
@@ -122,22 +122,22 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+        <h1 className="text-3xl font-light text-text-primary mb-8">Dashboard</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Resume Upload Section */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold mb-4">Your Resume</h2>
+            <div className="card">
+              <h2 className="text-lg font-medium text-text-primary mb-4">Your Resume</h2>
               
               {resumes.length === 0 ? (
                 <div className="text-center py-8">
                   <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <p className="mt-2 text-sm text-gray-600">No resume uploaded yet</p>
+                  <p className="mt-2 text-sm text-text-secondary">No resume uploaded yet</p>
                   <label className="mt-4 inline-block cursor-pointer">
-                    <span className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                    <span className="btn-primary px-4 py-2 rounded-md text-sm">
                       Upload Resume
                     </span>
                     <input
@@ -154,16 +154,16 @@ export default function DashboardPage() {
                   {resumes.map((resume) => (
                     <div key={resume.resume_id} className="mb-4 p-3 border rounded-md">
                       <p className="font-medium">{resume.file_name || 'Resume'}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-text-secondary">
                         Uploaded: {new Date(resume.created_at).toLocaleDateString()}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-text-secondary">
                         Skills: {resume.skills?.length || 0} identified
                       </p>
                     </div>
                   ))}
                   <label className="inline-block cursor-pointer mt-2">
-                    <span className="text-blue-600 hover:text-blue-700 text-sm">
+                    <span className="text-accent-red hover:text-accent-red-light text-sm">
                       + Upload another resume
                     </span>
                     <input
@@ -178,24 +178,24 @@ export default function DashboardPage() {
               )}
               
               {uploadingResume && (
-                <p className="text-sm text-gray-600 mt-2">Uploading and analyzing...</p>
+                <p className="text-sm text-text-secondary mt-2">Uploading and analyzing...</p>
               )}
             </div>
 
             {/* Quick Stats */}
             <div className="bg-white rounded-lg shadow p-6 mt-6">
-              <h2 className="text-lg font-semibold mb-4">Your Stats</h2>
+              <h2 className="text-lg font-medium text-text-primary mb-4">Your Stats</h2>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Jobs Matched:</span>
+                  <span className="text-text-secondary">Jobs Matched:</span>
                   <span className="font-medium">{scores.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Applications:</span>
+                  <span className="text-text-secondary">Applications:</span>
                   <span className="font-medium">0</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Interviews:</span>
+                  <span className="text-text-secondary">Interviews:</span>
                   <span className="font-medium">0</span>
                 </div>
               </div>
@@ -204,10 +204,10 @@ export default function DashboardPage() {
 
           {/* Job Matches Section */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="card">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Job Matches</h2>
-                <Link href="/jobs" className="text-blue-600 hover:text-blue-700 text-sm">
+                <Link href="/jobs" className="text-accent-red hover:text-accent-red-light text-sm">
                   View all jobs →
                 </Link>
               </div>
@@ -219,8 +219,8 @@ export default function DashboardPage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-medium text-lg">{score.job_title}</h3>
-                          <p className="text-gray-600">{score.company_name}</p>
-                          <p className="text-sm text-gray-500 mt-1">{score.location}</p>
+                          <p className="text-text-secondary">{score.company_name}</p>
+                          <p className="text-sm text-text-muted mt-1">{score.location}</p>
                           <div className="flex gap-2 mt-2">
                             <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                               {score.seniority || 'All levels'}
@@ -234,10 +234,10 @@ export default function DashboardPage() {
                           <div className="text-2xl font-bold text-blue-600">
                             {Math.round((score.overall_score || 0) * 100)}%
                           </div>
-                          <p className="text-xs text-gray-500">Match Score</p>
+                          <p className="text-xs text-text-muted">Match Score</p>
                           <Link
                             href={`/jobs/${score.job_id}`}
-                            className="mt-2 inline-block text-blue-600 hover:text-blue-700 text-sm"
+                            className="mt-2 inline-block text-accent-red hover:text-accent-red-light text-sm"
                           >
                             View Details →
                           </Link>
@@ -248,17 +248,17 @@ export default function DashboardPage() {
                 </div>
               ) : jobs.length > 0 ? (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-text-secondary mb-4">
                     Upload a resume to see personalized job matches
                   </p>
                   {jobs.map((job) => (
                     <div key={job.job_id} className="border rounded-lg p-4 hover:bg-gray-50">
                       <h3 className="font-medium text-lg">{job.title}</h3>
-                      <p className="text-gray-600">{job.company_name}</p>
-                      <p className="text-sm text-gray-500 mt-1">{job.location}</p>
+                      <p className="text-text-secondary">{job.company_name}</p>
+                      <p className="text-sm text-text-muted mt-1">{job.location}</p>
                       <Link
                         href={`/jobs/${job.job_id}`}
-                        className="mt-2 inline-block text-blue-600 hover:text-blue-700 text-sm"
+                        className="mt-2 inline-block text-accent-red hover:text-accent-red-light text-sm"
                       >
                         View Details →
                       </Link>
@@ -267,8 +267,8 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">No jobs available yet</p>
-                  <p className="text-sm text-gray-500 mt-2">Check back later for new opportunities</p>
+                  <p className="text-text-secondary">No jobs available yet</p>
+                  <p className="text-sm text-text-muted mt-2">Check back later for new opportunities</p>
                 </div>
               )}
             </div>

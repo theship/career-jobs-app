@@ -22,30 +22,31 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="spinner"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="border-b border-border bg-surface/50 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">Career Jobs App</h1>
+              <h1 className="text-xl font-bold text-gradient-red">Career Jobs App</h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               {user ? (
                 <>
-                  <Link href="/dashboard" className="text-gray-700 hover:text-blue-600">
+                  <Link href="/dashboard" className="nav-link">
                     Dashboard
                   </Link>
-                  <Link href="/jobs" className="text-gray-700 hover:text-blue-600">
+                  <Link href="/jobs" className="nav-link">
                     Browse Jobs
                   </Link>
-                  <Link href="/profile" className="text-gray-700 hover:text-blue-600">
+                  <Link href="/profile" className="nav-link">
                     Profile
                   </Link>
                   <button
@@ -53,20 +54,17 @@ export default function Home() {
                       await supabase.auth.signOut()
                       router.refresh()
                     }}
-                    className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm"
+                    className="btn-ghost text-sm"
                   >
                     Sign Out
                   </button>
                 </>
               ) : (
                 <>
-                  <Link href="/login" className="text-gray-700 hover:text-blue-600">
+                  <Link href="/login" className="nav-link">
                     Sign In
                   </Link>
-                  <Link 
-                    href="/register" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
-                  >
+                  <Link href="/register" className="btn-primary text-sm">
                     Get Started
                   </Link>
                 </>
@@ -76,63 +74,133 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            Find Your Perfect Job Match
+      {/* Hero Section */}
+      <section className="relative section-spacing overflow-hidden">
+        {/* Background gradient mesh */}
+        <div className="absolute inset-0 bg-gradient-radial-dark opacity-50"></div>
+        <div className="absolute inset-0 bg-gradient-red-subtle"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-light mb-6">
+            <span className="text-gradient">Find Your Perfect</span>
+            <br />
+            <span className="text-gradient-red font-medium">Job Match</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            AI-powered job matching, personalized pitches, and smart application tracking
+          
+          <p className="text-xl text-text-secondary max-w-3xl mx-auto mb-12 leading-relaxed">
+            AI-powered job matching, personalized pitches, and smart application tracking 
+            designed to accelerate your career journey.
           </p>
 
           {user ? (
             <div className="space-y-4">
-              <Link
-                href="/dashboard"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg text-lg"
-              >
+              <Link href="/dashboard" className="btn-primary inline-block text-lg">
                 Go to Dashboard
               </Link>
             </div>
           ) : (
-            <div className="space-x-4">
-              <Link
-                href="/register"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg text-lg"
-              >
+            <div className="flex gap-4 justify-center">
+              <Link href="/register" className="btn-primary inline-block text-lg">
                 Start Free Trial
               </Link>
-              <Link
-                href="/login"
-                className="inline-block bg-white hover:bg-gray-100 text-blue-600 font-semibold px-8 py-3 rounded-lg text-lg border border-blue-600"
-              >
+              <Link href="/login" className="btn-secondary inline-block text-lg">
                 Sign In
               </Link>
             </div>
           )}
-        </div>
 
-        <div className="mt-16 grid md:grid-cols-3 gap-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold mb-2">📄 Smart Resume Parsing</h3>
-            <p className="text-gray-600">
-              Upload your resume and let our AI extract and analyze your skills, experience, and achievements.
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold mb-2">🎯 AI Job Matching</h3>
-            <p className="text-gray-600">
-              Get personalized job recommendations based on your skills, experience, and career goals.
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-semibold mb-2">✨ Personalized Pitches</h3>
-            <p className="text-gray-600">
-              Generate compelling, tailored pitches for each application using AI-powered insights.
-            </p>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-16">
+            <div>
+              <div className="text-3xl font-light text-accent-red mb-1">10k+</div>
+              <div className="text-text-secondary text-sm">Active Jobs</div>
+            </div>
+            <div>
+              <div className="text-3xl font-light text-accent-red mb-1">95%</div>
+              <div className="text-text-secondary text-sm">Match Accuracy</div>
+            </div>
+            <div>
+              <div className="text-3xl font-light text-accent-red mb-1">3x</div>
+              <div className="text-text-secondary text-sm">Faster Applications</div>
+            </div>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Features Section */}
+      <section className="section-spacing border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-light text-text-primary mb-4">
+              Everything You Need to <span className="text-gradient-red">Succeed</span>
+            </h2>
+            <p className="text-text-secondary text-lg max-w-2xl mx-auto">
+              Our AI-powered platform provides comprehensive tools for your job search journey
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="card group">
+              <div className="text-accent-red mb-4 text-2xl">📄</div>
+              <h3 className="text-xl font-medium text-text-primary mb-3 group-hover:text-gradient-red transition-all">
+                Smart Resume Parsing
+              </h3>
+              <p className="text-text-secondary leading-relaxed">
+                Upload your resume and let our AI extract and analyze your skills, 
+                experience, and achievements for optimal job matching.
+              </p>
+            </div>
+
+            <div className="card group">
+              <div className="text-accent-red mb-4 text-2xl">🎯</div>
+              <h3 className="text-xl font-medium text-text-primary mb-3 group-hover:text-gradient-red transition-all">
+                AI Job Matching
+              </h3>
+              <p className="text-text-secondary leading-relaxed">
+                Get personalized job recommendations based on your skills, experience, 
+                and career goals with our advanced matching algorithm.
+              </p>
+            </div>
+
+            <div className="card group">
+              <div className="text-accent-red mb-4 text-2xl">✨</div>
+              <h3 className="text-xl font-medium text-text-primary mb-3 group-hover:text-gradient-red transition-all">
+                Personalized Pitches
+              </h3>
+              <p className="text-text-secondary leading-relaxed">
+                Generate compelling, tailored pitches for each application using 
+                AI-powered insights and company research.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="section-spacing border-t border-border">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-light text-text-primary mb-4">
+            Ready to Transform Your <span className="text-gradient-red">Career</span>?
+          </h2>
+          <p className="text-text-secondary text-lg mb-8">
+            Join thousands of professionals who've accelerated their job search with AI
+          </p>
+          {!user && (
+            <Link href="/register" className="btn-primary inline-block text-lg">
+              Get Started for Free
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-text-muted text-sm">
+            © 2024 Career Jobs App. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   )
 }
