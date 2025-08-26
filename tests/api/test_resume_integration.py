@@ -3,14 +3,10 @@ Integration tests for Resume Processing Pipeline (Phase 2)
 Tests the complete flow from upload to skill extraction
 """
 
-import io
-import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
 
 from api.main import app
 from api.services.auth import JWTAuthService

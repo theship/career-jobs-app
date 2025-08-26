@@ -4,9 +4,7 @@ Tests for Phase 5: AI Research & Pitch Generation
 
 import json
 import time
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -238,12 +236,14 @@ class TestCompanyResearch:
             # First request - should call API
             start_time = time.time()
             research1 = service.research_company("stripe.com")
-            first_duration = time.time() - start_time
+            # first_duration = time.time() - start_time
+  # Duration tracking for future use
 
             # Second request - should use cache
             start_time = time.time()
             research2 = service.research_company("stripe.com")
-            second_duration = time.time() - start_time
+            # second_duration = time.time() - start_time
+  # Duration tracking for future use
 
             # Verify same results
             assert research1["company_name"] == research2["company_name"]
@@ -659,12 +659,14 @@ class TestAcceptanceTests:
             # First request
             start_time = time.time()
             response1 = service.research_company("stripe.com")
-            first_duration = time.time() - start_time
+            # first_duration = time.time() - start_time
+  # Duration tracking for future use
 
             # Second request (cached)
             start_time = time.time()
             response2 = service.research_company("stripe.com")
-            second_duration = time.time() - start_time
+            # second_duration = time.time() - start_time
+  # Duration tracking for future use
 
             assert response1 == response2
             # API should only be called once due to caching

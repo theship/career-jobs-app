@@ -3,9 +3,8 @@ Fixed Authentication Tests - Phase 1
 Tests for JWT verification, health checks, and API authentication
 """
 
-import json
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import jwt
 import pytest
@@ -13,7 +12,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api.main import app
-from api.services.auth import JWTAuthService, get_auth_service
+from api.services.auth import JWTAuthService
 
 client = TestClient(app)
 

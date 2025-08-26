@@ -3,7 +3,6 @@ Tests for Job Ingestion System (Phase 3)
 Tests for ATS connectors, normalization, and orchestration
 """
 
-import asyncio
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, Mock, patch
 
