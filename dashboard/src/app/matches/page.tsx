@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import MatchesTable from '@/components/MatchesTable'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import { api } from '@/lib/api'
 
 export default function MatchesPage() {
@@ -14,6 +14,8 @@ export default function MatchesPage() {
   const [resumes, setResumes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [runningScoring, setRunningScoring] = useState(false)
+  
+  const supabase = createClient()
 
   useEffect(() => {
     checkUser()
