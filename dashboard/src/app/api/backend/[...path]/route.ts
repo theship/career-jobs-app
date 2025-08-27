@@ -37,6 +37,11 @@ async function handleRequest(
 
   // Get the auth token to forward to backend
   const token = await getAuthToken()
+  
+  // Log for debugging
+  if (!token) {
+    console.warn(`No auth token available for ${backendPath}`)
+  }
 
   // Prepare headers
   const headers: HeadersInit = {

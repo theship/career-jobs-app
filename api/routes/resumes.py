@@ -46,11 +46,20 @@ async def upload_resume(
     await file.seek(0)  # Reset file pointer
 
     try:
+        # Check if we have a valid token
+        if not current_user.get("token"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Valid authentication token required for upload"
+            )
+            
         # Use authenticated Supabase client with user's JWT
+        logger.info(f"Current user info: user_id={current_user.get('user_id')}, has_token={bool(current_user.get('token'))}, trusted_service={current_user.get('trusted_service')}")
         supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
+        logger.info(f"Processing upload for user_id: {user_id}")
 
-        # Check if user exists in app_user table
+        # Verify user exists in app_user table (should be created by trigger on signup)
         user_check = (
             supabase.table("app_user")
             .select("user_id")
@@ -59,24 +68,47 @@ async def upload_resume(
         )
 
         if not user_check.data:
-            # Create user in app_user table
-            logger.info(f"Creating app_user record for {user_id}")
-            supabase.table("app_user").insert({"user_id": user_id}).execute()
+            # Auto-create app_user record for existing auth users
+            # This handles users who signed up before the trigger was created
+            logger.info(f"User {user_id} not found in app_user table - auto-creating")
+            try:
+                supabase.table("app_user").insert({
+                    "user_id": user_id
+                }).execute()
+                logger.info(f"Successfully created app_user record for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to auto-create app_user record: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to initialize user profile. Please try again."
+                )
 
         # Generate unique filename and storage path
         file_hash = hashlib.sha256(file_content).hexdigest()
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         storage_filename = f"{user_id}/{timestamp}_{file_hash[:8]}_{file.filename}"
 
-        # Upload to Supabase Storage
+        # Upload to Supabase Storage using service client
+        # Note: Storage bucket RLS policies need to be configured in Supabase dashboard
+        # For now, we use service client for storage after validating the user
         logger.info(f"Uploading file to storage: {storage_filename}")
-        supabase.storage.from_("resumes").upload(
-            storage_filename,
-            file_content,
-            file_options={
-                "content-type": file.content_type or "application/octet-stream"
-            },
-        )
+        try:
+            from api.utils.database import get_supabase_service_client
+            storage_client = get_supabase_service_client()
+            storage_result = storage_client.storage.from_("resumes").upload(
+                storage_filename,
+                file_content,
+                file_options={
+                    "content-type": file.content_type or "application/octet-stream"
+                },
+            )
+            logger.info(f"Storage upload result: {storage_result}")
+        except Exception as storage_error:
+            logger.error(f"Storage upload failed: {storage_error}")
+            # Try to diagnose the specific issue
+            if "row-level security policy" in str(storage_error):
+                logger.error("RLS policy violation on storage bucket - check Supabase dashboard settings")
+            raise
 
         # Extract text and process
         logger.info("Extracting text from file")
@@ -112,8 +144,18 @@ async def upload_resume(
             "embedding": embedding,
         }
 
-        logger.info("Creating resume record in database")
-        insert_response = supabase.table("resumes").insert(resume_data).execute()
+        logger.info(f"Creating resume record in database for user {user_id}")
+        try:
+            insert_response = supabase.table("resumes").insert(resume_data).execute()
+            logger.info(f"Database insert successful: resume_id = {insert_response.data[0]['resume_id'] if insert_response.data else 'unknown'}")
+        except Exception as db_error:
+            logger.error(f"Database insert failed: {db_error}")
+            if "row-level security policy" in str(db_error):
+                logger.error(f"RLS policy violation on resumes table for user {user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save resume: {str(db_error)}",
+            )
 
         if not insert_response.data:
             raise HTTPException(

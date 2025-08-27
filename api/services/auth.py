@@ -169,7 +169,7 @@ async def get_current_user(
     # If no credentials but is trusted service, allow through
     # (for public endpoints accessed via Next.js proxy)
     if not credentials and is_trusted_service:
-        return {"trusted_service": True, "user_id": None}
+        return {"trusted_service": True, "user_id": None, "token": None}
     
     auth_service = get_auth_service()
 
