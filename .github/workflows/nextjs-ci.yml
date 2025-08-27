@@ -112,16 +112,15 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       
-      - name: Debug - List build output
+      - name: Debug - Check build artifacts from repo root
         run: |
-          echo "Current directory:"
+          echo "Checking from repository root:"
+          cd ${{ github.workspace }}
           pwd
-          echo "Contents of current directory:"
-          ls -la
-          echo "Looking for .next folder:"
-          find . -name ".next" -type d 2>/dev/null || echo "No .next found in dashboard"
-          echo "Checking parent directory:"
-          ls -la ../
+          echo "Looking for .next folder from root:"
+          ls -la dashboard/.next 2>/dev/null || echo "dashboard/.next not found"
+          echo "Find all .next folders:"
+          find . -name ".next" -type d
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
