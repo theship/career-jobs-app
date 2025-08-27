@@ -112,12 +112,23 @@ jobs:
       - name: Build Next.js application
         run: npm run build
       
+      - name: Debug - Check build artifacts from repo root
+        run: |
+          echo "Checking from repository root:"
+          cd ${{ github.workspace }}
+          pwd
+          echo "Looking for .next folder from root:"
+          ls -la dashboard/.next 2>/dev/null || echo "dashboard/.next not found"
+          echo "Find all .next folders:"
+          find . -name ".next" -type d
+      
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nextjs-build
-          path: .next/
+          path: dashboard/.next/
           retention-days: 7
+          if-no-files-found: error
 
   lighthouse:
     name: Lighthouse Performance Audit

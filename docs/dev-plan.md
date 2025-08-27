@@ -836,60 +836,80 @@ describe('AI Research & Pitches', () => {
 })
 ```
 
-### Phase 6: Export & Integration (Weeks 12-13)
+### Phase 6: Export & Reporting (Weeks 12-13)
 
 #### Objectives
-* Implement CSV export functionality
-* Add Google Drive integration
-* Create email notifications
-* Build sharing capabilities
+* Display job matches in sortable/filterable table UI
+* Implement CSV export from matches table
+* Add user-customizable skills vocabulary
+* Create email notifications for new matches
 
 #### Tasks
 
-1. **Export System**
-   * CSV generation and streaming
-   * Google Drive OAuth flow
-   * Automated uploads
+1. **Matches Table UI**
+   * Sortable columns for all match data (score, company, title, location, date)
+   * Filter by score threshold, location, posted date
+   * Pagination for large result sets
+   * Color-coded match scores (high/medium/low)
+
+2. **CSV Export**
+   * Download button exports visible table data
+   * Include all scoring factors in export
+   * Browser-native download (no external services)
    * Export history tracking
 
-2. **Notifications**
-   * Email alerts for new matches
+3. **Custom Skills Vocabulary**
+   * Upload CSV with user's skill terminology
+   * Required columns: skill, category, aliases, tags
+   * Override default skills extraction
+   * Replace on re-upload (interim solution)
+
+4. **Notifications**
+   * Email alerts for new high-scoring matches
    * Weekly digest reports
-   * Application deadline reminders
+   * User notification preferences
 
 #### Backend Acceptance Tests
 
 ```python
 def test_csv_export():
-    """User can export job matches as CSV"""
+    """User can export job matches as CSV from the API"""
     resume_id = upload_test_resume("Test resume")
     run_scoring(resume_id)
     
-    response = client.get("/export/csv", headers=auth_headers)
+    response = client.get("/api/v1/scores/export?resume_id={resume_id}", 
+                         headers=auth_headers)
     
     assert response.status_code == 200
     assert response.headers["content-type"] == "text/csv"
-    assert "company,title,location,score" in response.text
+    assert "company,title,location,total_score" in response.text
+    assert response.headers["content-disposition"].startswith("attachment")
 
-def test_google_drive_upload():
-    """CSV can be uploaded to Google Drive"""
-    # Mock Google OAuth
-    mock_credentials = {"access_token": "mock_token"}
+def test_custom_skills_vocab_upload():
+    """User can upload custom skills vocabulary CSV"""
+    csv_content = """skill,category,aliases,tags
+Python,Programming,py|python3,backend
+Kubernetes,DevOps,k8s|k8,container"""
     
-    response = client.post("/export/drive", 
-        json={"credentials": mock_credentials},
-        headers=auth_headers
-    )
+    response = client.post("/api/v1/resumes/skills-vocab",
+                          files={"file": ("skills.csv", csv_content)},
+                          headers=auth_headers)
     
     assert response.status_code == 200
-    assert "drive_url" in response.json()
+    
+    # Process resume with custom vocab
+    resume_id = upload_test_resume("Has experience with k8s and py")
+    skills = extract_skills(resume_id)
+    
+    assert "Kubernetes" in skills  # Matched via alias "k8s"
+    assert "Python" in skills  # Matched via alias "py"
 
 def test_email_notifications():
-    """Users receive email alerts for new matches"""
+    """Users receive email alerts for new high-scoring matches"""
     user_id = create_test_user(email="test@example.com")
     resume_id = upload_resume_for_user(user_id)
     
-    # Create high-scoring job
+    # Create high-scoring job (>0.7 score)
     job_id = create_job(title="Perfect Match Job")
     
     # Trigger scoring
@@ -900,6 +920,37 @@ def test_email_notifications():
     user_emails = [e for e in emails if e["to"] == "test@example.com"]
     assert len(user_emails) > 0
     assert "new job match" in user_emails[0]["subject"].lower()
+```
+
+#### Frontend Acceptance Tests
+
+```typescript
+describe('Matches Table', () => {
+  it('displays sortable table of job matches', async () => {
+    render(<MatchesPage />)
+    
+    // Table headers are clickable for sorting
+    const scoreHeader = screen.getByText('Match Score')
+    fireEvent.click(scoreHeader)
+    
+    // Verify sorted by score descending
+    const scores = screen.getAllByTestId('match-score')
+    expect(scores[0]).toHaveTextContent('95%')
+  })
+  
+  it('allows CSV download of visible matches', async () => {
+    render(<MatchesPage />)
+    
+    const downloadBtn = screen.getByText('Download CSV')
+    fireEvent.click(downloadBtn)
+    
+    // Verify download initiated
+    expect(mockDownload).toHaveBeenCalledWith(
+      expect.stringContaining('company,title,location,total_score'),
+      expect.stringContaining('.csv')
+    )
+  })
+})
 ```
 
 ## Testing Strategy
@@ -1055,7 +1106,24 @@ describe('Job Listings', () => {
 
 ## Next Steps
 
-After completing Phase 7, consider these enhancements:
+After completing Phase 6, consider these enhancements:
+
+### Test Environment Setup
+* **Supabase Configuration for Tests**: Set up test environment variables for Supabase to fix integration test failures
+* **Mock Services**: Create proper mocks for external services in test suite
+* **CI/CD Environment**: Configure GitHub Actions with proper test database
+* **GitHub Actions Build Artifacts Fix**: The NextJS build artifact upload needs adjustment - the `defaults.run.working-directory: dashboard` setting affects `run` commands but not action paths. Solution: Either remove the workflow-level defaults and use `cd dashboard` in each step, or use a custom script to handle the artifact upload from the correct location
+
+### Configuration & Customization
+* **Configurable Score Thresholds**: UI slider to adjust minimum match score (0.0-1.0)
+* **Custom Score Weights**: Allow users to adjust importance of different factors
+* **Score Interpretation Guide**: Visual indicators for low (<0.5), medium (0.5-0.7), high (>0.7) matches
+
+### Export & Integration Enhancements
+* **Additional Export Formats**: JSON, Excel (.xlsx) alongside CSV
+* **Batch Operations**: Process multiple resumes simultaneously
+* **Scheduled Exports**: Automatic weekly/monthly match reports
+* **API Webhooks**: Notify external systems of new high-scoring matches
 
 ### Advanced Features
 * **Skills Assessment**: Interactive skill validation

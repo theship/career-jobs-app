@@ -46,8 +46,7 @@ flowchart TD
   SCORE-->SCORES[(scores)]
   API-->RESEARCH[Company Research Agent]
   RESEARCH-->R[(company_research)]
-  API-->|CSV| OUT1[(download)]
-  API-->|Drive| OUT2[(Google Drive)]
+  API-->|CSV Export| BROWSER[Browser Download]
   subgraph DB[Supabase Postgres + pgvector + RLS]
     JOBS
     JOBS_VER
@@ -82,7 +81,7 @@ flowchart TD
 
 - **Supabase**: Database, auth, storage, and edge functions
 - **Vercel/Railway**: Frontend and backend deployment
-- **Google Drive API**: Export functionality
+- **Email Service**: Resend or SendGrid for notifications
 
 ## Data Model
 
@@ -155,6 +154,26 @@ create table resume_versions (
   created_at timestamptz default now(),
   storage_path text not null,
   sha256 bytea not null
+);
+
+-- Skills extracted from resumes
+create table resume_skills (
+  id bigserial primary key,
+  resume_id bigint not null references resumes(resume_id),
+  skill_name text not null,
+  confidence numeric not null default 1.0,
+  created_at timestamptz default now(),
+  unique(resume_id, skill_name)
+);
+
+-- User custom skills vocabulary
+create table user_skills_vocab (
+  id bigserial primary key,
+  user_id uuid not null references app_user(user_id),
+  vocab_data jsonb not null,
+  skills_count integer,
+  uploaded_at timestamptz default now(),
+  unique(user_id)
 );
 ```
 
@@ -278,6 +297,8 @@ POST /api/v1/resumes/upload  - Upload and process résumé
 GET  /api/v1/resumes/        - List user resumes
 PUT  /api/v1/resumes/{id}    - Update resume
 DELETE /api/v1/resumes/{id}  - Delete resume
+POST /api/v1/resumes/skills-vocab - Upload custom skills vocabulary
+GET  /api/v1/resumes/skills-vocab - Get user's custom vocabulary
 
 # Jobs
 GET  /api/v1/jobs            - List job postings
@@ -302,9 +323,8 @@ POST /api/v1/pitch/email-template - Generate email from pitch
 POST /api/v1/pitch/interview-prep - Interview preparation guide
 GET  /api/v1/pitch/quality/{id}  - Pitch quality assessment
 
-# Export (TODO)
-POST /api/v1/export/csv          - Download ranked results
-POST /api/v1/export/drive        - Upload to Google Drive
+# Export
+GET  /api/v1/scores/export       - Download scores as CSV
 ```
 
 ### Response Format
@@ -404,10 +424,9 @@ career-jobs-app/
 │   │   ├── auth.py       # Authentication routes
 │   │   ├── jobs.py       # Job CRUD and search
 │   │   ├── resumes.py    # Resume upload and processing
-│   │   ├── scoring.py    # Job scoring and ranking
+│   │   ├── scoring.py    # Job scoring, ranking, and CSV export
 │   │   ├── research.py   # ✅ Company research endpoints (Phase 5)
-│   │   ├── pitch.py      # ✅ Pitch generation endpoints (Phase 5)
-│   │   └── export.py     # CSV/Drive export (TODO)
+│   │   └── pitch.py      # ✅ Pitch generation endpoints (Phase 5)
 │   ├── services/         # Business logic layer
 │   │   ├── __init__.py
 │   │   ├── auth.py       # JWT verification
@@ -444,21 +463,27 @@ career-jobs-app/
 │   └── orchestrator.py   # Ingestion scheduling/management
 ├── config/
 │   └── skills_vocab.csv  # canonical skills list (see dev-plan.md / Phase 2)
-├── dashboard/            # ✅ BASIC SETUP - Next.js frontend
+├── dashboard/            # ✅ IMPLEMENTED - Next.js frontend
 │   ├── package.json
 │   ├── next.config.ts
 │   ├── tsconfig.json
 │   ├── src/
 │   │   ├── app/          # Next.js 13+ app directory
 │   │   │   ├── layout.tsx
-│   │   │   ├── page.tsx  # Dashboard home
-│   │   │   ├── login/
-│   │   │   ├── jobs/     # Job browsing/matching
+│   │   │   ├── page.tsx  # Landing page
+│   │   │   ├── dashboard/ # Main dashboard
+│   │   │   ├── login/    # Authentication
+│   │   │   ├── register/ # User registration
+│   │   │   ├── jobs/     # Job browsing/details
+│   │   │   ├── matches/  # ✅ Job matches table (Phase 6)
 │   │   │   └── profile/  # User profile/resume
 │   │   ├── components/   # React components
 │   │   │   ├── ui/       # Reusable UI components
-│   │   │   ├── forms/    # Form components
-│   │   │   └── layout/   # Layout components
+│   │   │   │   └── Modal.tsx
+│   │   │   ├── MatchesTable.tsx      # ✅ Sortable matches table (Phase 6)
+│   │   │   └── SkillsVocabUpload.tsx # ✅ Skills CSV upload (Phase 6)
+│   │   ├── contexts/     # React contexts
+│   │   │   └── NotificationContext.tsx
 │   │   ├── lib/          # Frontend utilities
 │   │   │   ├── supabase.ts
 │   │   │   ├── api.ts    # API client

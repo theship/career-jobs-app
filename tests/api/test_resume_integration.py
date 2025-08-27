@@ -97,21 +97,33 @@ class TestResumeUploadIntegration:
         # Mock embedding generation
         mock_processor.generate_embedding = AsyncMock(return_value=[0.1] * 3072)
 
-        # Mock Supabase storage
-        with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
-            mock_supabase = Mock()
-            mock_get_supabase.return_value = mock_supabase
+        # Mock Supabase clients
+        with patch(
+            "api.routes.resumes.get_authenticated_supabase_client"
+        ) as mock_get_auth_supabase, patch(
+            "api.routes.resumes.get_supabase_service_client"
+        ) as mock_get_service_supabase:
+            mock_auth_supabase = Mock()
+            mock_service_supabase = Mock()
+            mock_get_auth_supabase.return_value = mock_auth_supabase
+            mock_get_service_supabase.return_value = mock_service_supabase
 
-            # Mock storage upload
+            # Mock app_user check
+            mock_user_check = Mock()
+            mock_auth_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = Mock(
+                data=[{"user_id": "test-user-id"}]
+            )
+
+            # Mock storage upload (using service client)
             mock_storage = Mock()
-            mock_supabase.storage = mock_storage
+            mock_service_supabase.storage = mock_storage
             mock_bucket = Mock()
             mock_storage.from_.return_value = mock_bucket
             mock_bucket.upload = Mock(return_value={"path": "test-user-id/resume.pdf"})
 
-            # Mock database insert
+            # Mock database insert (using auth client)
             mock_table = Mock()
-            mock_supabase.table.return_value = mock_table
+            mock_auth_supabase.table = Mock(return_value=mock_table)
             mock_table.insert.return_value.execute.return_value = Mock(
                 data=[
                     {

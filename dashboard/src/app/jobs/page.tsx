@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { apiClient } from '@/lib/api'
+import { api } from '@/lib/api-client'
 
 export default function JobsPage() {
   const [user, setUser] = useState<any>(null)
@@ -47,7 +47,7 @@ export default function JobsPage() {
         params.location = filters.location
       }
 
-      const jobsData = await apiClient.getJobs(params)
+      const jobsData = await api.getJobs(params)
       setJobs(jobsData)
     } catch (error) {
       console.error('Error fetching jobs:', error)

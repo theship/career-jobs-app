@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { apiClient } from '@/lib/api'
+import { api } from '@/lib/api-client'
 import { useNotification } from '@/contexts/NotificationContext'
 
 export default function ProfilePage() {
@@ -63,7 +63,7 @@ export default function ProfilePage() {
 
   const fetchResumes = async () => {
     try {
-      const resumeData = await apiClient.getResumes()
+      const resumeData = await api.getResumes()
       setResumes(resumeData || [])
     } catch (error) {
       console.error('Error fetching resumes:', error)
@@ -95,7 +95,7 @@ export default function ProfilePage() {
 
   const handleDeleteResume = async (resumeId: string) => {
     try {
-      await apiClient.deleteResume(resumeId)
+      await api.deleteResume(resumeId)
       showSuccess('Resume deleted successfully')
       fetchResumes()
     } catch (error) {

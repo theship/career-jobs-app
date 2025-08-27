@@ -11,7 +11,7 @@ interface RequestOptions extends RequestInit {
 }
 
 class APIClient {
-  private async getAuthToken(): Promise<string | null> {
+  async getAuthToken(): Promise<string | null> {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     return session?.access_token || null
@@ -87,13 +87,13 @@ class APIClient {
     formData.append('file', file)
     
     const token = await this.getAuthToken()
-    console.log('Upload token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN')
+    // Token available for upload
     if (token) {
       // Decode the token header to see the kid
       const parts = token.split('.')
       if (parts.length === 3) {
         const header = JSON.parse(atob(parts[0]))
-        console.log('Token header:', header)
+        // Token header set
       }
     }
     
@@ -103,7 +103,7 @@ class APIClient {
       body: formData,
     })
     
-    console.log('Upload response status:', response.status)
+    // Upload response received
     
     if (!response.ok) {
       let errorMessage = 'Failed to upload resume. '
