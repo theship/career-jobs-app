@@ -1106,7 +1106,18 @@ describe('Job Listings', () => {
 
 ## Next Steps
 
-After completing Phase 7, consider these enhancements:
+After completing Phase 6, consider these enhancements:
+
+### Configuration & Customization
+* **Configurable Score Thresholds**: UI slider to adjust minimum match score (0.0-1.0)
+* **Custom Score Weights**: Allow users to adjust importance of different factors
+* **Score Interpretation Guide**: Visual indicators for low (<0.5), medium (0.5-0.7), high (>0.7) matches
+
+### Export & Integration Enhancements
+* **Additional Export Formats**: JSON, Excel (.xlsx) alongside CSV
+* **Batch Operations**: Process multiple resumes simultaneously
+* **Scheduled Exports**: Automatic weekly/monthly match reports
+* **API Webhooks**: Notify external systems of new high-scoring matches
 
 ### Advanced Features
 * **Skills Assessment**: Interactive skill validation

@@ -11,7 +11,7 @@ interface RequestOptions extends RequestInit {
 }
 
 class APIClient {
-  private async getAuthToken(): Promise<string | null> {
+  async getAuthToken(): Promise<string | null> {
     const supabase = createClient()
     const { data: { session } } = await supabase.auth.getSession()
     return session?.access_token || null

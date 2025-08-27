@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import MatchesTable from '@/components/MatchesTable'
 import { createClient } from '@/lib/supabase'
-import { api } from '@/lib/api'
+import { api } from '@/lib/api-client'
 
 export default function MatchesPage() {
   const router = useRouter()
@@ -39,7 +39,7 @@ export default function MatchesPage() {
 
   const fetchResumes = async () => {
     try {
-      const data = await api.getResumes()
+      const data = await apiClient.getResumes()
       setResumes(data)
       if (data.length > 0) {
         setSelectedResume(data[0].resume_id)
@@ -54,18 +54,7 @@ export default function MatchesPage() {
     
     setLoading(true)
     try {
-      const response = await fetch(
-        `/api/v1/scores?resume_id=${selectedResume}&limit=100`,
-        {
-          headers: {
-            'Authorization': `Bearer ${await api.getAuthToken()}`
-          }
-        }
-      )
-      
-      if (!response.ok) throw new Error('Failed to fetch scores')
-      
-      const data = await response.json()
+      const data = await api.getScores(selectedResume, 100)
       setMatches(data)
     } catch (error) {
       console.error('Failed to fetch matches:', error)
@@ -79,22 +68,7 @@ export default function MatchesPage() {
     
     setRunningScoring(true)
     try {
-      const response = await fetch('/api/v1/scores/run', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await api.getAuthToken()}`
-        },
-        body: JSON.stringify({
-          resume_id: selectedResume,
-          limit: 100,
-          min_score: 0.3
-        })
-      })
-      
-      if (!response.ok) throw new Error('Failed to run scoring')
-      
-      const result = await response.json()
+      const result = await api.runScoring(selectedResume, 100, 0.5)
       setMatches(result.results)
     } catch (error) {
       console.error('Failed to run scoring:', error)
@@ -107,19 +81,7 @@ export default function MatchesPage() {
     if (!selectedResume) return
     
     try {
-      const response = await fetch(
-        `/api/v1/scores/export?resume_id=${selectedResume}&format=csv&include_details=true`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${await api.getAuthToken()}`
-          }
-        }
-      )
-      
-      if (!response.ok) throw new Error('Failed to export CSV')
-      
-      const blob = await response.blob()
+      const blob = await api.exportScores(selectedResume, 'csv')
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

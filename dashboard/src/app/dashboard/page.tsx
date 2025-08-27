@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { apiClient } from '@/lib/api'
+import { api } from '@/lib/api-client'
 import Link from 'next/link'
 import { useNotification } from '@/contexts/NotificationContext'
 
@@ -36,19 +36,19 @@ export default function DashboardPage() {
     try {
       // Fetch user's resumes
       try {
-        const resumesData = await apiClient.getResumes()
+        const resumesData = await api.getResumes()
         setResumes(resumesData || [])
         
         // If user has resumes, fetch or calculate scores for the first one
         if (resumesData && resumesData.length > 0) {
           try {
             // First try to get existing scores
-            let scoresData = await apiClient.getScores(resumesData[0].resume_id)
+            let scoresData = await api.getScores(resumesData[0].resume_id)
             
             // If no scores exist, calculate them
             if (!scoresData || scoresData.length === 0) {
               console.log('No existing scores, calculating new ones...')
-              const scoringResult = await apiClient.runScoring(resumesData[0].resume_id)
+              const scoringResult = await api.runScoring(resumesData[0].resume_id)
               if (scoringResult && scoringResult.results) {
                 scoresData = scoringResult.results
               }
@@ -67,7 +67,7 @@ export default function DashboardPage() {
 
       // Fetch recent jobs
       try {
-        const jobsData = await apiClient.getJobs({ limit: 5 })
+        const jobsData = await api.getJobs({ limit: 5 })
         setJobs(jobsData || [])
       } catch (jobError) {
         console.log('Could not fetch jobs:', jobError)
@@ -87,7 +87,7 @@ export default function DashboardPage() {
 
     setUploadingResume(true)
     try {
-      const result = await apiClient.uploadResume(file)
+      const result = await api.uploadResume(file)
       console.log('Resume uploaded:', result)
       
       // Refresh resumes list
@@ -95,12 +95,12 @@ export default function DashboardPage() {
       
       // Trigger scoring for the new resume
       if (result.resume_id) {
-        const scoringResult = await apiClient.runScoring(result.resume_id)
+        const scoringResult = await api.runScoring(result.resume_id)
         if (scoringResult && scoringResult.results) {
           setScores(scoringResult.results)
         } else {
           // If no results returned, try fetching stored scores
-          const scoresData = await apiClient.getScores(result.resume_id)
+          const scoresData = await api.getScores(result.resume_id)
           setScores(scoresData || [])
         }
       }

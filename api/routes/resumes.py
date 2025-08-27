@@ -9,7 +9,6 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..models.resumes import Resume, ResumeUpdate
 from ..services.auth import get_current_user
@@ -18,7 +17,6 @@ from ..utils.database import get_authenticated_supabase_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/resumes", tags=["resumes"])
-security = HTTPBearer()
 
 # Initialize services
 resume_processor = ResumeProcessor()
@@ -29,7 +27,6 @@ async def upload_resume(
     file: UploadFile = File(...),
     name: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Upload and process a new resume."""
     # Validate file type
@@ -162,7 +159,6 @@ async def upload_resume(
 @router.get("/", response_model=List[Resume])
 async def list_resumes(
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """List all resumes for the current user."""
     try:
@@ -206,7 +202,6 @@ async def list_resumes(
 async def get_resume(
     resume_id: str,
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Get a specific resume by ID."""
     try:
@@ -258,7 +253,6 @@ async def update_resume(
     resume_id: str,
     update_data: ResumeUpdate,
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Update a resume's metadata."""
     try:
@@ -335,7 +329,6 @@ async def update_resume(
 async def delete_resume(
     resume_id: str,
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Delete a resume and its associated data."""
     try:
@@ -389,7 +382,6 @@ async def delete_resume(
 async def reprocess_resume(
     resume_id: str,
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Reprocess a resume with updated extraction logic."""
     try:
@@ -482,7 +474,6 @@ async def reprocess_resume(
 async def upload_skills_vocabulary(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
     Upload a custom skills vocabulary CSV file for the user.
@@ -597,7 +588,6 @@ async def upload_skills_vocabulary(
 @router.get("/skills-vocab")
 async def get_skills_vocabulary(
     current_user: dict = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """Get the user's custom skills vocabulary if it exists."""
     try:

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { apiClient } from '@/lib/api'
+import { api } from '@/lib/api-client'
 import { useNotification } from '@/contexts/NotificationContext'
 
 export default function JobDetailPage() {
@@ -34,15 +34,15 @@ export default function JobDetailPage() {
     setLoading(true)
     try {
       // Fetch job details
-      const jobData = await apiClient.getJobById(jobId)
+      const jobData = await api.getJobById(jobId)
       setJob(jobData)
 
       // If user is logged in, try to get their score for this job
       if (user) {
         try {
-          const resumes = await apiClient.getResumes()
+          const resumes = await api.getResumes()
           if (resumes && resumes.length > 0) {
-            const scores = await apiClient.getScores(resumes[0].resume_id)
+            const scores = await api.getScores(resumes[0].resume_id)
             const jobScore = scores.find((s: any) => s.job_id === jobId)
             setScore(jobScore)
           }
@@ -66,7 +66,7 @@ export default function JobDetailPage() {
     setGeneratingPitch(true)
     try {
       // Get user's resume
-      const resumes = await apiClient.getResumes()
+      const resumes = await api.getResumes()
       if (!resumes || resumes.length === 0) {
         showInfo('Please upload a resume first to generate a pitch')
         router.push('/dashboard')
