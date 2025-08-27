@@ -186,6 +186,7 @@ async def get_current_user(
         "iat": payload.get("iat"),
         "exp": payload.get("exp"),
         "trusted_service": is_trusted_service,  # Flag to indicate if request is from trusted service
+        "token": credentials.credentials,  # Include the token for database operations
     }
 
     return user_info

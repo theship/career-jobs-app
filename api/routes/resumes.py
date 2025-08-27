@@ -47,7 +47,7 @@ async def upload_resume(
 
     try:
         # Use authenticated Supabase client with user's JWT
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         # Check if user exists in app_user table
@@ -163,7 +163,7 @@ async def list_resumes(
     """List all resumes for the current user."""
     try:
         # Use authenticated Supabase client
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         response = (
@@ -206,7 +206,7 @@ async def get_resume(
     """Get a specific resume by ID."""
     try:
         # Use authenticated Supabase client
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         response = (
@@ -257,7 +257,7 @@ async def update_resume(
     """Update a resume's metadata."""
     try:
         # Use authenticated Supabase client
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         # Check if resume exists and belongs to user
@@ -333,7 +333,7 @@ async def delete_resume(
     """Delete a resume and its associated data."""
     try:
         # Use authenticated Supabase client
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         # Check if resume exists and belongs to user
@@ -386,7 +386,7 @@ async def reprocess_resume(
     """Reprocess a resume with updated extraction logic."""
     try:
         # Use authenticated Supabase client
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         # Get resume
@@ -528,7 +528,7 @@ async def upload_skills_vocabulary(
             )
 
         # Use authenticated Supabase client
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         # Check if user already has custom vocab
@@ -591,7 +591,7 @@ async def get_skills_vocabulary(
 ):
     """Get the user's custom skills vocabulary if it exists."""
     try:
-        supabase = get_authenticated_supabase_client(credentials.credentials)
+        supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
 
         response = (

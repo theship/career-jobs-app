@@ -60,23 +60,26 @@ async function handleRequest(
     headers,
   }
 
-  // Add body for non-GET requests
+  // Handle body for non-GET requests
   if (method !== 'GET' && method !== 'HEAD') {
-    try {
-      const body = await request.text()
-      if (body) {
-        requestOptions.body = body
+    const contentType = request.headers.get('content-type')
+    
+    if (contentType?.includes('multipart/form-data')) {
+      // Handle file uploads
+      const formData = await request.formData()
+      delete (headers as any)['Content-Type'] // Let fetch set the boundary
+      requestOptions.body = formData
+    } else {
+      // Handle JSON or text body
+      try {
+        const body = await request.text()
+        if (body) {
+          requestOptions.body = body
+        }
+      } catch (error) {
+        // No body or invalid body
       }
-    } catch (error) {
-      // No body or invalid body
     }
-  }
-
-  // Handle FormData for file uploads
-  if (request.headers.get('content-type')?.includes('multipart/form-data')) {
-    const formData = await request.formData()
-    delete (headers as any)['Content-Type'] // Let fetch set the boundary
-    requestOptions.body = formData
   }
 
   try {
