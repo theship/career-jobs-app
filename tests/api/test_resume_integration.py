@@ -98,8 +98,11 @@ class TestResumeUploadIntegration:
         mock_processor.generate_embedding = AsyncMock(return_value=[0.1] * 3072)
 
         # Mock Supabase clients
-        with patch("api.routes.resumes.get_authenticated_supabase_client") as mock_get_auth_supabase, \
-             patch("api.routes.resumes.get_supabase_service_client") as mock_get_service_supabase:
+        with patch(
+            "api.routes.resumes.get_authenticated_supabase_client"
+        ) as mock_get_auth_supabase, patch(
+            "api.routes.resumes.get_supabase_service_client"
+        ) as mock_get_service_supabase:
             mock_auth_supabase = Mock()
             mock_service_supabase = Mock()
             mock_get_auth_supabase.return_value = mock_auth_supabase

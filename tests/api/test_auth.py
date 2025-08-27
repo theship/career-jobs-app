@@ -121,7 +121,9 @@ class TestAuthenticationEndpoints:
     def test_protected_endpoint_without_token(self):
         """Protected endpoints reject requests without token"""
         response = client.get("/api/v1/auth/me")
-        assert response.status_code == 401  # No Authorization header returns 401 with new auth
+        assert (
+            response.status_code == 401
+        )  # No Authorization header returns 401 with new auth
 
     def test_protected_endpoint_with_invalid_token(self):
         """Protected endpoints reject invalid tokens"""

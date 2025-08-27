@@ -1108,6 +1108,11 @@ describe('Job Listings', () => {
 
 After completing Phase 6, consider these enhancements:
 
+### Test Environment Setup
+* **Supabase Configuration for Tests**: Set up test environment variables for Supabase to fix integration test failures
+* **Mock Services**: Create proper mocks for external services in test suite
+* **CI/CD Environment**: Configure GitHub Actions with proper test database
+
 ### Configuration & Customization
 * **Configurable Score Thresholds**: UI slider to adjust minimum match score (0.0-1.0)
 * **Custom Score Weights**: Allow users to adjust importance of different factors
