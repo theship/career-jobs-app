@@ -1112,6 +1112,7 @@ After completing Phase 6, consider these enhancements:
 * **Supabase Configuration for Tests**: Set up test environment variables for Supabase to fix integration test failures
 * **Mock Services**: Create proper mocks for external services in test suite
 * **CI/CD Environment**: Configure GitHub Actions with proper test database
+* **GitHub Actions Build Artifacts Fix**: The NextJS build artifact upload needs adjustment - the `defaults.run.working-directory: dashboard` setting affects `run` commands but not action paths. Solution: Either remove the workflow-level defaults and use `cd dashboard` in each step, or use a custom script to handle the artifact upload from the correct location
 
 ### Configuration & Customization
 * **Configurable Score Thresholds**: UI slider to adjust minimum match score (0.0-1.0)
