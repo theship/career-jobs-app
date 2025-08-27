@@ -37,6 +37,12 @@ class ActivityLogger:
         Returns:
             log_id for tracking the action
         """
+        # TEMPORARILY DISABLED - Table not yet created
+        logger.info(
+            f"[ACTIVITY] Action started: {action_type} for user {user_id} - {json.dumps(metadata or {})}"
+        )
+        return f"temp_{action_type}_{time.time()}"  # Return temp ID
+        
         try:
             start_time = datetime.utcnow()
             
@@ -80,6 +86,10 @@ class ActivityLogger:
             status: Current status
             progress_data: Progress information to merge with metadata
         """
+        # TEMPORARILY DISABLED - Table not yet created
+        logger.info(f"[ACTIVITY] Progress: {log_id} - {json.dumps(progress_data or {})}")
+        return
+        
         try:
             if progress_data:
                 # Get existing metadata
@@ -125,6 +135,13 @@ class ActivityLogger:
             result_data: Final result data to merge with metadata
             error_details: Error message if action failed
         """
+        # TEMPORARILY DISABLED - Table not yet created
+        status_msg = "succeeded" if success else "failed"
+        logger.info(f"[ACTIVITY] Action {status_msg}: {log_id} - {json.dumps(result_data or {})}")
+        if error_details:
+            logger.error(f"[ACTIVITY] Error: {log_id} - {error_details}")
+        return
+        
         try:
             # Calculate duration
             duration_ms = None

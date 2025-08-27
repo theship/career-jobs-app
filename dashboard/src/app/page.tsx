@@ -18,7 +18,16 @@ export default function Home() {
       setLoading(false)
     }
     checkUser()
-  }, [])
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      authListener?.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   if (loading) {
     return (
@@ -52,7 +61,7 @@ export default function Home() {
                   <button
                     onClick={async () => {
                       await supabase.auth.signOut()
-                      router.refresh()
+                      setUser(null)  // Immediately update UI state
                     }}
                     className="btn-ghost text-sm"
                   >

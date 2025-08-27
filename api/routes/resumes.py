@@ -34,6 +34,8 @@ async def upload_resume(
     start_time = time.time()
     user_id = current_user["user_id"]
     
+    logger.info(f"=== RESUME UPLOAD START === User: {user_id}, File: {file.filename}, Size: {file.size if hasattr(file, 'size') else 'unknown'}")
+    
     # Start activity logging
     log_id = await activity_logger.log_action_start(
         user_id=user_id,
@@ -361,6 +363,54 @@ async def list_resumes(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list resumes: {str(e)}",
+        )
+
+
+@router.get("/skills-vocab")
+async def get_skills_vocabulary(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get the user's custom skills vocabulary if it exists."""
+    try:
+        supabase = get_authenticated_supabase_client(current_user["token"])
+        user_id = current_user["user_id"]
+
+        response = (
+            supabase.table("user_skills_vocab")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not response.data:
+            return {
+                "has_custom_vocab": False,
+                "message": "No custom skills vocabulary found",
+            }
+
+        vocab = response.data[0]
+        vocab_data = vocab.get("vocab_data", [])
+        
+        # Handle vocab_data whether it's a list or dict
+        sample_skills = []
+        if isinstance(vocab_data, list):
+            sample_skills = [v.get("skill", "") for v in vocab_data[:10] if isinstance(v, dict)]
+        elif isinstance(vocab_data, dict):
+            # If stored as dict, get first 10 skills
+            sample_skills = list(vocab_data.keys())[:10]
+        
+        return {
+            "has_custom_vocab": True,
+            "skills_count": vocab.get("skills_count", 0),
+            "uploaded_at": vocab.get("uploaded_at"),
+            "sample_skills": sample_skills,
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get skills vocabulary: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get skills vocabulary: {str(e)}",
         )
 
 
@@ -759,39 +809,4 @@ async def upload_skills_vocabulary(
         )
 
 
-@router.get("/skills-vocab")
-async def get_skills_vocabulary(
-    current_user: dict = Depends(get_current_user),
-):
-    """Get the user's custom skills vocabulary if it exists."""
-    try:
-        supabase = get_authenticated_supabase_client(current_user["token"])
-        user_id = current_user["user_id"]
-
-        response = (
-            supabase.table("user_skills_vocab")
-            .select("*")
-            .eq("user_id", user_id)
-            .execute()
-        )
-
-        if not response.data:
-            return {
-                "has_custom_vocab": False,
-                "message": "No custom skills vocabulary found",
-            }
-
-        vocab = response.data[0]
-        return {
-            "has_custom_vocab": True,
-            "skills_count": vocab["skills_count"],
-            "uploaded_at": vocab["uploaded_at"],
-            "sample_skills": [v["skill"] for v in vocab["vocab_data"][:10]],
-        }
-
-    except Exception as e:
-        logger.error(f"Failed to get skills vocabulary: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get skills vocabulary: {str(e)}",
-        )
+# Moved to before /{resume_id} route

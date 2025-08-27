@@ -167,7 +167,15 @@ class SecureAPIClient {
 
   // Scoring endpoints
   async getScores(resumeId: string, limit: number = 100) {
-    return this.request<Array<any>>(`/scores?resume_id=${resumeId}&limit=${limit}`)
+    try {
+      return await this.request<Array<any>>(`/scores?resume_id=${resumeId}&limit=${limit}`)
+    } catch (error: any) {
+      // If no scores found (404), return empty array instead of throwing
+      if (error.message?.includes('not found') || error.message?.includes('404')) {
+        return []
+      }
+      throw error
+    }
   }
 
   async runScoring(resumeId: string, limit: number = 100, minScore: number = 0.5) {

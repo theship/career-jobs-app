@@ -20,7 +20,7 @@ from scoring_engine.ranker import JobRanker, JobScore, ScoringWeights
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/scores", tags=["scoring"])
+router = APIRouter(prefix="/scores", tags=["scoring"])
 
 
 # Request/Response Models
@@ -103,9 +103,9 @@ async def get_resume_data(resume_id: str, supabase):
 
         resume = response.data[0]
 
-        # Get resume embedding
+        # Get resume embedding from resumes table
         embedding_response = (
-            supabase.table("resume_embeddings")
+            supabase.table("resumes")
             .select("embedding")
             .eq("resume_id", resume_id)
             .execute()
@@ -127,13 +127,13 @@ async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
     """Fetch jobs data and embeddings from database"""
     try:
         # Build query
-        query = supabase.table("jobs").select("*")
+        query = supabase.table("job_postings").select("*")
 
         if job_ids:
             query = query.in_("job_id", job_ids)
         else:
-            # Get recent, active jobs
-            query = query.eq("is_active", True).order("posted_at", desc=True)
+            # Get recent jobs
+            query = query.order("posted_at", desc=True)
 
         query = query.limit(limit)
         response = query.execute()
@@ -144,26 +144,14 @@ async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
         jobs = response.data
         job_ids = [j["job_id"] for j in jobs]
 
-        # Get job embeddings
-        embedding_response = (
-            supabase.table("job_embeddings")
-            .select("job_id, embedding")
-            .in_("job_id", job_ids)
-            .execute()
-        )
-
-        # Create embedding lookup
-        embedding_lookup = {
-            e["job_id"]: np.array(e["embedding"]) for e in embedding_response.data
-        }
-
-        # Align embeddings with jobs
+        # Job embeddings are in the job_postings table itself
+        # Extract embeddings from the jobs we already fetched
         embeddings = []
         filtered_jobs = []
         for job in jobs:
-            if job["job_id"] in embedding_lookup:
+            if job.get("embedding"):
                 filtered_jobs.append(job)
-                embeddings.append(embedding_lookup[job["job_id"]])
+                embeddings.append(np.array(job["embedding"]))
 
         if embeddings:
             embeddings = np.array(embeddings)
@@ -176,7 +164,7 @@ async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
 
 
 # API Endpoints
-@router.get("/", response_model=List[ScoreResponse])
+@router.get("", response_model=List[ScoreResponse])  # Remove trailing slash
 async def get_scores(
     resume_id: str = Query(..., description="Resume ID to get scores for"),
     limit: int = Query(50, description="Maximum number of scores to return"),
@@ -188,7 +176,21 @@ async def get_scores(
     Returns previously calculated scores from the database.
     If no scores exist, returns empty list (client should call /run to calculate).
     """
-    supabase = get_supabase_client()
+    # Use authenticated client if we have a valid token, otherwise use service client
+    if current_user.get("token") and current_user.get("token") != "test":
+        from api.utils.database import get_authenticated_supabase_client
+        try:
+            supabase = get_authenticated_supabase_client(current_user["token"])
+            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+        except Exception as e:
+            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            from api.utils.database import get_supabase_service_client
+            supabase = get_supabase_service_client()
+    else:
+        # Fallback to service client for trusted services or test tokens
+        from api.utils.database import get_supabase_service_client
+        supabase = get_supabase_service_client()
+        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
 
     try:
         # Get scores from database
@@ -202,7 +204,9 @@ async def get_scores(
             .execute()
         )
 
+        # Return empty array if no scores found (not an error condition)
         if not response.data:
+            logger.info(f"No scores found for resume {resume_id}, user {current_user['user_id']}")
             return []
 
         # Convert to response format
@@ -252,7 +256,21 @@ async def run_scoring(
     """
     start_time = time.time()
     user_id = current_user["user_id"]
-    supabase = get_supabase_client()
+    # Use authenticated client if we have a valid token, otherwise use service client
+    if current_user.get("token") and current_user.get("token") != "test":
+        from api.utils.database import get_authenticated_supabase_client
+        try:
+            supabase = get_authenticated_supabase_client(current_user["token"])
+            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+        except Exception as e:
+            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            from api.utils.database import get_supabase_service_client
+            supabase = get_supabase_service_client()
+    else:
+        # Fallback to service client for trusted services or test tokens
+        from api.utils.database import get_supabase_service_client
+        supabase = get_supabase_service_client()
+        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
     
     # Start activity logging
     log_id = await activity_logger.log_action_start(
@@ -508,11 +526,25 @@ async def get_score_breakdown(
 
     Requires authentication.
     """
-    supabase = get_supabase_client()
+    # Use authenticated client if we have a valid token, otherwise use service client
+    if current_user.get("token") and current_user.get("token") != "test":
+        from api.utils.database import get_authenticated_supabase_client
+        try:
+            supabase = get_authenticated_supabase_client(current_user["token"])
+            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+        except Exception as e:
+            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            from api.utils.database import get_supabase_service_client
+            supabase = get_supabase_service_client()
+    else:
+        # Fallback to service client for trusted services or test tokens
+        from api.utils.database import get_supabase_service_client
+        supabase = get_supabase_service_client()
+        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
 
     # Fetch stored score or recalculate
     score_response = (
-        supabase.table("scoring_results")
+        supabase.table("scores")
         .select("*")
         .eq("resume_id", resume_id)
         .eq("job_id", job_id)
@@ -582,7 +614,21 @@ async def export_scores(
     """
     start_time = time.time()
     user_id = current_user["user_id"]
-    supabase = get_supabase_client()
+    # Use authenticated client if we have a valid token, otherwise use service client
+    if current_user.get("token") and current_user.get("token") != "test":
+        from api.utils.database import get_authenticated_supabase_client
+        try:
+            supabase = get_authenticated_supabase_client(current_user["token"])
+            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+        except Exception as e:
+            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            from api.utils.database import get_supabase_service_client
+            supabase = get_supabase_service_client()
+    else:
+        # Fallback to service client for trusted services or test tokens
+        from api.utils.database import get_supabase_service_client
+        supabase = get_supabase_service_client()
+        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
     
     # Start activity logging
     log_id = await activity_logger.log_action_start(
