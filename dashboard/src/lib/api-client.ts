@@ -71,16 +71,38 @@ class SecureAPIClient {
     formData.append('file', file)
     if (name) formData.append('name', name)
 
-    return fetch('/api/backend/resumes/upload', {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type - let browser set it with boundary
-    }).then(res => {
-      if (!res.ok) {
+    try {
+      const response = await fetch('/api/backend/resumes/upload', {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type - let browser set it with boundary
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to upload resume'
+        
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.detail || errorData.error || errorData.message || errorMessage
+        } catch {
+          errorMessage = response.statusText || errorMessage
+        }
+        
+        throw new Error(errorMessage)
+      }
+      
+      const data = await response.json()
+      return data
+    } catch (error: any) {
+      // Make sure we always throw an Error with a proper message
+      if (error instanceof Error) {
+        throw error
+      } else if (typeof error === 'string') {
+        throw new Error(error)
+      } else {
         throw new Error('Failed to upload resume')
       }
-      return res.json()
-    })
+    }
   }
 
   async getResumes() {
@@ -98,15 +120,35 @@ class SecureAPIClient {
     const formData = new FormData()
     formData.append('file', file)
 
-    return fetch('/api/backend/resumes/skills-vocab', {
-      method: 'POST',
-      body: formData,
-    }).then(res => {
-      if (!res.ok) {
+    try {
+      const response = await fetch('/api/backend/resumes/skills-vocab', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to upload skills vocabulary'
+        
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.detail || errorData.error || errorData.message || errorMessage
+        } catch {
+          errorMessage = response.statusText || errorMessage
+        }
+        
+        throw new Error(errorMessage)
+      }
+      
+      return await response.json()
+    } catch (error: any) {
+      if (error instanceof Error) {
+        throw error
+      } else if (typeof error === 'string') {
+        throw new Error(error)
+      } else {
         throw new Error('Failed to upload skills vocabulary')
       }
-      return res.json()
-    })
+    }
   }
 
   async getSkillsVocabulary() {
