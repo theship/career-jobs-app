@@ -39,7 +39,7 @@ export default function MatchesPage() {
 
   const fetchResumes = async () => {
     try {
-      const data = await apiClient.getResumes()
+      const data = await api.getResumes()
       setResumes(data)
       if (data.length > 0) {
         setSelectedResume(data[0].resume_id)
