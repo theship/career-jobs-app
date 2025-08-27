@@ -129,7 +129,9 @@ class ResumeProcessor:
             logger.error(f"DOCX extraction failed: {e}")
             raise ValueError(f"Failed to extract text from DOCX: {e}")
 
-    async def extract_skills(self, text: str, custom_vocab: Optional[List[Dict[str, Any]]] = None) -> SkillExtractionResult:
+    async def extract_skills(
+        self, text: str, custom_vocab: Optional[List[Dict[str, Any]]] = None
+    ) -> SkillExtractionResult:
         """
         Multi-stage skill extraction pipeline.
 
@@ -138,7 +140,7 @@ class ResumeProcessor:
         2. Embedding-based candidate retrieval (if coverage < 70%)
         3. OpenAI function calling with closed-world constraint (if still needed)
         4. Pydantic validation and merging
-        
+
         Args:
             text: Resume text to extract skills from
             custom_vocab: Optional custom skills vocabulary from user
@@ -219,8 +221,10 @@ class ResumeProcessor:
             coverage=min(coverage, 100.0),
             years_experience=filtered_years if filtered_years else None,
         )
-    
-    def _process_custom_vocab(self, vocab_data: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+
+    def _process_custom_vocab(
+        self, vocab_data: List[Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
         """Process user's custom vocabulary into the expected format."""
         vocab = {}
         for entry in vocab_data:

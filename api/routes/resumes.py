@@ -50,11 +50,13 @@ async def upload_resume(
         if not current_user.get("token"):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Valid authentication token required for upload"
+                detail="Valid authentication token required for upload",
             )
-            
+
         # Use authenticated Supabase client with user's JWT
-        logger.info(f"Current user info: user_id={current_user.get('user_id')}, has_token={bool(current_user.get('token'))}, trusted_service={current_user.get('trusted_service')}")
+        logger.info(
+            f"Current user info: user_id={current_user.get('user_id')}, has_token={bool(current_user.get('token'))}, trusted_service={current_user.get('trusted_service')}"
+        )
         supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
         logger.info(f"Processing upload for user_id: {user_id}")
@@ -72,15 +74,13 @@ async def upload_resume(
             # This handles users who signed up before the trigger was created
             logger.info(f"User {user_id} not found in app_user table - auto-creating")
             try:
-                supabase.table("app_user").insert({
-                    "user_id": user_id
-                }).execute()
+                supabase.table("app_user").insert({"user_id": user_id}).execute()
                 logger.info(f"Successfully created app_user record for {user_id}")
             except Exception as e:
                 logger.error(f"Failed to auto-create app_user record: {e}")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to initialize user profile. Please try again."
+                    detail="Failed to initialize user profile. Please try again.",
                 )
 
         # Generate unique filename and storage path
@@ -94,6 +94,7 @@ async def upload_resume(
         logger.info(f"Uploading file to storage: {storage_filename}")
         try:
             from api.utils.database import get_supabase_service_client
+
             storage_client = get_supabase_service_client()
             storage_result = storage_client.storage.from_("resumes").upload(
                 storage_filename,
@@ -107,7 +108,9 @@ async def upload_resume(
             logger.error(f"Storage upload failed: {storage_error}")
             # Try to diagnose the specific issue
             if "row-level security policy" in str(storage_error):
-                logger.error("RLS policy violation on storage bucket - check Supabase dashboard settings")
+                logger.error(
+                    "RLS policy violation on storage bucket - check Supabase dashboard settings"
+                )
             raise
 
         # Extract text and process
@@ -124,7 +127,9 @@ async def upload_resume(
         )
         if vocab_response.data:
             custom_vocab = vocab_response.data[0]["vocab_data"]
-            logger.info(f"Using custom skills vocabulary with {len(custom_vocab)} skills")
+            logger.info(
+                f"Using custom skills vocabulary with {len(custom_vocab)} skills"
+            )
 
         # Extract skills using multi-stage pipeline with optional custom vocab
         logger.info("Extracting skills from resume")
@@ -147,11 +152,15 @@ async def upload_resume(
         logger.info(f"Creating resume record in database for user {user_id}")
         try:
             insert_response = supabase.table("resumes").insert(resume_data).execute()
-            logger.info(f"Database insert successful: resume_id = {insert_response.data[0]['resume_id'] if insert_response.data else 'unknown'}")
+            logger.info(
+                f"Database insert successful: resume_id = {insert_response.data[0]['resume_id'] if insert_response.data else 'unknown'}"
+            )
         except Exception as db_error:
             logger.error(f"Database insert failed: {db_error}")
             if "row-level security policy" in str(db_error):
-                logger.error(f"RLS policy violation on resumes table for user {user_id}")
+                logger.error(
+                    f"RLS policy violation on resumes table for user {user_id}"
+                )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to save resume: {str(db_error)}",
@@ -461,7 +470,9 @@ async def reprocess_resume(
             logger.info(f"Using custom skills vocabulary for reprocessing")
 
         # Re-extract skills with latest pipeline and optional custom vocab
-        skills_data = await resume_processor.extract_skills(resume["text_content"], custom_vocab)
+        skills_data = await resume_processor.extract_skills(
+            resume["text_content"], custom_vocab
+        )
 
         # Re-generate embeddings if needed
         embedding = await resume_processor.generate_embedding(resume["text_content"])
@@ -533,7 +544,7 @@ async def upload_skills_vocabulary(
         content = await file.read()
         csv_text = content.decode("utf-8")
         reader = csv.DictReader(io.StringIO(csv_text))
-        
+
         # Validate required columns
         required_columns = {"skill", "category", "aliases", "tags"}
         if not reader.fieldnames:
@@ -541,7 +552,7 @@ async def upload_skills_vocabulary(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="CSV file is empty or invalid",
             )
-        
+
         missing_columns = required_columns - set(reader.fieldnames)
         if missing_columns:
             raise HTTPException(
@@ -554,12 +565,20 @@ async def upload_skills_vocabulary(
         for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is 1)
             if not row.get("skill"):
                 continue  # Skip empty skill rows
-            
+
             vocab_entry = {
                 "skill": row["skill"].strip(),
                 "category": row["category"].strip() if row["category"] else "",
-                "aliases": [a.strip() for a in row["aliases"].split("|") if a.strip()] if row["aliases"] else [],
-                "tags": [t.strip() for t in row["tags"].split(",") if t.strip()] if row["tags"] else [],
+                "aliases": (
+                    [a.strip() for a in row["aliases"].split("|") if a.strip()]
+                    if row["aliases"]
+                    else []
+                ),
+                "tags": (
+                    [t.strip() for t in row["tags"].split(",") if t.strip()]
+                    if row["tags"]
+                    else []
+                ),
             }
             vocab_data.append(vocab_entry)
 
@@ -600,9 +619,7 @@ async def upload_skills_vocabulary(
         else:
             # Insert new record
             response = (
-                supabase.table("user_skills_vocab")
-                .insert(vocab_record)
-                .execute()
+                supabase.table("user_skills_vocab").insert(vocab_record).execute()
             )
 
         if not response.data:

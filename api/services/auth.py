@@ -10,19 +10,23 @@ from functools import lru_cache
 from typing import Any, Dict, Optional
 
 import jwt
-from fastapi import HTTPException, Security, Request, Header
+from fastapi import Header, HTTPException, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 
 logger = logging.getLogger(__name__)
 
+
 # Custom security scheme that allows OPTIONS requests
 class OptionalHTTPBearer(HTTPBearer):
-    async def __call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]:
+    async def __call__(
+        self, request: Request
+    ) -> Optional[HTTPAuthorizationCredentials]:
         # Allow OPTIONS requests through without authentication
         if request.method == "OPTIONS":
             return None
         return await super().__call__(request)
+
 
 # Security scheme
 security = OptionalHTTPBearer(auto_error=False)
@@ -115,21 +119,21 @@ def get_auth_service() -> JWTAuthService:
 def validate_service_secret(x_service_secret: Optional[str] = Header(None)) -> bool:
     """
     Validate that the request is coming from our trusted Next.js server
-    
+
     Args:
         x_service_secret: Secret token from X-Service-Secret header
-        
+
     Returns:
         True if the secret is valid
     """
     if not x_service_secret:
         return False
-        
+
     expected_secret = os.getenv("SERVICE_SECRET")
     if not expected_secret:
         # If no secret is configured, service auth is disabled
         return False
-        
+
     return x_service_secret == expected_secret
 
 
@@ -141,7 +145,7 @@ async def get_current_user(
 ) -> Dict[str, Any]:
     """
     FastAPI dependency to get current authenticated user
-    
+
     Supports two authentication methods:
     1. Direct JWT token from browser (legacy, will be phased out)
     2. Service-to-service auth from trusted Next.js server (preferred)
@@ -157,20 +161,20 @@ async def get_current_user(
     # Skip authentication for OPTIONS requests
     if request.method == "OPTIONS":
         return {}
-    
+
     # Check if this is a trusted service request
     is_trusted_service = validate_service_secret(x_service_secret)
-    
+
     # If it's a trusted service and has credentials, validate the forwarded token
     # If no credentials from trusted service, it means the endpoint is being accessed publicly
     if not credentials and not is_trusted_service:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     # If no credentials but is trusted service, allow through
     # (for public endpoints accessed via Next.js proxy)
     if not credentials and is_trusted_service:
         return {"trusted_service": True, "user_id": None, "token": None}
-    
+
     auth_service = get_auth_service()
 
     # Verify the token (works for both direct and proxied requests)

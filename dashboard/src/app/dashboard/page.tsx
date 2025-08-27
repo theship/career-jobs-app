@@ -48,7 +48,7 @@ export default function DashboardPage() {
             
             // If no scores exist, calculate them
             if (!scoresData || scoresData.length === 0) {
-              console.log('No existing scores, calculating new ones...')
+              // No existing scores, calculate new ones
               const scoringResult = await api.runScoring(resumesData[0].resume_id)
               if (scoringResult && scoringResult.results) {
                 scoresData = scoringResult.results
@@ -57,12 +57,12 @@ export default function DashboardPage() {
             
             setScores(scoresData || [])
           } catch (scoreError) {
-            console.log('Could not fetch or calculate scores:', scoreError)
+            // Could not fetch or calculate scores
             setScores([])
           }
         }
       } catch (resumeError) {
-        console.log('No resumes yet:', resumeError)
+        // No resumes yet
         setResumes([])
       }
 
@@ -71,7 +71,7 @@ export default function DashboardPage() {
         const jobsData = await api.getJobs({ limit: 5 })
         setJobs(jobsData || [])
       } catch (jobError) {
-        console.log('Could not fetch jobs:', jobError)
+        // Could not fetch jobs
         setJobs([])
       }
     } catch (error) {
@@ -91,7 +91,7 @@ export default function DashboardPage() {
     
     try {
       const result = await api.uploadResume(file)
-      console.log('Resume uploaded:', result)
+      // Resume uploaded successfully
       
       // Show success immediately
       setUploadSuccess(true)
@@ -111,7 +111,7 @@ export default function DashboardPage() {
         }
       } catch (scoringError) {
         // Scoring might not be implemented yet, that's okay
-        console.log('Scoring not available yet:', scoringError)
+        // Scoring not available yet, that's okay
       }
       
       // Clear success message after 5 seconds
