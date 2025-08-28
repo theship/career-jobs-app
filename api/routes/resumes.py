@@ -5,12 +5,14 @@ import hashlib
 import io
 import json
 import logging
+import time
 from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from ..models.resumes import Resume, ResumeUpdate
+from ..services.activity_logger import activity_logger
 from ..services.auth import get_current_user
 from ..services.resume_processor import ResumeProcessor
 from ..utils.database import get_authenticated_supabase_client
@@ -28,9 +30,31 @@ async def upload_resume(
     name: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
 ):
-    """Upload and process a new resume."""
+    """Upload and process a new resume with detailed progress tracking."""
+    start_time = time.time()
+    user_id = current_user["user_id"]
+    
+    logger.info(f"=== RESUME UPLOAD START === User: {user_id}, File: {file.filename}, Size: {file.size if hasattr(file, 'size') else 'unknown'}")
+    
+    # Start activity logging
+    log_id = await activity_logger.log_action_start(
+        user_id=user_id,
+        action_type="resume_upload",
+        metadata={
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "custom_name": name,
+        }
+    )
+    
     # Validate file type
+    logger.info(f"Validating file type for {file.filename}")
     if not file.filename.endswith((".pdf", ".docx", ".txt")):
+        await activity_logger.log_action_complete(
+            log_id=log_id,
+            success=False,
+            error_details="Invalid file type. Only PDF, DOCX, and TXT files are supported."
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file type. Only PDF, DOCX, and TXT files are supported.",
@@ -38,7 +62,15 @@ async def upload_resume(
 
     # Validate file size (max 10MB)
     file_content = await file.read()
+    file_size_mb = len(file_content) / (1024 * 1024)
+    logger.info(f"File size: {file_size_mb:.2f}MB")
+    
     if len(file_content) > 10 * 1024 * 1024:
+        await activity_logger.log_action_complete(
+            log_id=log_id,
+            success=False,
+            error_details=f"File size ({file_size_mb:.2f}MB) exceeds 10MB limit."
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File size exceeds 10MB limit.",
@@ -46,6 +78,15 @@ async def upload_resume(
     await file.seek(0)  # Reset file pointer
 
     try:
+        # Update progress: File validated
+        await activity_logger.update_action_progress(
+            log_id=log_id,
+            status="in_progress",
+            progress_data={
+                "stage": "validated",
+                "file_size_mb": round(file_size_mb, 2),
+            }
+        )
         # Check if we have a valid token
         if not current_user.get("token"):
             raise HTTPException(
@@ -115,29 +156,74 @@ async def upload_resume(
 
         # Extract text and process
         logger.info("Extracting text from file")
+        text_extraction_start = time.time()
         text_content = await resume_processor.extract_text(file)
+        text_extraction_time = int((time.time() - text_extraction_start) * 1000)
+        
+        await activity_logger.update_action_progress(
+            log_id=log_id,
+            status="in_progress",
+            progress_data={
+                "stage": "text_extracted",
+                "text_length": len(text_content),
+                "extraction_time_ms": text_extraction_time,
+            }
+        )
+        logger.info(f"Text extracted: {len(text_content)} characters in {text_extraction_time}ms")
 
         # Check for custom vocabulary
         custom_vocab = None
         vocab_response = (
             supabase.table("user_skills_vocab")
-            .select("vocab_data")
+            .select("vocab_data, skills_count")
             .eq("user_id", user_id)
             .execute()
         )
         if vocab_response.data:
             custom_vocab = vocab_response.data[0]["vocab_data"]
-            logger.info(
-                f"Using custom skills vocabulary with {len(custom_vocab)} skills"
-            )
+            skills_count = vocab_response.data[0]["skills_count"]
+            logger.info(f"Using custom skills vocabulary with {skills_count} skills")
+            
+            # Update vocab usage stats
+            supabase.table("user_skills_vocab").update({
+                "last_used_at": datetime.utcnow().isoformat(),
+                "usage_count": vocab_response.data[0].get("usage_count", 0) + 1
+            }).eq("user_id", user_id).execute()
 
         # Extract skills using multi-stage pipeline with optional custom vocab
         logger.info("Extracting skills from resume")
+        skills_extraction_start = time.time()
         skills_data = await resume_processor.extract_skills(text_content, custom_vocab)
+        skills_extraction_time = int((time.time() - skills_extraction_start) * 1000)
+        
+        await activity_logger.update_action_progress(
+            log_id=log_id,
+            status="in_progress",
+            progress_data={
+                "stage": "skills_extracted",
+                "skills_found": len(skills_data.skills),
+                "using_custom_vocab": custom_vocab is not None,
+                "skills_extraction_time_ms": skills_extraction_time,
+            }
+        )
+        logger.info(f"Skills extracted: {len(skills_data.skills)} skills in {skills_extraction_time}ms")
 
         # Generate embeddings
         logger.info("Generating embeddings")
+        embedding_start = time.time()
         embedding = await resume_processor.generate_embedding(text_content)
+        embedding_time = int((time.time() - embedding_start) * 1000)
+        
+        await activity_logger.update_action_progress(
+            log_id=log_id,
+            status="in_progress",
+            progress_data={
+                "stage": "embeddings_generated",
+                "embedding_dims": len(embedding),
+                "embedding_time_ms": embedding_time,
+            }
+        )
+        logger.info(f"Embeddings generated: {len(embedding)} dimensions in {embedding_time}ms")
 
         # Create resume record
         resume_data = {
@@ -195,12 +281,43 @@ async def upload_resume(
             except Exception as e:
                 logger.warning(f"Failed to store skills: {e}")
 
-        # Return the resume with skills count
+        # Return the resume with skills count and complete logging
         resume_record["skills_count"] = len(skills_data.skills)
+        
+        # Calculate total processing time
+        total_time = int((time.time() - start_time) * 1000)
+        
+        # Log successful completion
+        await activity_logger.log_action_complete(
+            log_id=log_id,
+            success=True,
+            result_data={
+                "resume_id": resume_record["resume_id"],
+                "filename": resume_record["filename"],
+                "text_length": len(text_content),
+                "skills_found": len(skills_data.skills),
+                "total_processing_time_ms": total_time,
+                "storage_path": storage_filename,
+            }
+        )
+        
+        logger.info(
+            f"Resume upload completed successfully: resume_id={resume_record['resume_id']}, "
+            f"skills={len(skills_data.skills)}, time={total_time}ms"
+        )
+        
         return Resume(**resume_record)
 
     except Exception as e:
         logger.error(f"Failed to process resume: {e}")
+        
+        # Log failure
+        await activity_logger.log_action_complete(
+            log_id=log_id,
+            success=False,
+            error_details=str(e)
+        )
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process resume: {str(e)}",
@@ -246,6 +363,54 @@ async def list_resumes(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list resumes: {str(e)}",
+        )
+
+
+@router.get("/skills-vocab")
+async def get_skills_vocabulary(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get the user's custom skills vocabulary if it exists."""
+    try:
+        supabase = get_authenticated_supabase_client(current_user["token"])
+        user_id = current_user["user_id"]
+
+        response = (
+            supabase.table("user_skills_vocab")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if not response.data:
+            return {
+                "has_custom_vocab": False,
+                "message": "No custom skills vocabulary found",
+            }
+
+        vocab = response.data[0]
+        vocab_data = vocab.get("vocab_data", [])
+        
+        # Handle vocab_data whether it's a list or dict
+        sample_skills = []
+        if isinstance(vocab_data, list):
+            sample_skills = [v.get("skill", "") for v in vocab_data[:10] if isinstance(v, dict)]
+        elif isinstance(vocab_data, dict):
+            # If stored as dict, get first 10 skills
+            sample_skills = list(vocab_data.keys())[:10]
+        
+        return {
+            "has_custom_vocab": True,
+            "skills_count": vocab.get("skills_count", 0),
+            "uploaded_at": vocab.get("uploaded_at"),
+            "sample_skills": sample_skills,
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get skills vocabulary: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get skills vocabulary: {str(e)}",
         )
 
 
@@ -644,39 +809,4 @@ async def upload_skills_vocabulary(
         )
 
 
-@router.get("/skills-vocab")
-async def get_skills_vocabulary(
-    current_user: dict = Depends(get_current_user),
-):
-    """Get the user's custom skills vocabulary if it exists."""
-    try:
-        supabase = get_authenticated_supabase_client(current_user["token"])
-        user_id = current_user["user_id"]
-
-        response = (
-            supabase.table("user_skills_vocab")
-            .select("*")
-            .eq("user_id", user_id)
-            .execute()
-        )
-
-        if not response.data:
-            return {
-                "has_custom_vocab": False,
-                "message": "No custom skills vocabulary found",
-            }
-
-        vocab = response.data[0]
-        return {
-            "has_custom_vocab": True,
-            "skills_count": vocab["skills_count"],
-            "uploaded_at": vocab["uploaded_at"],
-            "sample_skills": [v["skill"] for v in vocab["vocab_data"][:10]],
-        }
-
-    except Exception as e:
-        logger.error(f"Failed to get skills vocabulary: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get skills vocabulary: {str(e)}",
-        )
+# Moved to before /{resume_id} route

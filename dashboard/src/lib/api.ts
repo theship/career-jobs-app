@@ -147,19 +147,19 @@ class APIClient {
   }
 
   // Scoring endpoints (Phase 4)
-  async getScores(resumeId: string) {
+  async getScores(resumeId: string, limit: number = 100) {
     // Get stored scores from database
-    return this.request<Array<any>>(`/api/v1/scores/?resume_id=${resumeId}`)
+    return this.request<Array<any>>(`/api/v1/scores/?resume_id=${resumeId}&limit=${limit}`)
   }
 
-  async runScoring(resumeId: string, jobIds?: string[]) {
+  async runScoring(resumeId: string, limit: number = 100, minScore: number = 0.0) {
     // Calculate new scores (will store in DB automatically)
     return this.request<any>('/api/v1/scores/run', {
       method: 'POST',
       body: JSON.stringify({ 
         resume_id: resumeId,
-        job_ids: jobIds,
-        limit: 50
+        limit: limit,
+        min_score: minScore
       }),
     })
   }
