@@ -5,15 +5,14 @@ Load sample job data into the database for testing
 
 import os
 import sys
-import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from supabase import create_client
-from dotenv import load_dotenv
+from supabase import create_client  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv()
 
@@ -36,9 +35,9 @@ SAMPLE_JOBS = [
         "currency": "USD",
         "job_url": "https://techcorp.com/jobs/senior-software-engineer",
         "description_text": """
-        We are looking for a Senior Software Engineer to join our growing team. 
+        We are looking for a Senior Software Engineer to join our growing team.
         You will be responsible for designing and implementing scalable web applications.
-        
+
         Key Responsibilities:
         - Design and develop high-quality software solutions
         - Lead technical discussions and code reviews
@@ -52,7 +51,7 @@ SAMPLE_JOBS = [
         - Knowledge of PostgreSQL and database design
         - AWS or cloud platform experience
         - Excellent communication skills
-        """
+        """,
     },
     {
         "job_id": "job_002",
@@ -72,7 +71,7 @@ SAMPLE_JOBS = [
         "job_url": "https://datasystems.io/careers/ml-engineer",
         "description_text": """
         Join our ML team to build cutting-edge machine learning models and systems.
-        
+
         What you'll do:
         - Develop and deploy ML models at scale
         - Work with TensorFlow, PyTorch, and scikit-learn
@@ -86,7 +85,7 @@ SAMPLE_JOBS = [
         - Knowledge of ML algorithms and statistics
         - Experience with Docker and Kubernetes
         - SQL and data processing skills
-        """
+        """,
     },
     {
         "job_id": "job_003",
@@ -106,7 +105,7 @@ SAMPLE_JOBS = [
         "job_url": "https://webdevstudios.com/jobs/fullstack",
         "description_text": """
         Looking for a Full Stack Developer to build modern web applications.
-        
+
         Responsibilities:
         - Develop frontend interfaces with React
         - Build REST APIs with Node.js
@@ -120,7 +119,7 @@ SAMPLE_JOBS = [
         - Database knowledge (SQL/NoSQL)
         - Git version control
         - Team collaboration skills
-        """
+        """,
     },
     {
         "job_id": "job_004",
@@ -140,7 +139,7 @@ SAMPLE_JOBS = [
         "job_url": "https://cloudtech.com/careers/devops",
         "description_text": """
         We need a DevOps Engineer to manage our cloud infrastructure.
-        
+
         Key Areas:
         - Manage AWS infrastructure with Terraform
         - Build CI/CD pipelines with Jenkins/GitHub Actions
@@ -154,7 +153,7 @@ SAMPLE_JOBS = [
         - Kubernetes and Docker expertise
         - Python or Go programming
         - Security best practices
-        """
+        """,
     },
     {
         "job_id": "job_005",
@@ -174,7 +173,7 @@ SAMPLE_JOBS = [
         "job_url": "https://aiinnovations.ai/jobs/data-scientist",
         "description_text": """
         Join our data science team to solve complex business problems.
-        
+
         Your role:
         - Build predictive models and analytics
         - Work with Python, R, and SQL
@@ -188,42 +187,48 @@ SAMPLE_JOBS = [
         - Statistical analysis expertise
         - Machine learning knowledge
         - Strong communication skills
-        """
-    }
+        """,
+    },
 ]
+
 
 def main():
     # Initialize Supabase client
     supabase = create_client(
-        os.environ.get("SUPABASE_URL", ""),
-        os.environ.get("SUPABASE_ANON_KEY", "")
+        os.environ.get("SUPABASE_URL", ""), os.environ.get("SUPABASE_ANON_KEY", "")
     )
-    
+
     if not os.environ.get("SUPABASE_URL"):
         print("Error: SUPABASE_URL not set in environment")
         return
-    
+
     print("Loading sample jobs into database...")
-    
+
     for job in SAMPLE_JOBS:
         try:
             # Check if job already exists
-            existing = supabase.table("job_postings").select("job_id").eq("job_id", job["job_id"]).execute()
-            
+            existing = (
+                supabase.table("job_postings")
+                .select("job_id")
+                .eq("job_id", job["job_id"])
+                .execute()
+            )
+
             if existing.data:
                 print(f"Job {job['job_id']} already exists, skipping...")
                 continue
-            
+
             # Insert job
-            result = supabase.table("job_postings").insert(job).execute()
+            supabase.table("job_postings").insert(job).execute()
             print(f"✓ Loaded job: {job['title']} at {job['company_name']}")
-            
+
         except Exception as e:
             print(f"✗ Failed to load job {job['job_id']}: {e}")
-    
+
     # Get count of jobs
     count_result = supabase.table("job_postings").select("*", count="exact").execute()
     print(f"\nTotal jobs in database: {count_result.count}")
+
 
 if __name__ == "__main__":
     main()

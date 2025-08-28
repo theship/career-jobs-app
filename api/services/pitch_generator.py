@@ -49,7 +49,7 @@ class PitchGeneratorService:
             Resume: {resume_content}
             Job: {job_description}
             Company Research: {company_research}
-            
+
             Generate a compelling pitch that connects their experience to this specific opportunity."""
 
     @retry(

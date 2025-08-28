@@ -13,7 +13,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ingestion.orchestrator import JobIngestionOrchestrator, run_ingestion_cycle
+from ingestion.orchestrator import JobIngestionOrchestrator  # noqa: E402, F401
 
 
 def setup_logging(verbose: bool = False):
@@ -114,7 +114,8 @@ async def main():
             duplicates_removed = await orchestrator.deduplicate_jobs()
             expired_cleaned = await orchestrator.cleanup_expired_jobs()
             logger.info(
-                f"Cleanup complete: {duplicates_removed} duplicates removed, {expired_cleaned} expired jobs cleaned"
+                f"Cleanup complete: {duplicates_removed} duplicates removed, "
+                f"{expired_cleaned} expired jobs cleaned"
             )
 
         # Optional embedding update
