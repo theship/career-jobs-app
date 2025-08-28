@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set
 from uuid import uuid4
 
+import openai
 from api.utils.config import get_settings
 from ingestion.connectors.base import ATSConnector, JobListing
 from ingestion.connectors.greenhouse import GreenhouseConnector
@@ -30,6 +31,13 @@ class JobIngestionOrchestrator:
         )
         self.normalizer = JobNormalizer()
         self.connectors: Dict[str, ATSConnector] = {}
+        
+        # Initialize OpenAI client for embeddings
+        if self.settings.openai_api_key:
+            self.openai_client = openai.AsyncOpenAI(api_key=self.settings.openai_api_key)
+        else:
+            self.openai_client = None
+            logger.warning("OpenAI API key not configured - embeddings will not be generated")
 
         # Initialize configured connectors
         self._initialize_connectors()
@@ -55,6 +63,32 @@ class JobIngestionOrchestrator:
                 api_key=self.settings.lever_api_key
             )
             logger.info("Initialized Lever connector")
+    
+    async def generate_embedding(self, text: str) -> Optional[List[float]]:
+        """Generate embedding vector for job text using OpenAI
+        
+        Args:
+            text: Combined job text (title + description + requirements)
+            
+        Returns:
+            List of floats representing the embedding vector, or None if failed
+        """
+        if not self.openai_client:
+            return None
+            
+        try:
+            # Limit text length to avoid token limits
+            text = text[:8000] if len(text) > 8000 else text
+            
+            response = await self.openai_client.embeddings.create(
+                model="text-embedding-3-large",
+                input=text,
+                dimensions=3072  # Match pgvector dimension
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            logger.error(f"Failed to generate embedding: {e}")
+            return None
 
     async def ingest_all_sources(
         self,
@@ -199,6 +233,14 @@ class JobIngestionOrchestrator:
                         else resp_text
                     )
 
+                # Generate embedding for job
+                embedding_text = f"{job.title}\n\n{job.description or ''}\n\n{requirements_text or ''}"
+                embedding = await self.generate_embedding(embedding_text)
+                if embedding:
+                    logger.debug(f"Generated embedding for job {job_id} (dim: {len(embedding)})")
+                else:
+                    logger.warning(f"No embedding generated for job {job_id}")
+                
                 job_data = {
                     "job_id": job_id,
                     "company_name": job.company_name,
@@ -221,6 +263,7 @@ class JobIngestionOrchestrator:
                     ),
                     "description_text": job.description,
                     "requirements_text": requirements_text,
+                    "embedding": embedding,  # Add the embedding
                     "last_seen_at": datetime.now(timezone.utc).isoformat(),
                 }
 

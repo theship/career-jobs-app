@@ -16,6 +16,7 @@ from api.services.auth import get_current_user
 from api.services.experiments import ExperimentConfig, ExperimentTracker
 from api.services.score_explainer import ScoreExplainer
 from api.utils.database import get_supabase_client
+from api.utils.vector_utils import parse_pgvector_string, ensure_vector_format
 from scoring_engine.ranker import JobRanker, JobScore, ScoringWeights
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,12 @@ async def get_resume_data(resume_id: str, supabase):
         if not embedding_response.data:
             raise HTTPException(status_code=404, detail="Resume embedding not found")
 
-        resume["embedding"] = np.array(embedding_response.data[0]["embedding"])
+        # Parse the pgvector string to numpy array
+        embedding = parse_pgvector_string(embedding_response.data[0]["embedding"])
+        if embedding is None:
+            raise HTTPException(status_code=500, detail="Failed to parse resume embedding")
+        
+        resume["embedding"] = embedding
 
         return resume
 
@@ -145,13 +151,18 @@ async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
         job_ids = [j["job_id"] for j in jobs]
 
         # Job embeddings are in the job_postings table itself
-        # Extract embeddings from the jobs we already fetched
+        # Extract and parse embeddings from the jobs we already fetched
         embeddings = []
         filtered_jobs = []
         for job in jobs:
             if job.get("embedding"):
-                filtered_jobs.append(job)
-                embeddings.append(np.array(job["embedding"]))
+                # Parse the pgvector string to numpy array
+                parsed_embedding = parse_pgvector_string(job["embedding"])
+                if parsed_embedding is not None:
+                    filtered_jobs.append(job)
+                    embeddings.append(parsed_embedding)
+                else:
+                    logger.warning(f"Failed to parse embedding for job {job.get('job_id')}")
 
         if embeddings:
             embeddings = np.array(embeddings)
