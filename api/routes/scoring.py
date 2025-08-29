@@ -55,13 +55,15 @@ class ScoreResponse(BaseModel):
     job_id: str
     title: str
     company_name: str
+    location: Optional[str] = None
+    posted_at: Optional[str] = None
     total_score: float
     rank: int
     percentile: float
     cosine_sim: float
     skill_overlap: float
     seniority_fit: float
-    geodist_km: float
+    geodist_km: Optional[float] = None
     recency_bonus: float
     match_level: str
 
@@ -439,13 +441,21 @@ async def run_scoring(
         # Convert to response format
         explainer = ScoreExplainer(weights=weights)
         results = []
+        
+        # Create a mapping of job_id to job data for quick lookup
+        job_data_map = {job["job_id"]: job for job in jobs_data}
+        
         for score in scores:
             summary = explainer.generate_summary(score)
+            job_info = job_data_map.get(score.job_id, {})
+            
             results.append(
                 ScoreResponse(
                     job_id=score.job_id,
                     title=score.title,
                     company_name=score.company_name,
+                    location=job_info.get("location"),
+                    posted_at=job_info.get("posted_at"),
                     total_score=score.total_score,
                     rank=score.rank,
                     percentile=score.percentile,
@@ -672,12 +682,65 @@ async def export_scores(
         )
 
         if not response.data:
-            await activity_logger.log_action_complete(
+            # If no stored scores, try to run scoring on-the-fly for the export
+            logger.info(f"No stored scores found for resume {resume_id}, running scoring on-the-fly")
+            
+            await activity_logger.update_action_progress(
                 log_id=log_id,
-                success=False,
-                error_details="No scoring results found"
+                status="in_progress",
+                progress_data={"stage": "running_scoring", "message": "Generating scores for export..."}
             )
-            raise HTTPException(status_code=404, detail="No scoring results found")
+            
+            # Run scoring to generate results
+            from scoring_engine.ranker import JobRanker
+            
+            # Get resume data
+            resume_data = await get_resume_data(resume_id, supabase)
+            resume_embedding = resume_data["embedding"]
+            
+            # Get jobs
+            jobs_data, job_embeddings = await get_jobs_data(None, 100, supabase)
+            
+            if not jobs_data:
+                await activity_logger.log_action_complete(
+                    log_id=log_id,
+                    success=False,
+                    error_details="No jobs available for scoring"
+                )
+                raise HTTPException(status_code=404, detail="No jobs available for scoring")
+            
+            # Run scoring
+            ranker = JobRanker()
+            scores = ranker.rank_jobs(
+                jobs_data=jobs_data,
+                resume_data=resume_data,
+                resume_embedding=resume_embedding,
+                job_embeddings=job_embeddings,
+                top_k=100,
+                min_score_threshold=0.0,
+            )
+            
+            # Convert scores to the format expected by export
+            response_data = []
+            for score in scores:
+                job_info = next((j for j in jobs_data if j["job_id"] == score.job_id), {})
+                response_data.append({
+                    "job_id": score.job_id,
+                    "total_score": score.total_score,
+                    "cosine_sim": score.cosine_sim,
+                    "skill_overlap": score.skill_overlap,
+                    "seniority_fit": score.seniority_fit,
+                    "geodist_km": score.geodist_km,
+                    "recency_bonus": score.recency_bonus,
+                    "job_postings": {
+                        "title": job_info.get("title", score.title),
+                        "company_name": job_info.get("company_name", score.company_name),
+                        "location": job_info.get("location", ""),
+                        "posted_at": job_info.get("posted_at"),
+                    }
+                })
+            
+            response.data = response_data
         
         logger.info(f"Found {len(response.data)} scores to export")
 
@@ -691,10 +754,22 @@ async def export_scores(
         scores = []
         for idx, result in enumerate(response.data, 1):
             job = result.get("job_postings", {})
+            
+            # Parse posted_at if available
+            posted_at = None
+            if job.get("posted_at"):
+                try:
+                    from datetime import datetime
+                    posted_at = datetime.fromisoformat(job["posted_at"].replace("Z", "+00:00"))
+                except:
+                    pass
+            
             score = JobScore(
                 job_id=result["job_id"],
                 title=job.get("title", "Unknown"),
                 company_name=job.get("company_name", "Unknown"),
+                location=job.get("location"),
+                posted_at=posted_at,
                 total_score=float(result["total_score"]),
                 rank=idx,
                 percentile=100 - (idx / len(response.data) * 100),
@@ -718,10 +793,12 @@ async def export_scores(
         if format == "csv":
             content = explainer.export_to_csv(scores, include_breakdowns=include_details)
             media_type = "text/csv"
+            from datetime import datetime
             filename = f"job_matches_{resume_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         else:
             content = explainer.export_to_json(scores, include_details=include_details)
             media_type = "application/json"
+            from datetime import datetime
             filename = f"job_matches_{resume_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         
         # Calculate file size

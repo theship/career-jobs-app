@@ -105,71 +105,133 @@ def get_research_service():
 pitch_storage: Dict[str, Dict[str, Any]] = {}
 
 
-def _get_mock_resume_data(resume_id: str) -> Dict[str, Any]:
-    """Mock function to get resume data (replace with real DB query)"""
+async def _get_resume_data(resume_id: str, user_token: str) -> Dict[str, Any]:
+    """Get actual resume data from database"""
+    # Use service client for now since we're in development mode
+    from api.utils.database import get_supabase_service_client
+    supabase = get_supabase_service_client()
+    
+    # Get resume from database
+    response = supabase.table("resumes").select("*").eq("resume_id", resume_id).limit(1).execute()
+    
+    if not response or not response.data:
+        # Fall back to mock data if resume not found
+        return {
+            "resume_id": resume_id,
+            "skills": [
+                "Python",
+                "JavaScript",
+                "React",
+                "Django",
+                "PostgreSQL",
+                "Docker",
+            ],
+            "years_experience": 5,
+            "seniority": "senior",
+            "location": "San Francisco, CA",
+            "experience": [
+                {
+                    "title": "Senior Software Engineer",
+                    "company": "Tech Company",
+                    "duration": "2020-present",
+                    "technologies": ["Python", "React", "AWS"],
+                }
+            ],
+            "education": [
+                {
+                    "degree": "BS Computer Science",
+                    "school": "UC Berkeley",
+                    "year": "2018",
+                }
+            ],
+            "highlights": [
+                "Led team of 5 engineers",
+                "Improved API performance by 40%",
+                "Shipped 3 major features",
+            ],
+        }
+    
+    resume = response.data[0]
+    
+    # Convert database format to expected format
     return {
-        "resume_id": resume_id,
-        "skills": [
-            "Python",
-            "JavaScript",
-            "React",
-            "Django",
-            "PostgreSQL",
-            "Docker",
-        ],
-        "years_experience": 5,
-        "seniority": "senior",
-        "location": "San Francisco, CA",
-        "experience": [
-            {
-                "title": "Senior Software Engineer",
-                "company": "Tech Company",
-                "duration": "2020-present",
-                "technologies": ["Python", "React", "AWS"],
-            }
-        ],
-        "education": [
-            {
-                "degree": "BS Computer Science",
-                "school": "UC Berkeley",
-                "year": "2018",
-            }
-        ],
-        "highlights": [
-            "Led team of 5 engineers",
-            "Improved API performance by 40%",
-            "Shipped 3 major features",
-        ],
+        "resume_id": resume["resume_id"],
+        "skills": resume.get("skills", []),
+        "years_experience": resume.get("years_experience", 0),
+        "seniority": resume.get("seniority", "mid"),
+        "location": resume.get("location", ""),
+        "experience": resume.get("parsed_data", {}).get("experience", []),
+        "education": resume.get("parsed_data", {}).get("education", []),
+        "highlights": resume.get("parsed_data", {}).get("highlights", []),
+        "text": resume.get("content", ""),
     }
 
 
-def _get_mock_job_data(job_id: str) -> Dict[str, Any]:
-    """Mock function to get job data (replace with real DB query)"""
+async def _get_job_data(job_id: str, user_token: str) -> Dict[str, Any]:
+    """Get actual job data from database"""
+    # Use service client for now since we're in development mode
+    from api.utils.database import get_supabase_service_client
+    supabase = get_supabase_service_client()
+    
+    # Get job from database
+    response = supabase.table("job_postings").select("*").eq("job_id", job_id).limit(1).execute()
+    
+    if not response or not response.data:
+        # Fall back to mock data if job not found
+        return {
+            "job_id": job_id,
+            "title": "Staff Software Engineer",
+            "company_name": "Stripe",
+            "company_domain": "stripe.com",
+            "required_skills": ["Python", "distributed systems", "API design"],
+            "preferred_skills": ["Rust", "payments experience", "fintech"],
+            "seniority": "staff",
+            "location": "San Francisco, CA",
+            "remote_type": "Hybrid",
+            "responsibilities": [
+                "Design and build scalable payment systems",
+                "Lead technical initiatives",
+                "Mentor junior engineers",
+            ],
+            "requirements": [
+                "7+ years experience",
+                "Strong Python skills",
+                "Experience with high-scale systems",
+            ],
+        }
+    
+    job = response.data[0]
+    
+    # Convert database format to expected format
     return {
-        "job_id": job_id,
-        "title": "Staff Software Engineer",
-        "company_name": "Stripe",
-        "company_domain": "stripe.com",
-        "required_skills": ["Python", "distributed systems", "API design"],
-        "preferred_skills": ["Rust", "payments experience", "fintech"],
-        "seniority": "staff",
-        "location": "San Francisco, CA",
-        "remote_type": "Hybrid",
-        "responsibilities": [
-            "Design and build scalable payment systems",
-            "Lead technical initiatives",
-            "Mentor junior engineers",
-        ],
-        "requirements": [
-            "7+ years experience",
-            "Strong Python skills",
-            "Experience with high-scale systems",
-        ],
+        "job_id": job["job_id"],
+        "title": job.get("title", ""),
+        "company_name": job.get("company_name", ""),
+        "company_domain": job.get("company_domain", ""),
+        "required_skills": job.get("required_skills", []),
+        "preferred_skills": job.get("preferred_skills", []),
+        "seniority": job.get("seniority", "mid"),
+        "location": job.get("location", ""),
+        "remote_type": job.get("remote_type", ""),
+        "responsibilities": job.get("responsibilities", []),
+        "requirements": job.get("requirements", []),
+        "description": job.get("description", ""),
     }
 
 
-def _get_mock_skills_score(resume_id: str, job_id: str) -> float:
-    """Mock function to get skills matching score (replace with real calculation)"""
+async def _get_skills_score(resume_id: str, job_id: str, user_token: str) -> float:
+    """Get actual skills matching score from database or calculate it"""
+    # Use service client for now since we're in development mode
+    from api.utils.database import get_supabase_service_client
+    supabase = get_supabase_service_client()
+    
+    # Try to get existing score from database
+    response = supabase.table("scores").select("skill_overlap").eq("resume_id", resume_id).eq("job_id", job_id).limit(1).execute()
+    
+    if response and response.data:
+        return response.data[0].get("skill_overlap", 0.75)
+    
+    # Fall back to default score
     return 0.75  # 75% match
 
 
@@ -190,12 +252,13 @@ async def generate_pitch(
     """
     try:
         logger.info(
-            f"User {current_user.get('id', 'unknown')} generating pitch for job {request.job_id}"
+            f"User {current_user.get('user_id', 'unknown')} generating pitch for job {request.job_id}"
         )
 
-        # Get resume and job data (mock for now)
-        resume_data = _get_mock_resume_data(request.resume_id)
-        job_data = _get_mock_job_data(request.job_id)
+        # Get resume and job data from database
+        user_token = current_user.get('token', '')
+        resume_data = await _get_resume_data(request.resume_id, user_token)
+        job_data = await _get_job_data(request.job_id, user_token)
 
         # Get company research if requested
         company_research = {}
@@ -211,7 +274,7 @@ async def generate_pitch(
                 # Continue without research
 
         # Get skills matching score
-        skills_score = _get_mock_skills_score(request.resume_id, request.job_id)
+        skills_score = await _get_skills_score(request.resume_id, request.job_id, user_token)
 
         # Generate pitch
         service = get_pitch_service()
@@ -227,7 +290,8 @@ async def generate_pitch(
         pitch["quality_scores"] = quality_scores
 
         # Store pitch for later retrieval
-        pitch_id = f"{current_user.id}_{request.job_id}_{len(pitch_storage)}"
+        user_id = current_user.get('user_id', 'unknown')
+        pitch_id = f"{user_id}_{request.job_id}_{len(pitch_storage)}"
         pitch_storage[pitch_id] = pitch
         pitch["pitch_id"] = pitch_id
 

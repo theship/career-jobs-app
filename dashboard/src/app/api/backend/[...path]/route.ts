@@ -22,7 +22,12 @@ async function handleRequest(
   
   // Special handling for health endpoint (not under /api/v1)
   const backendPath = path === 'health' ? '/health' : `/api/v1/${path}`
-  const url = `${BACKEND_URL}${backendPath}`
+  
+  // Get query string from the request URL
+  const requestUrl = new URL(request.url)
+  const queryString = requestUrl.search
+  
+  const url = `${BACKEND_URL}${backendPath}${queryString}`
 
   // Check authentication for protected endpoints
   if (!isPublicPath(path)) {

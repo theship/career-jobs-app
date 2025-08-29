@@ -273,8 +273,8 @@ export default function DashboardPage() {
 
               {scores.length > 0 ? (
                 <div className="space-y-4">
-                  {scores.map((score) => (
-                    <div key={score.score_id} className="border rounded-lg p-4 hover:bg-gray-50">
+                  {scores.map((score, index) => (
+                    <div key={score.job_id || `score-${index}`} className="border rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-medium text-lg">{score.job_title}</h3>
