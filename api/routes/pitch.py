@@ -76,15 +76,16 @@ research_service = None
 
 def get_pitch_service():
     global pitch_service
+    # Always try to initialize if not available
+    # This allows the service to start working once the key is added
     if pitch_service is None:
         try:
             pitch_service = PitchGeneratorService()
+            logger.info("Pitch service initialized successfully")
         except ValueError as e:
             logger.warning(f"Pitch service not available: {e}")
-            raise HTTPException(
-                status_code=503,
-                detail="Pitch service not configured. Please set OPENAI_API_KEY.",
-            )
+            # Don't cache the failure - raise but allow retry
+            raise ValueError(f"Pitch service not configured: {e}")
     return pitch_service
 
 
@@ -280,12 +281,17 @@ async def generate_pitch(
         # Try to generate pitch with OpenAI
         try:
             service = get_pitch_service()
+            logger.info("Got pitch service successfully")
             pitch = service.generate_pitch(
                 resume_data=resume_data,
                 job_data=job_data,
                 company_research=company_research,
                 skills_match_score=skills_score,
             )
+            logger.info("Generated pitch successfully")
+            
+            # Add required fields for PitchResponse
+            pitch["job_id"] = request.job_id
 
             # Calculate quality scores
             quality_scores = service.score_pitch_quality(pitch)
@@ -305,9 +311,9 @@ async def generate_pitch(
 
             return PitchResponse(**pitch)
             
-        except (HTTPException, ValueError) as e:
+        except (HTTPException, ValueError, Exception) as e:
             # If OpenAI is not available, return the data fields instead
-            logger.info("Pitch generation service unavailable, returning data fields")
+            logger.warning(f"Pitch generation failed: {type(e).__name__}: {str(e)}, returning data fields")
             
             # Format the job data
             job_fields = f"""**Job Information:**

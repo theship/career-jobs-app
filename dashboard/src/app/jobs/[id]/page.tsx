@@ -66,15 +66,11 @@ export default function JobDetailPage() {
         <BackButton />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Job Details - Main Content */}
-          <div className="lg:col-span-2">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-8">
             <JobInfo job={job} />
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            {score && <MatchScore score={score} />}
             
+            {/* Pitch Generator in main content */}
             <PitchGenerator
               pitch={pitch}
               generating={generating}
@@ -84,7 +80,11 @@ export default function JobDetailPage() {
               onRegenerate={regenerate}
               isAuthenticated={!!user}
             />
+          </div>
 
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            {score && <MatchScore score={score} />}
             <ApplyButton jobUrl={job.job_url} />
           </div>
         </div>
