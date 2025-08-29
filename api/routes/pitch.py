@@ -3,6 +3,7 @@ API endpoints for pitch generation functionality
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -276,36 +277,108 @@ async def generate_pitch(
         # Get skills matching score
         skills_score = await _get_skills_score(request.resume_id, request.job_id, user_token)
 
-        # Generate pitch
-        service = get_pitch_service()
-        pitch = service.generate_pitch(
-            resume_data=resume_data,
-            job_data=job_data,
-            company_research=company_research,
-            skills_match_score=skills_score,
-        )
-
-        # Calculate quality scores
-        quality_scores = service.score_pitch_quality(pitch)
-        pitch["quality_scores"] = quality_scores
-
-        # Store pitch for later retrieval
-        user_id = current_user.get('user_id', 'unknown')
-        pitch_id = f"{user_id}_{request.job_id}_{len(pitch_storage)}"
-        pitch_storage[pitch_id] = pitch
-        pitch["pitch_id"] = pitch_id
-
-        # Log quality warning if score is low
-        if quality_scores["overall"] < 0.7:
-            logger.warning(
-                f"Low quality pitch generated: {quality_scores['overall']:.2f}"
+        # Try to generate pitch with OpenAI
+        try:
+            service = get_pitch_service()
+            pitch = service.generate_pitch(
+                resume_data=resume_data,
+                job_data=job_data,
+                company_research=company_research,
+                skills_match_score=skills_score,
             )
 
-        return PitchResponse(**pitch)
+            # Calculate quality scores
+            quality_scores = service.score_pitch_quality(pitch)
+            pitch["quality_scores"] = quality_scores
+
+            # Store pitch for later retrieval
+            user_id = current_user.get('user_id', 'unknown')
+            pitch_id = f"{user_id}_{request.job_id}_{len(pitch_storage)}"
+            pitch_storage[pitch_id] = pitch
+            pitch["pitch_id"] = pitch_id
+
+            # Log quality warning if score is low
+            if quality_scores["overall"] < 0.7:
+                logger.warning(
+                    f"Low quality pitch generated: {quality_scores['overall']:.2f}"
+                )
+
+            return PitchResponse(**pitch)
+            
+        except (HTTPException, ValueError) as e:
+            # If OpenAI is not available, return the data fields instead
+            logger.info("Pitch generation service unavailable, returning data fields")
+            
+            # Format the job data
+            job_fields = f"""**Job Information:**
+Title: {job_data.get('title', 'N/A')}
+Company: {job_data.get('company_name', 'N/A')}
+Location: {job_data.get('location', 'N/A')}
+Remote Type: {job_data.get('remote_type', 'N/A')}
+Seniority: {job_data.get('seniority', 'N/A')}
+
+Required Skills:
+{chr(10).join(f"• {skill}" for skill in job_data.get('required_skills', []))}
+
+Preferred Skills:
+{chr(10).join(f"• {skill}" for skill in job_data.get('preferred_skills', []))}
+
+Responsibilities:
+{chr(10).join(f"• {resp}" for resp in job_data.get('responsibilities', [])[:3])}
+
+Requirements:
+{chr(10).join(f"• {req}" for req in job_data.get('requirements', [])[:3])}"""
+
+            # Format the resume data
+            resume_fields = f"""**Your Profile:**
+Years of Experience: {resume_data.get('years_experience', 'N/A')}
+Seniority Level: {resume_data.get('seniority', 'N/A')}
+Location: {resume_data.get('location', 'N/A')}
+
+Skills:
+{chr(10).join(f"• {skill}" for skill in resume_data.get('skills', [])[:10])}
+
+Recent Experience:
+{chr(10).join(f"• {exp.get('title', 'N/A')} at {exp.get('company', 'N/A')}" for exp in resume_data.get('experience', [])[:3])}
+
+Key Highlights:
+{chr(10).join(f"• {highlight}" for highlight in resume_data.get('highlights', [])[:3])}
+
+Skills Match Score: {skills_score:.0%}"""
+            
+            # Create a fallback response
+            fallback_pitch = {
+                "job_id": request.job_id,
+                "job_title": job_data.get("title", "Position"),
+                "company_name": job_data.get("company_name", "Company"),
+                "headline": "Pitch Generation Service Unavailable",
+                "opening": "The AI pitch generation service is currently unavailable. Below are the matched job and profile details that would be used to generate your personalized pitch:",
+                "two_minute_pitch": f"{job_fields}\n\n{resume_fields}",
+                "bullet_points": [
+                    "AI pitch generation requires OpenAI API configuration",
+                    "Your resume and job details have been successfully matched",
+                    f"Your skills match score for this position is {skills_score:.0%}"
+                ],
+                "why_this_company": "Company research data would appear here when AI service is available.",
+                "why_this_role": "Role-specific pitch would appear here when AI service is available.",
+                "questions_to_ask": [
+                    {"question": "What are the key challenges for this role?", "purpose": "Understand priorities"},
+                    {"question": "How would you describe the team culture?", "purpose": "Assess fit"},
+                    {"question": "What does success look like in this position?", "purpose": "Align expectations"}
+                ],
+                "potential_objections": [
+                    {"objection": "Service unavailable", "response": "Please try again later or contact support"}
+                ],
+                "closing_statement": "When the AI service is available, you'll receive a fully personalized pitch tailored to this specific opportunity.",
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "skills_match_score": skills_score
+            }
+            
+            return PitchResponse(**fallback_pitch)
 
     except Exception as e:
-        logger.error(f"Failed to generate pitch: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate pitch")
+        logger.error(f"Failed to generate pitch: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate pitch: {str(e)}")
 
 
 @router.post("/email-template")

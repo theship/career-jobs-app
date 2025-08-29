@@ -164,6 +164,7 @@ async def get_current_user(
 
     # Check if this is a trusted service request
     is_trusted_service = validate_service_secret(x_service_secret)
+    logger.info(f"Auth check - has secret: {bool(x_service_secret)}, is trusted: {is_trusted_service}, has credentials: {bool(credentials)}")
 
     # If it's a trusted service and has credentials, validate the forwarded token
     # If no credentials from trusted service, it means the endpoint is being accessed publicly

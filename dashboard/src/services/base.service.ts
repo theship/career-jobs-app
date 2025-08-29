@@ -78,6 +78,14 @@ export abstract class BaseService {
         break
       case 422:
         // Keep the detailed validation error from backend
+        if (originalError?.detail) {
+          // Handle FastAPI validation errors
+          if (Array.isArray(originalError.detail)) {
+            errorMessage = originalError.detail.map((e: any) => e.msg).join(', ')
+          } else {
+            errorMessage = originalError.detail
+          }
+        }
         break
       case 500:
       case 502:

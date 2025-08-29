@@ -26,7 +26,8 @@ export default function JobDetailPage() {
   const { job, score, loading, error } = useJobDetail(jobId, user?.id)
   const { 
     pitch, 
-    generating, 
+    generating,
+    error: pitchError,
     generatePitch, 
     copyToClipboard, 
     regenerate 
@@ -77,6 +78,7 @@ export default function JobDetailPage() {
             <PitchGenerator
               pitch={pitch}
               generating={generating}
+              error={pitchError}
               onGenerate={generatePitch}
               onCopyToClipboard={copyToClipboard}
               onRegenerate={regenerate}

@@ -44,6 +44,7 @@ async function handleRequest(
   const token = await getAuthToken()
   
   // Log for debugging
+  console.log(`Request to ${backendPath}, has token: ${!!token}`)
   if (!token) {
     console.warn(`No auth token available for ${backendPath}`)
   }

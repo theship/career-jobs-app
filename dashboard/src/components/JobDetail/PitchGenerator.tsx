@@ -8,6 +8,7 @@ import type { Pitch } from '@/types/api.types'
 interface PitchGeneratorProps {
   pitch: Pitch | null
   generating: boolean
+  error: string | null
   onGenerate: () => void
   onCopyToClipboard: () => void
   onRegenerate: () => void
@@ -17,6 +18,7 @@ interface PitchGeneratorProps {
 export default function PitchGenerator({
   pitch,
   generating,
+  error,
   onGenerate,
   onCopyToClipboard,
   onRegenerate,
@@ -26,7 +28,18 @@ export default function PitchGenerator({
     <div className="card">
       <h2 className="text-lg font-semibold mb-4">AI Application Assistant</h2>
       
-      {!pitch ? (
+      {error ? (
+        <div className="text-red-500 text-center">
+          <p className="font-semibold">Error generating pitch</p>
+          <p className="text-sm mt-2">{error}</p>
+          <button
+            onClick={onGenerate}
+            className="mt-4 btn-secondary text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      ) : !pitch ? (
         <div>
           <p className="text-text-secondary text-sm mb-4">
             Generate a personalized pitch for this position using AI
@@ -43,6 +56,15 @@ export default function PitchGenerator({
         <div className="space-y-4">
           <PitchSection title="Headline" content={pitch.headline} />
           <PitchSection title="Opening" content={pitch.opening} />
+          
+          {pitch.two_minute_pitch && (
+            <div>
+              <h3 className="font-medium mb-1">Details</h3>
+              <div className="text-sm text-text-secondary whitespace-pre-wrap">
+                {pitch.two_minute_pitch}
+              </div>
+            </div>
+          )}
           
           <div>
             <h3 className="font-medium mb-1">Key Points</h3>
