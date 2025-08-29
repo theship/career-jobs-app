@@ -22,7 +22,12 @@ async function handleRequest(
   
   // Special handling for health endpoint (not under /api/v1)
   const backendPath = path === 'health' ? '/health' : `/api/v1/${path}`
-  const url = `${BACKEND_URL}${backendPath}`
+  
+  // Get query string from the request URL
+  const requestUrl = new URL(request.url)
+  const queryString = requestUrl.search
+  
+  const url = `${BACKEND_URL}${backendPath}${queryString}`
 
   // Check authentication for protected endpoints
   if (!isPublicPath(path)) {
@@ -38,9 +43,9 @@ async function handleRequest(
   // Get the auth token to forward to backend
   const token = await getAuthToken()
   
-  // Log for debugging
-  if (!token) {
-    console.warn(`No auth token available for ${backendPath}`)
+  // Warn if no token for protected endpoint
+  if (!token && !isPublicPath(path)) {
+    console.warn(`No auth token available for protected endpoint: ${backendPath}`)
   }
 
   // Prepare headers

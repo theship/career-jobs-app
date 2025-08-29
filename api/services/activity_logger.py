@@ -42,10 +42,10 @@ class ActivityLogger:
             f"[ACTIVITY] Action started: {action_type} for user {user_id} - {json.dumps(metadata or {})}"
         )
         return f"temp_{action_type}_{time.time()}"  # Return temp ID
-        
+
         try:
             start_time = datetime.utcnow()
-            
+
             # Store start time for duration calculation
             log_data = {
                 "user_id": user_id,
@@ -87,9 +87,11 @@ class ActivityLogger:
             progress_data: Progress information to merge with metadata
         """
         # TEMPORARILY DISABLED - Table not yet created
-        logger.info(f"[ACTIVITY] Progress: {log_id} - {json.dumps(progress_data or {})}")
+        logger.info(
+            f"[ACTIVITY] Progress: {log_id} - {json.dumps(progress_data or {})}"
+        )
         return
-        
+
         try:
             if progress_data:
                 # Get existing metadata
@@ -114,7 +116,9 @@ class ActivityLogger:
                     ).eq("log_id", log_id).execute()
 
                     # Log progress for debugging
-                    logger.info(f"Action progress: {log_id} - {json.dumps(progress_data)}")
+                    logger.info(
+                        f"Action progress: {log_id} - {json.dumps(progress_data)}"
+                    )
 
         except Exception as e:
             logger.error(f"Failed to update action progress: {e}")
@@ -137,11 +141,13 @@ class ActivityLogger:
         """
         # TEMPORARILY DISABLED - Table not yet created
         status_msg = "succeeded" if success else "failed"
-        logger.info(f"[ACTIVITY] Action {status_msg}: {log_id} - {json.dumps(result_data or {})}")
+        logger.info(
+            f"[ACTIVITY] Action {status_msg}: {log_id} - {json.dumps(result_data or {})}"
+        )
         if error_details:
             logger.error(f"[ACTIVITY] Error: {log_id} - {error_details}")
         return
-        
+
         try:
             # Calculate duration
             duration_ms = None
@@ -160,7 +166,7 @@ class ActivityLogger:
             if response.data:
                 log_entry = response.data[0]
                 existing_metadata = log_entry.get("metadata", {})
-                
+
                 # Merge result data
                 if result_data:
                     updated_metadata = {**existing_metadata, **result_data}
@@ -178,9 +184,9 @@ class ActivityLogger:
                 if error_details:
                     update_data["error_details"] = error_details
 
-                self.supabase.table("activity_log").update(
-                    update_data
-                ).eq("log_id", log_id).execute()
+                self.supabase.table("activity_log").update(update_data).eq(
+                    "log_id", log_id
+                ).execute()
 
                 # Log completion for debugging
                 status_msg = "succeeded" if success else "failed"
@@ -188,7 +194,7 @@ class ActivityLogger:
                     f"Action {status_msg}: {log_entry['action_type']} for user {log_entry['user_id']} "
                     f"- Duration: {duration_ms}ms - {json.dumps(result_data or {})}"
                 )
-                
+
                 if error_details:
                     logger.error(f"Action error: {log_id} - {error_details}")
 
@@ -259,7 +265,7 @@ class ActivityLogger:
                 }
 
             activities = response.data
-            
+
             # Calculate statistics
             by_type = {}
             total_duration = 0
@@ -270,15 +276,15 @@ class ActivityLogger:
                 action_type = activity["action_type"]
                 if action_type not in by_type:
                     by_type[action_type] = {"count": 0, "completed": 0, "failed": 0}
-                
+
                 by_type[action_type]["count"] += 1
-                
+
                 if activity["action_status"] == "completed":
                     by_type[action_type]["completed"] += 1
                     success_count += 1
                 elif activity["action_status"] == "failed":
                     by_type[action_type]["failed"] += 1
-                
+
                 if activity.get("duration_ms"):
                     total_duration += activity["duration_ms"]
                     duration_count += 1
@@ -286,8 +292,12 @@ class ActivityLogger:
             return {
                 "total_actions": len(activities),
                 "by_type": by_type,
-                "success_rate": (success_count / len(activities) * 100) if activities else 0,
-                "avg_duration_ms": (total_duration / duration_count) if duration_count > 0 else 0,
+                "success_rate": (
+                    (success_count / len(activities) * 100) if activities else 0
+                ),
+                "avg_duration_ms": (
+                    (total_duration / duration_count) if duration_count > 0 else 0
+                ),
             }
 
         except Exception as e:

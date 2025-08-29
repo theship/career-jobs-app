@@ -16,6 +16,7 @@ from api.services.auth import get_current_user
 from api.services.experiments import ExperimentConfig, ExperimentTracker
 from api.services.score_explainer import ScoreExplainer
 from api.utils.database import get_supabase_client
+from api.utils.vector_utils import ensure_vector_format, parse_pgvector_string
 from scoring_engine.ranker import JobRanker, JobScore, ScoringWeights
 
 logger = logging.getLogger(__name__)
@@ -54,13 +55,15 @@ class ScoreResponse(BaseModel):
     job_id: str
     title: str
     company_name: str
+    location: Optional[str] = None
+    posted_at: Optional[str] = None
     total_score: float
     rank: int
     percentile: float
     cosine_sim: float
     skill_overlap: float
     seniority_fit: float
-    geodist_km: float
+    geodist_km: Optional[float] = None
     recency_bonus: float
     match_level: str
 
@@ -114,7 +117,14 @@ async def get_resume_data(resume_id: str, supabase):
         if not embedding_response.data:
             raise HTTPException(status_code=404, detail="Resume embedding not found")
 
-        resume["embedding"] = np.array(embedding_response.data[0]["embedding"])
+        # Parse the pgvector string to numpy array
+        embedding = parse_pgvector_string(embedding_response.data[0]["embedding"])
+        if embedding is None:
+            raise HTTPException(
+                status_code=500, detail="Failed to parse resume embedding"
+            )
+
+        resume["embedding"] = embedding
 
         return resume
 
@@ -145,13 +155,20 @@ async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
         job_ids = [j["job_id"] for j in jobs]
 
         # Job embeddings are in the job_postings table itself
-        # Extract embeddings from the jobs we already fetched
+        # Extract and parse embeddings from the jobs we already fetched
         embeddings = []
         filtered_jobs = []
         for job in jobs:
             if job.get("embedding"):
-                filtered_jobs.append(job)
-                embeddings.append(np.array(job["embedding"]))
+                # Parse the pgvector string to numpy array
+                parsed_embedding = parse_pgvector_string(job["embedding"])
+                if parsed_embedding is not None:
+                    filtered_jobs.append(job)
+                    embeddings.append(parsed_embedding)
+                else:
+                    logger.warning(
+                        f"Failed to parse embedding for job {job.get('job_id')}"
+                    )
 
         if embeddings:
             embeddings = np.array(embeddings)
@@ -179,18 +196,27 @@ async def get_scores(
     # Use authenticated client if we have a valid token, otherwise use service client
     if current_user.get("token") and current_user.get("token") != "test":
         from api.utils.database import get_authenticated_supabase_client
+
         try:
             supabase = get_authenticated_supabase_client(current_user["token"])
-            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+            logger.info(
+                f"Using authenticated client for user {current_user['user_id']}"
+            )
         except Exception as e:
-            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            logger.warning(
+                f"Failed to use authenticated client: {e}, falling back to service client"
+            )
             from api.utils.database import get_supabase_service_client
+
             supabase = get_supabase_service_client()
     else:
         # Fallback to service client for trusted services or test tokens
         from api.utils.database import get_supabase_service_client
+
         supabase = get_supabase_service_client()
-        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
+        logger.info(
+            f"Using service client for user {current_user['user_id']} (trusted service or test)"
+        )
 
     try:
         # Get scores from database
@@ -206,7 +232,9 @@ async def get_scores(
 
         # Return empty array if no scores found (not an error condition)
         if not response.data:
-            logger.info(f"No scores found for resume {resume_id}, user {current_user['user_id']}")
+            logger.info(
+                f"No scores found for resume {resume_id}, user {current_user['user_id']}"
+            )
             return []
 
         # Convert to response format
@@ -259,19 +287,28 @@ async def run_scoring(
     # Use authenticated client if we have a valid token, otherwise use service client
     if current_user.get("token") and current_user.get("token") != "test":
         from api.utils.database import get_authenticated_supabase_client
+
         try:
             supabase = get_authenticated_supabase_client(current_user["token"])
-            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+            logger.info(
+                f"Using authenticated client for user {current_user['user_id']}"
+            )
         except Exception as e:
-            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            logger.warning(
+                f"Failed to use authenticated client: {e}, falling back to service client"
+            )
             from api.utils.database import get_supabase_service_client
+
             supabase = get_supabase_service_client()
     else:
         # Fallback to service client for trusted services or test tokens
         from api.utils.database import get_supabase_service_client
+
         supabase = get_supabase_service_client()
-        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
-    
+        logger.info(
+            f"Using service client for user {current_user['user_id']} (trusted service or test)"
+        )
+
     # Start activity logging
     log_id = await activity_logger.log_action_start(
         user_id=user_id,
@@ -281,9 +318,9 @@ async def run_scoring(
             "requested_limit": request.limit,
             "min_score": request.min_score,
             "has_experiment_config": request.experiment_config is not None,
-        }
+        },
     )
-    
+
     logger.info(f"Starting scoring run for resume {request.resume_id}, user {user_id}")
 
     # Initialize experiment tracker if config provided
@@ -311,13 +348,13 @@ async def run_scoring(
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
-            progress_data={"stage": "fetching_resume"}
+            progress_data={"stage": "fetching_resume"},
         )
         resume_fetch_start = time.time()
         resume_data = await get_resume_data(request.resume_id, supabase)
         resume_embedding = resume_data.pop("embedding")
         resume_fetch_time = int((time.time() - resume_fetch_start) * 1000)
-        
+
         logger.info(f"Resume data fetched in {resume_fetch_time}ms")
         await activity_logger.update_action_progress(
             log_id=log_id,
@@ -325,14 +362,17 @@ async def run_scoring(
             progress_data={
                 "stage": "resume_fetched",
                 "resume_fetch_time_ms": resume_fetch_time,
-            }
+            },
         )
 
         # Fetch jobs data
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
-            progress_data={"stage": "fetching_jobs", "message": "Loading job postings..."}
+            progress_data={
+                "stage": "fetching_jobs",
+                "message": "Loading job postings...",
+            },
         )
         jobs_fetch_start = time.time()
         jobs_data, job_embeddings = await get_jobs_data(
@@ -341,7 +381,7 @@ async def run_scoring(
             supabase,
         )
         jobs_fetch_time = int((time.time() - jobs_fetch_start) * 1000)
-        
+
         logger.info(f"Fetched {len(jobs_data)} jobs in {jobs_fetch_time}ms")
         await activity_logger.update_action_progress(
             log_id=log_id,
@@ -350,17 +390,14 @@ async def run_scoring(
                 "stage": "jobs_fetched",
                 "jobs_count": len(jobs_data),
                 "jobs_fetch_time_ms": jobs_fetch_time,
-            }
+            },
         )
 
         if not jobs_data:
             await activity_logger.log_action_complete(
                 log_id=log_id,
                 success=True,
-                result_data={
-                    "total_jobs_scored": 0,
-                    "message": "No jobs to score"
-                }
+                result_data={"total_jobs_scored": 0, "message": "No jobs to score"},
             )
             return BatchScoringResponse(
                 resume_id=request.resume_id,
@@ -384,10 +421,10 @@ async def run_scoring(
             status="in_progress",
             progress_data={
                 "stage": "calculating_scores",
-                "message": f"Calculating similarities for {len(jobs_data)} jobs..."
-            }
+                "message": f"Calculating similarities for {len(jobs_data)} jobs...",
+            },
         )
-        
+
         scoring_start = time.time()
         scores = ranker.rank_jobs(
             jobs_data=jobs_data,
@@ -398,20 +435,22 @@ async def run_scoring(
             min_score_threshold=request.min_score,
         )
         scoring_time = int((time.time() - scoring_start) * 1000)
-        
+
         # Log scoring statistics
         if scores:
             top_score = scores[0].total_score
             avg_score = sum(s.total_score for s in scores) / len(scores)
-            above_threshold = len([s for s in scores if s.total_score >= request.min_score])
+            above_threshold = len(
+                [s for s in scores if s.total_score >= request.min_score]
+            )
         else:
             top_score = avg_score = above_threshold = 0
-        
+
         logger.info(
             f"Scoring completed: {len(scores)} matches in {scoring_time}ms, "
             f"top_score={top_score:.3f}, avg_score={avg_score:.3f}"
         )
-        
+
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
@@ -422,19 +461,27 @@ async def run_scoring(
                 "top_score": round(top_score, 3),
                 "avg_score": round(avg_score, 3),
                 "above_threshold": above_threshold,
-            }
+            },
         )
 
         # Convert to response format
         explainer = ScoreExplainer(weights=weights)
         results = []
+
+        # Create a mapping of job_id to job data for quick lookup
+        job_data_map = {job["job_id"]: job for job in jobs_data}
+
         for score in scores:
             summary = explainer.generate_summary(score)
+            job_info = job_data_map.get(score.job_id, {})
+
             results.append(
                 ScoreResponse(
                     job_id=score.job_id,
                     title=score.title,
                     company_name=score.company_name,
+                    location=job_info.get("location"),
+                    posted_at=job_info.get("posted_at"),
                     total_score=score.total_score,
                     rank=score.rank,
                     percentile=score.percentile,
@@ -466,7 +513,7 @@ async def run_scoring(
             current_user["user_id"],
             supabase,
         )
-        
+
         # Log successful completion
         await activity_logger.log_action_complete(
             log_id=log_id,
@@ -476,12 +523,16 @@ async def run_scoring(
                 "total_jobs_scored": len(results),
                 "processing_time_ms": processing_time_ms,
                 "top_score": round(scores[0].total_score, 3) if scores else 0,
-                "avg_score": round(sum(r.total_score for r in results) / len(results), 3) if results else 0,
+                "avg_score": (
+                    round(sum(r.total_score for r in results) / len(results), 3)
+                    if results
+                    else 0
+                ),
                 "jobs_evaluated": len(jobs_data),
                 "matches_returned": len(results),
-            }
+            },
         )
-        
+
         logger.info(
             f"Scoring run completed successfully: {len(results)} matches returned "
             f"in {processing_time_ms}ms for user {user_id}"
@@ -494,21 +545,16 @@ async def run_scoring(
             results=results,
             experiment_run_id=experiment_run_id,
         )
-        
+
     except Exception as e:
         logger.error(f"Scoring run failed: {e}")
-        
+
         # Log failure
         await activity_logger.log_action_complete(
-            log_id=log_id,
-            success=False,
-            error_details=str(e)
+            log_id=log_id, success=False, error_details=str(e)
         )
-        
-        raise HTTPException(
-            status_code=500,
-            detail=f"Scoring failed: {str(e)}"
-        )
+
+        raise HTTPException(status_code=500, detail=f"Scoring failed: {str(e)}")
 
     finally:
         if experiment_tracker:
@@ -529,18 +575,27 @@ async def get_score_breakdown(
     # Use authenticated client if we have a valid token, otherwise use service client
     if current_user.get("token") and current_user.get("token") != "test":
         from api.utils.database import get_authenticated_supabase_client
+
         try:
             supabase = get_authenticated_supabase_client(current_user["token"])
-            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+            logger.info(
+                f"Using authenticated client for user {current_user['user_id']}"
+            )
         except Exception as e:
-            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            logger.warning(
+                f"Failed to use authenticated client: {e}, falling back to service client"
+            )
             from api.utils.database import get_supabase_service_client
+
             supabase = get_supabase_service_client()
     else:
         # Fallback to service client for trusted services or test tokens
         from api.utils.database import get_supabase_service_client
+
         supabase = get_supabase_service_client()
-        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
+        logger.info(
+            f"Using service client for user {current_user['user_id']} (trusted service or test)"
+        )
 
     # Fetch stored score or recalculate
     score_response = (
@@ -617,19 +672,28 @@ async def export_scores(
     # Use authenticated client if we have a valid token, otherwise use service client
     if current_user.get("token") and current_user.get("token") != "test":
         from api.utils.database import get_authenticated_supabase_client
+
         try:
             supabase = get_authenticated_supabase_client(current_user["token"])
-            logger.info(f"Using authenticated client for user {current_user['user_id']}")
+            logger.info(
+                f"Using authenticated client for user {current_user['user_id']}"
+            )
         except Exception as e:
-            logger.warning(f"Failed to use authenticated client: {e}, falling back to service client")
+            logger.warning(
+                f"Failed to use authenticated client: {e}, falling back to service client"
+            )
             from api.utils.database import get_supabase_service_client
+
             supabase = get_supabase_service_client()
     else:
         # Fallback to service client for trusted services or test tokens
         from api.utils.database import get_supabase_service_client
+
         supabase = get_supabase_service_client()
-        logger.info(f"Using service client for user {current_user['user_id']} (trusted service or test)")
-    
+        logger.info(
+            f"Using service client for user {current_user['user_id']} (trusted service or test)"
+        )
+
     # Start activity logging
     log_id = await activity_logger.log_action_start(
         user_id=user_id,
@@ -638,9 +702,9 @@ async def export_scores(
             "resume_id": resume_id,
             "format": format,
             "include_details": include_details,
-        }
+        },
     )
-    
+
     logger.info(f"Starting {format} export for resume {resume_id}, user {user_id}")
 
     try:
@@ -648,9 +712,12 @@ async def export_scores(
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
-            progress_data={"stage": "fetching_scores", "message": "Retrieving scoring results..."}
+            progress_data={
+                "stage": "fetching_scores",
+                "message": "Retrieving scoring results...",
+            },
         )
-        
+
         response = (
             supabase.table("scores")
             .select("*, job_postings!inner(title, company_name, location)")
@@ -661,36 +728,122 @@ async def export_scores(
         )
 
         if not response.data:
-            await activity_logger.log_action_complete(
-                log_id=log_id,
-                success=False,
-                error_details="No scoring results found"
+            # If no stored scores, try to run scoring on-the-fly for the export
+            logger.info(
+                f"No stored scores found for resume {resume_id}, running scoring on-the-fly"
             )
-            raise HTTPException(status_code=404, detail="No scoring results found")
-        
+
+            await activity_logger.update_action_progress(
+                log_id=log_id,
+                status="in_progress",
+                progress_data={
+                    "stage": "running_scoring",
+                    "message": "Generating scores for export...",
+                },
+            )
+
+            # Run scoring to generate results
+            from scoring_engine.ranker import JobRanker
+
+            # Get resume data
+            resume_data = await get_resume_data(resume_id, supabase)
+            resume_embedding = resume_data["embedding"]
+
+            # Get jobs
+            jobs_data, job_embeddings = await get_jobs_data(None, 100, supabase)
+
+            if not jobs_data:
+                await activity_logger.log_action_complete(
+                    log_id=log_id,
+                    success=False,
+                    error_details="No jobs available for scoring",
+                )
+                raise HTTPException(
+                    status_code=404, detail="No jobs available for scoring"
+                )
+
+            # Run scoring
+            ranker = JobRanker()
+            scores = ranker.rank_jobs(
+                jobs_data=jobs_data,
+                resume_data=resume_data,
+                resume_embedding=resume_embedding,
+                job_embeddings=job_embeddings,
+                top_k=100,
+                min_score_threshold=0.0,
+            )
+
+            # Convert scores to the format expected by export
+            response_data = []
+            for score in scores:
+                job_info = next(
+                    (j for j in jobs_data if j["job_id"] == score.job_id), {}
+                )
+                response_data.append(
+                    {
+                        "job_id": score.job_id,
+                        "total_score": score.total_score,
+                        "cosine_sim": score.cosine_sim,
+                        "skill_overlap": score.skill_overlap,
+                        "seniority_fit": score.seniority_fit,
+                        "geodist_km": score.geodist_km,
+                        "recency_bonus": score.recency_bonus,
+                        "job_postings": {
+                            "title": job_info.get("title", score.title),
+                            "company_name": job_info.get(
+                                "company_name", score.company_name
+                            ),
+                            "location": job_info.get("location", ""),
+                            "posted_at": job_info.get("posted_at"),
+                        },
+                    }
+                )
+
+            response.data = response_data
+
         logger.info(f"Found {len(response.data)} scores to export")
 
         # Convert to JobScore objects
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
-            progress_data={"stage": "preparing_data", "message": f"Preparing {len(response.data)} records..."}
+            progress_data={
+                "stage": "preparing_data",
+                "message": f"Preparing {len(response.data)} records...",
+            },
         )
-        
+
         scores = []
         for idx, result in enumerate(response.data, 1):
             job = result.get("job_postings", {})
+
+            # Parse posted_at if available
+            posted_at = None
+            if job.get("posted_at"):
+                try:
+                    from datetime import datetime
+
+                    posted_at = datetime.fromisoformat(
+                        job["posted_at"].replace("Z", "+00:00")
+                    )
+                except:
+                    pass
+
             score = JobScore(
                 job_id=result["job_id"],
                 title=job.get("title", "Unknown"),
                 company_name=job.get("company_name", "Unknown"),
+                location=job.get("location"),
+                posted_at=posted_at,
                 total_score=float(result["total_score"]),
                 rank=idx,
                 percentile=100 - (idx / len(response.data) * 100),
                 cosine_sim=float(result["cosine_sim"]),
                 skill_overlap=float(result["skill_overlap"]),
                 seniority_fit=float(result["seniority_fit"]),
-                geodist_km=float(result["geodist_km"]) if result["geodist_km"] else None,
+                geodist_km=(
+                    float(result["geodist_km"]) if result["geodist_km"] else None
+                ),
                 recency_bonus=float(result["recency_bonus"]),
             )
             scores.append(score)
@@ -699,24 +852,33 @@ async def export_scores(
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
-            progress_data={"stage": "generating_export", "message": f"Generating {format.upper()} file..."}
+            progress_data={
+                "stage": "generating_export",
+                "message": f"Generating {format.upper()} file...",
+            },
         )
-        
+
         explainer = ScoreExplainer()
 
         if format == "csv":
-            content = explainer.export_to_csv(scores, include_breakdowns=include_details)
+            content = explainer.export_to_csv(
+                scores, include_breakdowns=include_details
+            )
             media_type = "text/csv"
+            from datetime import datetime
+
             filename = f"job_matches_{resume_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         else:
             content = explainer.export_to_json(scores, include_details=include_details)
             media_type = "application/json"
+            from datetime import datetime
+
             filename = f"job_matches_{resume_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        
+
         # Calculate file size
         file_size_kb = len(content.encode()) / 1024
         processing_time = int((time.time() - start_time) * 1000)
-        
+
         # Log successful completion
         await activity_logger.log_action_complete(
             log_id=log_id,
@@ -729,9 +891,9 @@ async def export_scores(
                 "filename": filename,
                 "processing_time_ms": processing_time,
                 "include_details": include_details,
-            }
+            },
         )
-        
+
         logger.info(
             f"Export completed: {len(scores)} records, {file_size_kb:.2f}KB, "
             f"{processing_time}ms for user {user_id}"
@@ -744,17 +906,15 @@ async def export_scores(
             media_type=media_type,
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-        
+
     except Exception as e:
         logger.error(f"Export failed: {e}")
-        
+
         # Log failure
         await activity_logger.log_action_complete(
-            log_id=log_id,
-            success=False,
-            error_details=str(e)
+            log_id=log_id, success=False, error_details=str(e)
         )
-        
+
         if isinstance(e, HTTPException):
             raise
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")

@@ -1108,6 +1108,11 @@ describe('Job Listings', () => {
 
 After completing Phase 6, consider these enhancements:
 
+### Code TODOs to Address
+* **Ingestion Configuration** (ingestion/orchestrator.py:47): Load scrapers from config file or environment variables instead of hardcoding
+* **Job Cleanup Logic** (ingestion/orchestrator.py:388): Implement business rules for cleaning up old/duplicate jobs
+* **Source Tracking** (api/routes/jobs.py:406): Add source field to job uploads to track origin
+
 ### Test Environment Setup
 * **Supabase Configuration for Tests**: Set up test environment variables for Supabase to fix integration test failures
 * **Mock Services**: Create proper mocks for external services in test suite

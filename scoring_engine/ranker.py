@@ -61,13 +61,17 @@ class JobScore:
     job_id: str
     title: str
     company_name: str
-
+    
     # Individual scores
     cosine_sim: float
     skill_overlap: float
     seniority_fit: float
     geodist_km: float
     recency_bonus: float
+    
+    # Optional fields
+    location: Optional[str] = None
+    posted_at: Optional[datetime] = None
 
     # Detailed breakdowns
     similarity_details: Optional[SimilarityScore] = None
@@ -256,6 +260,8 @@ class JobRanker:
             job_id=job_data.get("job_id", ""),
             title=job_data.get("title", ""),
             company_name=job_data.get("company_name", ""),
+            location=job_data.get("location"),
+            posted_at=posted_date if isinstance(posted_date, datetime) else None,
             cosine_sim=similarity_score.normalized_score,
             skill_overlap=skills_score.weighted_score,
             seniority_fit=seniority_fit,

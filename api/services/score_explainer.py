@@ -328,6 +328,8 @@ class ScoreExplainer:
             "job_id",
             "title",
             "company",
+            "location",
+            "posted_at",
             "total_score",
             "percentile",
         ]
@@ -352,6 +354,10 @@ class ScoreExplainer:
                 "job_id": score.job_id,
                 "title": score.title,
                 "company": score.company_name,
+                "location": score.location or "",
+                "posted_at": (
+                    score.posted_at.strftime("%Y-%m-%d") if score.posted_at else ""
+                ),
                 "total_score": f"{score.total_score:.3f}",
                 "percentile": (f"{score.percentile:.1f}" if score.percentile else ""),
             }

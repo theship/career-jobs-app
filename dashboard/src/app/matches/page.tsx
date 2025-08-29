@@ -25,11 +25,19 @@ export default function MatchesPage() {
   useEffect(() => {
     checkUser()
     checkCustomSkills()
+    loadCachedMatches()
   }, [])
 
   useEffect(() => {
     if (selectedResume) {
-      fetchMatches()
+      // Try to load cached matches for this resume
+      const cached = getCachedMatches(selectedResume)
+      if (cached && cached.length > 0) {
+        setMatches(cached)
+        setLoading(false)
+      } else {
+        fetchMatches()
+      }
     }
   }, [selectedResume])
 
@@ -54,6 +62,53 @@ export default function MatchesPage() {
     }
   }
 
+  const getCachedMatches = (resumeId: string): any[] => {
+    try {
+      const cached = localStorage.getItem(`matches_${resumeId}`)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        // Check if cache is less than 24 hours old
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          return parsed.matches || []
+        }
+      }
+    } catch (error) {
+      console.error('Error loading cached matches:', error)
+    }
+    return []
+  }
+
+  const saveCachedMatches = (resumeId: string, matchesData: any[]) => {
+    try {
+      localStorage.setItem(`matches_${resumeId}`, JSON.stringify({
+        matches: matchesData,
+        timestamp: Date.now()
+      }))
+    } catch (error) {
+      console.error('Error saving matches to cache:', error)
+    }
+  }
+
+  const clearCachedMatches = (resumeId: string) => {
+    try {
+      localStorage.removeItem(`matches_${resumeId}`)
+    } catch (error) {
+      console.error('Error clearing cached matches:', error)
+    }
+  }
+
+  const loadCachedMatches = () => {
+    // Check if we have a previously selected resume in localStorage
+    try {
+      const lastResume = localStorage.getItem('last_selected_resume')
+      if (lastResume && resumes.find(r => r.resume_id === lastResume)) {
+        setSelectedResume(lastResume)
+      }
+    } catch (error) {
+      console.error('Error loading last selected resume:', error)
+    }
+  }
+
   const fetchResumes = async () => {
     try {
       const data = await api.getResumes()
@@ -74,6 +129,10 @@ export default function MatchesPage() {
     try {
       const data = await api.getScores(selectedResume, 100)
       setMatches(data || [])
+      // Cache the fetched matches
+      if (data && data.length > 0) {
+        saveCachedMatches(selectedResume, data)
+      }
     } catch (error: any) {
       console.error('Failed to fetch matches:', error)
       // If error is about no scores, that's ok - just show empty
@@ -88,6 +147,9 @@ export default function MatchesPage() {
   const runScoring = async () => {
     if (!selectedResume) return
     
+    // Clear any cached matches for this resume when running new scoring
+    clearCachedMatches(selectedResume)
+    
     setRunningScoring(true)
     try {
       // First check if we have jobs in the system
@@ -101,8 +163,9 @@ export default function MatchesPage() {
       const result = await api.runScoring(selectedResume, 100, 0.0)
       setMatches(result.results || [])
       
-      // Show appropriate message based on results
+      // Cache the new matches
       if (result.results && result.results.length > 0) {
+        saveCachedMatches(selectedResume, result.results)
         showSuccess(`Found ${result.results.length} job matches!`, 'Scoring Complete')
       } else if (!hasCustomSkills) {
         // No matches and no custom skills - suggest uploading skills vocab
@@ -180,7 +243,13 @@ export default function MatchesPage() {
               </label>
               <select
                 value={selectedResume}
-                onChange={(e) => setSelectedResume(e.target.value)}
+                onChange={(e) => {
+                  setSelectedResume(e.target.value)
+                  // Save the selected resume to localStorage
+                  if (e.target.value) {
+                    localStorage.setItem('last_selected_resume', e.target.value)
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
               >
                 <option value="">Choose a resume...</option>
