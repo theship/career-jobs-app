@@ -18,7 +18,7 @@ export interface AuthResponse {
 
 // Resume types
 export interface Resume {
-  resume_id: string
+  resume_id: string | number  // Backend returns number, but we convert to string for API calls
   filename: string
   content?: string
   skills?: string[]

@@ -32,8 +32,10 @@ export function usePitchGeneration(jobId: string) {
       }
 
       // Generate pitch using the first resume
+      // Ensure resume_id is a string (database might return number)
+      const resumeId = String(resumes[0].resume_id)
       const pitchData = await pitchService.generatePitch(
-        resumes[0].resume_id,
+        resumeId,
         jobId,
         true // include research
       )
