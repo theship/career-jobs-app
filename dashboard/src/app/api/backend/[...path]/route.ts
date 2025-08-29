@@ -43,10 +43,9 @@ async function handleRequest(
   // Get the auth token to forward to backend
   const token = await getAuthToken()
   
-  // Log for debugging
-  console.log(`Request to ${backendPath}, has token: ${!!token}`)
-  if (!token) {
-    console.warn(`No auth token available for ${backendPath}`)
+  // Warn if no token for protected endpoint
+  if (!token && !isPublicPath(path)) {
+    console.warn(`No auth token available for protected endpoint: ${backendPath}`)
   }
 
   // Prepare headers

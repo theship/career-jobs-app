@@ -39,9 +39,9 @@ export const api = {
   getJobById: (id: string) => jobService.getJobById(id),
 
   // Scoring methods
-  getScores: (resumeId: string, limit?: number) => scoringService.getScores(resumeId, limit),
-  runScoring: (resumeId: string, limit?: number, minScore?: number) => 
-    scoringService.runScoring(resumeId, limit, minScore),
+  getScores: (resumeId: string | number, limit?: number) => scoringService.getScores(String(resumeId), limit),
+  runScoring: (resumeId: string | number, limit?: number, minScore?: number) => 
+    scoringService.runScoring(String(resumeId), limit, minScore),
   exportScores: (resumeId: string, format?: 'csv' | 'json') => 
     scoringService.exportScores(resumeId, format),
 

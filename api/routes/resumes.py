@@ -33,9 +33,11 @@ async def upload_resume(
     """Upload and process a new resume with detailed progress tracking."""
     start_time = time.time()
     user_id = current_user["user_id"]
-    
-    logger.info(f"=== RESUME UPLOAD START === User: {user_id}, File: {file.filename}, Size: {file.size if hasattr(file, 'size') else 'unknown'}")
-    
+
+    logger.info(
+        f"=== RESUME UPLOAD START === User: {user_id}, File: {file.filename}, Size: {file.size if hasattr(file, 'size') else 'unknown'}"
+    )
+
     # Start activity logging
     log_id = await activity_logger.log_action_start(
         user_id=user_id,
@@ -44,16 +46,16 @@ async def upload_resume(
             "filename": file.filename,
             "content_type": file.content_type,
             "custom_name": name,
-        }
+        },
     )
-    
+
     # Validate file type
     logger.info(f"Validating file type for {file.filename}")
     if not file.filename.endswith((".pdf", ".docx", ".txt")):
         await activity_logger.log_action_complete(
             log_id=log_id,
             success=False,
-            error_details="Invalid file type. Only PDF, DOCX, and TXT files are supported."
+            error_details="Invalid file type. Only PDF, DOCX, and TXT files are supported.",
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -64,12 +66,12 @@ async def upload_resume(
     file_content = await file.read()
     file_size_mb = len(file_content) / (1024 * 1024)
     logger.info(f"File size: {file_size_mb:.2f}MB")
-    
+
     if len(file_content) > 10 * 1024 * 1024:
         await activity_logger.log_action_complete(
             log_id=log_id,
             success=False,
-            error_details=f"File size ({file_size_mb:.2f}MB) exceeds 10MB limit."
+            error_details=f"File size ({file_size_mb:.2f}MB) exceeds 10MB limit.",
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -85,7 +87,7 @@ async def upload_resume(
             progress_data={
                 "stage": "validated",
                 "file_size_mb": round(file_size_mb, 2),
-            }
+            },
         )
         # Check if we have a valid token
         if not current_user.get("token"):
@@ -159,7 +161,7 @@ async def upload_resume(
         text_extraction_start = time.time()
         text_content = await resume_processor.extract_text(file)
         text_extraction_time = int((time.time() - text_extraction_start) * 1000)
-        
+
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
@@ -167,9 +169,11 @@ async def upload_resume(
                 "stage": "text_extracted",
                 "text_length": len(text_content),
                 "extraction_time_ms": text_extraction_time,
-            }
+            },
         )
-        logger.info(f"Text extracted: {len(text_content)} characters in {text_extraction_time}ms")
+        logger.info(
+            f"Text extracted: {len(text_content)} characters in {text_extraction_time}ms"
+        )
 
         # Check for custom vocabulary
         custom_vocab = None
@@ -183,19 +187,21 @@ async def upload_resume(
             custom_vocab = vocab_response.data[0]["vocab_data"]
             skills_count = vocab_response.data[0]["skills_count"]
             logger.info(f"Using custom skills vocabulary with {skills_count} skills")
-            
+
             # Update vocab usage stats
-            supabase.table("user_skills_vocab").update({
-                "last_used_at": datetime.utcnow().isoformat(),
-                "usage_count": vocab_response.data[0].get("usage_count", 0) + 1
-            }).eq("user_id", user_id).execute()
+            supabase.table("user_skills_vocab").update(
+                {
+                    "last_used_at": datetime.utcnow().isoformat(),
+                    "usage_count": vocab_response.data[0].get("usage_count", 0) + 1,
+                }
+            ).eq("user_id", user_id).execute()
 
         # Extract skills using multi-stage pipeline with optional custom vocab
         logger.info("Extracting skills from resume")
         skills_extraction_start = time.time()
         skills_data = await resume_processor.extract_skills(text_content, custom_vocab)
         skills_extraction_time = int((time.time() - skills_extraction_start) * 1000)
-        
+
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
@@ -204,16 +210,18 @@ async def upload_resume(
                 "skills_found": len(skills_data.skills),
                 "using_custom_vocab": custom_vocab is not None,
                 "skills_extraction_time_ms": skills_extraction_time,
-            }
+            },
         )
-        logger.info(f"Skills extracted: {len(skills_data.skills)} skills in {skills_extraction_time}ms")
+        logger.info(
+            f"Skills extracted: {len(skills_data.skills)} skills in {skills_extraction_time}ms"
+        )
 
         # Generate embeddings
         logger.info("Generating embeddings")
         embedding_start = time.time()
         embedding = await resume_processor.generate_embedding(text_content)
         embedding_time = int((time.time() - embedding_start) * 1000)
-        
+
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
@@ -221,9 +229,11 @@ async def upload_resume(
                 "stage": "embeddings_generated",
                 "embedding_dims": len(embedding),
                 "embedding_time_ms": embedding_time,
-            }
+            },
         )
-        logger.info(f"Embeddings generated: {len(embedding)} dimensions in {embedding_time}ms")
+        logger.info(
+            f"Embeddings generated: {len(embedding)} dimensions in {embedding_time}ms"
+        )
 
         # Create resume record
         resume_data = {
@@ -283,10 +293,10 @@ async def upload_resume(
 
         # Return the resume with skills count and complete logging
         resume_record["skills_count"] = len(skills_data.skills)
-        
+
         # Calculate total processing time
         total_time = int((time.time() - start_time) * 1000)
-        
+
         # Log successful completion
         await activity_logger.log_action_complete(
             log_id=log_id,
@@ -298,26 +308,24 @@ async def upload_resume(
                 "skills_found": len(skills_data.skills),
                 "total_processing_time_ms": total_time,
                 "storage_path": storage_filename,
-            }
+            },
         )
-        
+
         logger.info(
             f"Resume upload completed successfully: resume_id={resume_record['resume_id']}, "
             f"skills={len(skills_data.skills)}, time={total_time}ms"
         )
-        
+
         return Resume(**resume_record)
 
     except Exception as e:
         logger.error(f"Failed to process resume: {e}")
-        
+
         # Log failure
         await activity_logger.log_action_complete(
-            log_id=log_id,
-            success=False,
-            error_details=str(e)
+            log_id=log_id, success=False, error_details=str(e)
         )
-        
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process resume: {str(e)}",
@@ -390,15 +398,17 @@ async def get_skills_vocabulary(
 
         vocab = response.data[0]
         vocab_data = vocab.get("vocab_data", [])
-        
+
         # Handle vocab_data whether it's a list or dict
         sample_skills = []
         if isinstance(vocab_data, list):
-            sample_skills = [v.get("skill", "") for v in vocab_data[:10] if isinstance(v, dict)]
+            sample_skills = [
+                v.get("skill", "") for v in vocab_data[:10] if isinstance(v, dict)
+            ]
         elif isinstance(vocab_data, dict):
             # If stored as dict, get first 10 skills
             sample_skills = list(vocab_data.keys())[:10]
-        
+
         return {
             "has_custom_vocab": True,
             "skills_count": vocab.get("skills_count", 0),

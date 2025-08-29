@@ -81,7 +81,6 @@ def get_pitch_service():
     if pitch_service is None:
         try:
             pitch_service = PitchGeneratorService()
-            logger.info("Pitch service initialized successfully")
         except ValueError as e:
             logger.warning(f"Pitch service not available: {e}")
             # Don't cache the failure - raise but allow retry
@@ -111,11 +110,18 @@ async def _get_resume_data(resume_id: str, user_token: str) -> Dict[str, Any]:
     """Get actual resume data from database"""
     # Use service client for now since we're in development mode
     from api.utils.database import get_supabase_service_client
+
     supabase = get_supabase_service_client()
-    
+
     # Get resume from database
-    response = supabase.table("resumes").select("*").eq("resume_id", resume_id).limit(1).execute()
-    
+    response = (
+        supabase.table("resumes")
+        .select("*")
+        .eq("resume_id", resume_id)
+        .limit(1)
+        .execute()
+    )
+
     if not response or not response.data:
         # Fall back to mock data if resume not found
         return {
@@ -152,9 +158,9 @@ async def _get_resume_data(resume_id: str, user_token: str) -> Dict[str, Any]:
                 "Shipped 3 major features",
             ],
         }
-    
+
     resume = response.data[0]
-    
+
     # Convert database format to expected format
     return {
         "resume_id": resume["resume_id"],
@@ -173,11 +179,18 @@ async def _get_job_data(job_id: str, user_token: str) -> Dict[str, Any]:
     """Get actual job data from database"""
     # Use service client for now since we're in development mode
     from api.utils.database import get_supabase_service_client
+
     supabase = get_supabase_service_client()
-    
+
     # Get job from database
-    response = supabase.table("job_postings").select("*").eq("job_id", job_id).limit(1).execute()
-    
+    response = (
+        supabase.table("job_postings")
+        .select("*")
+        .eq("job_id", job_id)
+        .limit(1)
+        .execute()
+    )
+
     if not response or not response.data:
         # Fall back to mock data if job not found
         return {
@@ -201,9 +214,9 @@ async def _get_job_data(job_id: str, user_token: str) -> Dict[str, Any]:
                 "Experience with high-scale systems",
             ],
         }
-    
+
     job = response.data[0]
-    
+
     # Convert database format to expected format
     return {
         "job_id": job["job_id"],
@@ -225,14 +238,22 @@ async def _get_skills_score(resume_id: str, job_id: str, user_token: str) -> flo
     """Get actual skills matching score from database or calculate it"""
     # Use service client for now since we're in development mode
     from api.utils.database import get_supabase_service_client
+
     supabase = get_supabase_service_client()
-    
+
     # Try to get existing score from database
-    response = supabase.table("scores").select("skill_overlap").eq("resume_id", resume_id).eq("job_id", job_id).limit(1).execute()
-    
+    response = (
+        supabase.table("scores")
+        .select("skill_overlap")
+        .eq("resume_id", resume_id)
+        .eq("job_id", job_id)
+        .limit(1)
+        .execute()
+    )
+
     if response and response.data:
         return response.data[0].get("skill_overlap", 0.75)
-    
+
     # Fall back to default score
     return 0.75  # 75% match
 
@@ -258,7 +279,7 @@ async def generate_pitch(
         )
 
         # Get resume and job data from database
-        user_token = current_user.get('token', '')
+        user_token = current_user.get("token", "")
         resume_data = await _get_resume_data(request.resume_id, user_token)
         job_data = await _get_job_data(request.job_id, user_token)
 
@@ -276,20 +297,19 @@ async def generate_pitch(
                 # Continue without research
 
         # Get skills matching score
-        skills_score = await _get_skills_score(request.resume_id, request.job_id, user_token)
+        skills_score = await _get_skills_score(
+            request.resume_id, request.job_id, user_token
+        )
 
         # Try to generate pitch with OpenAI
         try:
             service = get_pitch_service()
-            logger.info("Got pitch service successfully")
             pitch = service.generate_pitch(
                 resume_data=resume_data,
                 job_data=job_data,
                 company_research=company_research,
                 skills_match_score=skills_score,
             )
-            logger.info("Generated pitch successfully")
-            
             # Add required fields for PitchResponse
             pitch["job_id"] = request.job_id
 
@@ -298,7 +318,7 @@ async def generate_pitch(
             pitch["quality_scores"] = quality_scores
 
             # Store pitch for later retrieval
-            user_id = current_user.get('user_id', 'unknown')
+            user_id = current_user.get("user_id", "unknown")
             pitch_id = f"{user_id}_{request.job_id}_{len(pitch_storage)}"
             pitch_storage[pitch_id] = pitch
             pitch["pitch_id"] = pitch_id
@@ -310,11 +330,11 @@ async def generate_pitch(
                 )
 
             return PitchResponse(**pitch)
-            
+
         except (HTTPException, ValueError, Exception) as e:
             # If OpenAI is not available, return the data fields instead
-            logger.warning(f"Pitch generation failed: {type(e).__name__}: {str(e)}, returning data fields")
-            
+            logger.info("Pitch generation service unavailable, returning data fields")
+
             # Format the job data
             job_fields = f"""**Job Information:**
 Title: {job_data.get('title', 'N/A')}
@@ -351,7 +371,7 @@ Key Highlights:
 {chr(10).join(f"• {highlight}" for highlight in resume_data.get('highlights', [])[:3])}
 
 Skills Match Score: {skills_score:.0%}"""
-            
+
             # Create a fallback response
             fallback_pitch = {
                 "job_id": request.job_id,
@@ -363,28 +383,42 @@ Skills Match Score: {skills_score:.0%}"""
                 "bullet_points": [
                     "AI pitch generation requires OpenAI API configuration",
                     "Your resume and job details have been successfully matched",
-                    f"Your skills match score for this position is {skills_score:.0%}"
+                    f"Your skills match score for this position is {skills_score:.0%}",
                 ],
                 "why_this_company": "Company research data would appear here when AI service is available.",
                 "why_this_role": "Role-specific pitch would appear here when AI service is available.",
                 "questions_to_ask": [
-                    {"question": "What are the key challenges for this role?", "purpose": "Understand priorities"},
-                    {"question": "How would you describe the team culture?", "purpose": "Assess fit"},
-                    {"question": "What does success look like in this position?", "purpose": "Align expectations"}
+                    {
+                        "question": "What are the key challenges for this role?",
+                        "purpose": "Understand priorities",
+                    },
+                    {
+                        "question": "How would you describe the team culture?",
+                        "purpose": "Assess fit",
+                    },
+                    {
+                        "question": "What does success look like in this position?",
+                        "purpose": "Align expectations",
+                    },
                 ],
                 "potential_objections": [
-                    {"objection": "Service unavailable", "response": "Please try again later or contact support"}
+                    {
+                        "objection": "Service unavailable",
+                        "response": "Please try again later or contact support",
+                    }
                 ],
                 "closing_statement": "When the AI service is available, you'll receive a fully personalized pitch tailored to this specific opportunity.",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
-                "skills_match_score": skills_score
+                "skills_match_score": skills_score,
             }
-            
+
             return PitchResponse(**fallback_pitch)
 
     except Exception as e:
         logger.error(f"Failed to generate pitch: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to generate pitch: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate pitch: {str(e)}"
+        )
 
 
 @router.post("/email-template")
