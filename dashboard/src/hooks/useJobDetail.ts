@@ -36,7 +36,7 @@ export function useJobDetail(jobId: string, userId?: string) {
             if (resumes && resumes.length > 0) {
               // Get score for the first resume
               const jobScore = await scoringService.getScoreForJob(
-                resumes[0].resume_id,
+                String(resumes[0].resume_id),
                 jobId
               )
               setScore(jobScore)

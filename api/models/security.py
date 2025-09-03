@@ -3,14 +3,16 @@ Security models and validators for input sanitization
 """
 
 from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
+
 from api.utils.security import sanitize_text
 
 
 class SecureTextMixin:
     """Mixin for models that need text sanitization"""
-    
-    @field_validator('*', mode='before')
+
+    @field_validator("*", mode="before")
     @classmethod
     def sanitize_string_fields(cls, v):
         """Sanitize all string fields automatically"""
@@ -21,14 +23,14 @@ class SecureTextMixin:
 
 class SecureRequest(BaseModel):
     """Base class for secure request models"""
-    
+
     class Config:
         # Strip whitespace from strings
         str_strip_whitespace = True
         # Limit string size
         str_max_length = 10000
-        
-    @field_validator('*', mode='before')
+
+    @field_validator("*", mode="before")
     @classmethod
     def sanitize_inputs(cls, v):
         """Sanitize all string inputs"""
@@ -45,6 +47,7 @@ class SecureRequest(BaseModel):
 
 class SecurePitchRequest(SecureRequest):
     """Secure version of pitch generation request"""
+
     resume_id: str = Field(..., max_length=100)
     job_id: str = Field(..., max_length=100)
     include_research: bool = Field(default=True)
@@ -53,6 +56,9 @@ class SecurePitchRequest(SecureRequest):
 
 class SecureResearchRequest(SecureRequest):
     """Secure version of research request"""
+
     company_domain: str = Field(..., max_length=255)
     use_cache: bool = Field(default=True)
-    research_depth: str = Field(default="standard", pattern="^(basic|standard|detailed)$")
+    research_depth: str = Field(
+        default="standard", pattern="^(basic|standard|detailed)$"
+    )

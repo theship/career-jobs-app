@@ -16,37 +16,33 @@ logger = logging.getLogger(__name__)
 def verify_service_secret(x_service_secret: Optional[str] = Header(None)) -> bool:
     """
     Verify that the request is coming from our trusted Next.js server
-    
+
     Args:
         x_service_secret: Secret token from X-Service-Secret header
-    
+
     Returns:
         True if the secret is valid
-    
+
     Raises:
         HTTPException: If the secret is invalid or missing
     """
     if not x_service_secret:
         raise HTTPException(
             status_code=403,
-            detail="Service authentication required. Direct API access is not allowed."
+            detail="Service authentication required. Direct API access is not allowed.",
         )
-    
+
     expected_secret = os.getenv("SERVICE_SECRET")
     if not expected_secret:
         logger.error("SERVICE_SECRET environment variable is not configured")
         raise HTTPException(
-            status_code=500,
-            detail="Service authentication not configured"
+            status_code=500, detail="Service authentication not configured"
         )
-    
+
     if x_service_secret != expected_secret:
-        logger.warning(f"Invalid service secret attempt")
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid service authentication"
-        )
-    
+        logger.warning("Invalid service secret attempt")
+        raise HTTPException(status_code=403, detail="Invalid service authentication")
+
     return True
 
 
@@ -60,59 +56,58 @@ def get_current_user(
 ) -> Dict[str, Any]:
     """
     FastAPI dependency to get current authenticated user
-    
+
     All requests MUST come through the Next.js proxy with:
     1. Valid service secret (proves it's from our Next.js server)
     2. User information headers (pre-validated by Next.js)
-    
+
     Args:
         request: FastAPI request object
         x_service_secret: Service secret from X-Service-Secret header
         x_user_id: User ID forwarded by Next.js
         x_user_email: User email forwarded by Next.js
         x_user_token: JWT token forwarded by Next.js (for database operations)
-    
+
     Returns:
         User information dictionary
-    
+
     Raises:
         HTTPException: If service secret is invalid or user info is missing
     """
     # Skip authentication for OPTIONS requests
     if request.method == "OPTIONS":
         return {}
-    
+
     # Verify this is from our trusted Next.js server
     verify_service_secret(x_service_secret)
-    
+
     # Check if user information was provided
     if not x_user_id:
-        raise HTTPException(
-            status_code=401,
-            detail="User authentication required"
-        )
-    
+        raise HTTPException(status_code=401, detail="User authentication required")
+
     # Identity coherence check: Verify token subject matches user ID
     if x_user_token:
         try:
             import jwt
+
             # Decode without verification (Next.js already verified)
             payload = jwt.decode(x_user_token, options={"verify_signature": False})
             token_sub = payload.get("sub")
-            
+
             # Check if token subject matches the provided user ID
             if token_sub and token_sub != x_user_id:
                 logger.error(
                     f"Identity coherence check failed - token sub: {token_sub}, header user_id: {x_user_id}"
                 )
                 raise HTTPException(
-                    status_code=403,
-                    detail="Identity verification failed"
+                    status_code=403, detail="Identity verification failed"
                 )
         except jwt.DecodeError:
             # If token can't be decoded, log but allow (Next.js validated it)
-            logger.warning(f"Could not decode token for identity check on path {request.url.path}")
-    
+            logger.warning(
+                f"Could not decode token for identity check on path {request.url.path}"
+            )
+
     # Return user information trusted from Next.js
     user_info = {
         "user_id": x_user_id,
@@ -120,9 +115,9 @@ def get_current_user(
         "token": x_user_token,  # Include token for database operations if needed
         "trusted_service": True,
     }
-    
+
     logger.debug(f"Authenticated request for user {x_user_id}")
-    
+
     return user_info
 
 
@@ -141,17 +136,17 @@ def get_current_user_optional(
     # Skip authentication for OPTIONS requests
     if request.method == "OPTIONS":
         return None
-    
+
     # Verify this is from our trusted Next.js server
     try:
         verify_service_secret(x_service_secret)
     except HTTPException:
         return None
-    
+
     # If no user info provided, return None (anonymous access)
     if not x_user_id:
         return None
-    
+
     return {
         "user_id": x_user_id,
         "email": x_user_email,

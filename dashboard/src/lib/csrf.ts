@@ -119,7 +119,7 @@ export async function csrfMiddleware(
       error: validation.error,
       path: request.url,
       method: request.method,
-      ip: request.headers.get('x-forwarded-for') || request.ip,
+      ip: request.headers.get('x-forwarded-for') || 'unknown',
     })
 
     return NextResponse.json(

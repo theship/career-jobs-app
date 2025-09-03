@@ -43,6 +43,8 @@ export default function JobDetailPage() {
   }
 
   const handleSignOut = async () => {
+    const { clearAllSensitiveData } = await import('@/lib/clear-sensitive-data')
+    clearAllSensitiveData()
     await supabase.auth.signOut()
     router.push('/')
   }

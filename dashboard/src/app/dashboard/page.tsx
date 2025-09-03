@@ -157,6 +157,8 @@ export default function DashboardPage() {
               </Link>
               <button
                 onClick={async () => {
+                  const { clearAllSensitiveData } = await import('@/lib/clear-sensitive-data')
+                  clearAllSensitiveData()
                   await supabase.auth.signOut()
                   setUser(null)  // Clear user state
                   router.push('/')

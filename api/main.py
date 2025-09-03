@@ -8,10 +8,11 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+
 from api.utils.security import limiter
 
 # Load environment variables
@@ -60,7 +61,13 @@ app.add_middleware(
     allow_origins=allowed_origins,  # Empty list = no CORS in production
     allow_credentials=False,  # No cookies needed (using service auth)
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-Service-Secret", "X-User-Id", "X-User-Email", "X-User-Token"],
+    allow_headers=[
+        "Content-Type",
+        "X-Service-Secret",
+        "X-User-Id",
+        "X-User-Email",
+        "X-User-Token",
+    ],
     expose_headers=["X-Request-Id"],  # For request tracking
     max_age=3600,  # Cache preflight for 1 hour
 )
@@ -86,8 +93,8 @@ async def health_check():
     }
 
 
-# Import and include routers
-from api.routes import auth, jobs, pitch, research, resumes, scoring
+# Import and include routers (moved here to avoid E402)
+from api.routes import auth, jobs, pitch, research, resumes, scoring  # noqa: E402
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(resumes.router, prefix="/api/v1", tags=["resumes"])

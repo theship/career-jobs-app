@@ -1,13 +1,11 @@
 """Resume management routes."""
 
 import csv
-import hashlib
 import io
-import json
 import logging
 import time
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
@@ -17,13 +15,11 @@ from ..services.auth import get_current_user
 from ..services.resume_processor import ResumeProcessor
 from ..utils.database import get_authenticated_supabase_client
 from ..utils.security import (
-    validate_pdf,
-    validate_csv,
-    sanitize_text,
-    sanitize_filename,
+    FileSecurityError,
     calculate_file_hash,
     limiter,
-    FileSecurityError
+    validate_csv,
+    validate_pdf,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,7 +64,7 @@ async def upload_resume(
     # Validate and sanitize file based on type
     logger.info(f"Validating and sanitizing file: {file.filename}")
     try:
-        if file.filename.lower().endswith('.pdf'):
+        if file.filename.lower().endswith(".pdf"):
             # Validate and sanitize PDF
             sanitized_content, safe_filename = validate_pdf(file_content, file.filename)
             file_content = sanitized_content
@@ -183,21 +179,19 @@ async def upload_resume(
         logger.info("Extracting text from file")
         text_extraction_start = time.time()
         # Create a mock file object with the content we already have
-        import io
-        from typing import Any
-        
+
         class MockFile:
             def __init__(self, content: bytes, filename: str):
                 self.content = content
                 self.filename = filename
                 self._position = 0
-            
+
             async def read(self) -> bytes:
                 return self.content
-            
+
             async def seek(self, position: int) -> None:
                 self._position = position
-        
+
         mock_file = MockFile(file_content, safe_filename)
         text_content = await resume_processor.extract_text(mock_file)
         text_extraction_time = int((time.time() - text_extraction_start) * 1000)
@@ -752,16 +746,15 @@ async def upload_skills_vocabulary(
     try:
         # Read file content
         content = await file.read()
-        
+
         # Validate and sanitize CSV
         try:
             df, safe_filename = validate_csv(content, file.filename)
         except FileSecurityError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e.detail)
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e.detail)
             )
-        
+
         # Convert DataFrame to CSV text for existing processing
         csv_buffer = io.StringIO()
         df.to_csv(csv_buffer, index=False)

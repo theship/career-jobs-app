@@ -1182,6 +1182,21 @@ redis-cli
 > KEYS rate_limit:*
 ```
 
+### Critical Security & Privacy Fixes
+
+**Priority: CRITICAL** - Privacy vulnerability with pitch storage
+
+#### Pitch Storage Migration to Database
+- **Current Issue**: Pitches stored in browser localStorage are accessible to other users on same device
+- **Backend Issue**: Pitches stored in memory (api/routes/pitch.py:106) are lost on server restart
+- **Solution**: 
+  1. Create `pitch_history` table in Supabase with proper RLS policies
+  2. Store all generated pitches in database tied to user_id
+  3. Remove localStorage caching entirely
+  4. Implement server-side caching with user isolation
+
+**Immediate Mitigation**: Clear all localStorage data on logout (implemented)
+
 ### Code TODOs to Address
 * **Ingestion Configuration** (ingestion/orchestrator.py:47): Load scrapers from config file or environment variables instead of hardcoding
 * **Job Cleanup Logic** (ingestion/orchestrator.py:388): Implement business rules for cleaning up old/duplicate jobs
