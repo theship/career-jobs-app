@@ -1108,6 +1108,80 @@ describe('Job Listings', () => {
 
 After completing Phase 6, consider these enhancements:
 
+### Redis Implementation for Security Features
+
+**Priority: HIGH** - Required to fully enable advanced security measures
+
+#### Current Status (Without Redis)
+- ✅ HMAC signature validation (working)
+- ✅ Timestamp freshness validation (5-minute window)
+- ❌ Replay attack prevention (nonce tracking disabled)
+- ❌ Distributed rate limiting (in-memory only, single server)
+- ❌ Per-user quota management (basic IP limits only)
+
+#### Implementation Steps
+
+1. **Install and Configure Redis**
+   ```bash
+   # macOS
+   brew install redis
+   brew services start redis
+   
+   # Ubuntu/Debian
+   sudo apt-get install redis-server
+   sudo systemctl start redis
+   
+   # Docker (recommended for consistency)
+   docker run -d -p 6379:6379 --name redis redis:7-alpine
+   ```
+
+2. **Install Python Redis Client**
+   ```bash
+   pip install redis
+   ```
+
+3. **Verify Redis Connection**
+   ```bash
+   redis-cli ping  # Should return "PONG"
+   ```
+
+4. **Test Security Features**
+   ```python
+   # Test replay prevention
+   curl -X POST http://localhost:8000/api/test \
+     -H "X-Signature: $SIGNATURE" \
+     -H "X-Timestamp: $TIMESTAMP" \
+     -H "X-Nonce: $NONCE"
+   
+   # Repeat same request - should be rejected
+   ```
+
+5. **Production Deployment**
+   - Use Redis Sentinel or Redis Cluster for high availability
+   - Configure Redis persistence (AOF or RDB)
+   - Set up Redis password authentication
+   - Use Redis Cloud/ElastiCache for managed service
+
+#### Security Benefits Once Enabled
+- **Replay Attack Prevention**: Each nonce can only be used once within 10-minute window
+- **Distributed Rate Limiting**: Rate limits work across multiple server instances
+- **User Quota Tracking**: Granular per-operation limits (uploads, AI calls, exports)
+- **Security Event Correlation**: Track patterns across requests
+
+#### Monitoring & Verification
+```python
+# Check Redis is being used
+grep "Redis available" logs/api.log
+
+# Monitor nonce cache
+redis-cli
+> KEYS nonce:*
+> TTL nonce:some-uuid
+
+# View rate limit buckets
+> KEYS rate_limit:*
+```
+
 ### Code TODOs to Address
 * **Ingestion Configuration** (ingestion/orchestrator.py:47): Load scrapers from config file or environment variables instead of hardcoding
 * **Job Cleanup Logic** (ingestion/orchestrator.py:388): Implement business rules for cleaning up old/duplicate jobs
