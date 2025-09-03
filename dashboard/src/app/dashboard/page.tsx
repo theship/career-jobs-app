@@ -243,19 +243,19 @@ export default function DashboardPage() {
 
             {/* Quick Stats */}
             <div className="bg-white rounded-lg shadow p-6 mt-6">
-              <h2 className="text-lg font-medium text-text-primary mb-4">Your Stats</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Your Stats</h2>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-text-secondary">Jobs Matched:</span>
-                  <span className="font-medium">{scores.length}</span>
+                  <span className="text-gray-600">Jobs Matched:</span>
+                  <span className="font-medium text-gray-900">{scores.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-text-secondary">Applications:</span>
-                  <span className="font-medium">0</span>
+                  <span className="text-gray-600">Applications:</span>
+                  <span className="font-medium text-gray-900">0</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-text-secondary">Interviews:</span>
-                  <span className="font-medium">0</span>
+                  <span className="text-gray-600">Interviews:</span>
+                  <span className="font-medium text-gray-900">0</span>
                 </div>
               </div>
             </div>

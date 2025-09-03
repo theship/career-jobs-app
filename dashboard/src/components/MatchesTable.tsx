@@ -92,7 +92,10 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
   }
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'Unknown'
     const date = new Date(dateString)
+    // Check for invalid date
+    if (isNaN(date.getTime())) return 'Unknown'
     const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24))
     if (days === 0) return 'Today'
     if (days === 1) return 'Yesterday'
