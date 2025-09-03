@@ -92,6 +92,27 @@ def get_current_user(
             detail="User authentication required"
         )
     
+    # Identity coherence check: Verify token subject matches user ID
+    if x_user_token:
+        try:
+            import jwt
+            # Decode without verification (Next.js already verified)
+            payload = jwt.decode(x_user_token, options={"verify_signature": False})
+            token_sub = payload.get("sub")
+            
+            # Check if token subject matches the provided user ID
+            if token_sub and token_sub != x_user_id:
+                logger.error(
+                    f"Identity coherence check failed - token sub: {token_sub}, header user_id: {x_user_id}"
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail="Identity verification failed"
+                )
+        except jwt.DecodeError:
+            # If token can't be decoded, log but allow (Next.js validated it)
+            logger.warning(f"Could not decode token for identity check on path {request.url.path}")
+    
     # Return user information trusted from Next.js
     user_info = {
         "user_id": x_user_id,
