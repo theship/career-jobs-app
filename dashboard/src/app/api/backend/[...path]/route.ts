@@ -29,23 +29,17 @@ async function handleRequest(
   
   const url = `${BACKEND_URL}${backendPath}${queryString}`
 
-  // Check authentication for protected endpoints
-  if (!isPublicPath(path)) {
-    const user = await getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-  }
-
-  // Get the auth token to forward to backend
+  // Get user information for both public and protected endpoints
+  // Next.js validates the user and forwards the info to backend
+  const user = await getUser()
   const token = await getAuthToken()
   
-  // Warn if no token for protected endpoint
-  if (!token && !isPublicPath(path)) {
-    console.warn(`No auth token available for protected endpoint: ${backendPath}`)
+  // Check authentication for protected endpoints
+  if (!isPublicPath(path) && !user) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
   }
 
   // Prepare headers
@@ -53,15 +47,27 @@ async function handleRequest(
     'Content-Type': 'application/json',
   }
 
-  // Add auth token if available
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+  // REQUIRED: Add service secret to prove this is from our Next.js server
+  if (!process.env.SERVICE_SECRET) {
+    console.error('SERVICE_SECRET environment variable is not configured')
+    return NextResponse.json(
+      { error: 'Server configuration error' },
+      { status: 500 }
+    )
   }
+  headers['X-Service-Secret'] = process.env.SERVICE_SECRET
 
-  // Add service identifier for backend to trust this request
-  // The backend can verify this is really our Next.js server
-  if (process.env.SERVICE_SECRET) {
-    headers['X-Service-Secret'] = process.env.SERVICE_SECRET
+  // Forward user information if authenticated
+  if (user) {
+    headers['X-User-Id'] = user.id
+    if (user.email) {
+      headers['X-User-Email'] = user.email
+    }
+  }
+  
+  // Forward token for database operations that need it
+  if (token) {
+    headers['X-User-Token'] = token
   }
 
   // Prepare request options
