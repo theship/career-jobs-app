@@ -1,0 +1,74 @@
+{
+  "company_domain": "webdevstudios.com",
+  "cached_at": "2025-09-03T20:38:32.166061+00:00",
+  "research": {
+    "company_domain": "webdevstudios.com",
+    "company_name": "WebDevStudios",
+    "industry": "Web Development and Design",
+    "headquarters": "United States",
+    "founded": "2001",
+    "competitors": [
+      {
+        "name": "10up",
+        "url": "https://10up.com",
+        "description": "A full-service digital agency known for content management and web development, competing in similar markets as WebDevStudios."
+      },
+      {
+        "name": "Human Made",
+        "url": "https://humanmade.com",
+        "description": "Specializes in large-scale WordPress development projects, directly competing with WebDevStudios in the enterprise WordPress space."
+      },
+      {
+        "name": "Automattic",
+        "url": "https://automattic.com",
+        "description": "Though primarily known for operating WordPress.com, Automattic competes in custom web development and solutions, overlapping with services offered by WebDevStudios."
+      }
+    ],
+    "excellence": [
+      {
+        "area": "WordPress Development",
+        "description": "WebDevStudios is recognized for its deep expertise in WordPress, offering custom solutions and complex integrations.",
+        "evidence": "Notable projects and partnerships with large companies."
+      },
+      {
+        "area": "eCommerce Solutions",
+        "description": "They excel in creating robust eCommerce platforms, particularly using WooCommerce, to power large-scale retail operations.",
+        "evidence": "Portfolio of successful eCommerce projects."
+      }
+    ],
+    "shortcomings": [
+      {
+        "area": "Scalability",
+        "description": "Some feedback suggests challenges in scaling projects for larger enterprise needs, particularly in highly customized implementations.",
+        "public_acknowledgment": "Internal reviews and client feedback sessions aimed at improving project management and delivery processes."
+      }
+    ],
+    "aspirations": [
+      {
+        "statement": "To be the leading WordPress development agency for enterprise clients globally.",
+        "source_url": "https://webdevstudios.com/about/",
+        "timeframe": "Ongoing"
+      }
+    ],
+    "recent_news": [
+      {
+        "headline": "WebDevStudios Announces New JavaScript for WordPress Service",
+        "date": "2023-06-15",
+        "summary": "WebDevStudios expands its service offerings by introducing a dedicated JavaScript development service for WordPress, highlighting the growing importance of headless CMS solutions.",
+        "url": "https://webdevstudios.com/blog/javascript-for-wordpress-service/"
+      }
+    ],
+    "culture_values": [
+      {
+        "value": "Innovation",
+        "description": "WebDevStudios emphasizes a culture of innovation, encouraging team members to explore new technologies and solutions."
+      },
+      {
+        "value": "Community Engagement",
+        "description": "The company is actively involved in the WordPress community, contributing to open-source projects and participating in events."
+      }
+    ],
+    "generated_at": "2025-09-03T20:38:32.165964+00:00",
+    "model_used": "gpt-4-turbo-preview"
+  }
+}

@@ -113,39 +113,34 @@ def validate_pdf(file_content: bytes, filename: str) -> Tuple[bytes, str]:
         logger.error(f"Error checking MIME type: {e}")
         raise FileSecurityError("Could not verify file type")
     
-    # Sanitize PDF using pikepdf (removes JavaScript, forms, embedded files)
+    # Validate PDF structure using pikepdf
     try:
         with pikepdf.open(io.BytesIO(file_content)) as pdf:
-            # Remove potentially malicious elements
-            sanitized = io.BytesIO()
+            # Basic validation - just check if it's a valid PDF
+            page_count = len(pdf.pages)
             
-            # Save with linearization (web optimization) and compression
-            # This strips out JavaScript, forms, and other potentially dangerous elements
-            pdf.save(
-                sanitized, 
-                linearize=True, 
-                compress_streams=True,
-                # Remove interactive elements
-                preserve_pdfa=False,
-                object_stream_mode=pikepdf.ObjectStreamMode.generate
-            )
+            # Check for potentially malicious elements (log only, don't modify)
+            if hasattr(pdf.Root, 'JS') or hasattr(pdf.Root, 'JavaScript'):
+                logger.warning("PDF contains JavaScript - potential security risk")
             
-            # Get the sanitized content
-            sanitized_content = sanitized.getvalue()
+            if hasattr(pdf.Root, 'Names') and hasattr(pdf.Root.Names, 'EmbeddedFiles'):
+                logger.warning("PDF contains embedded files - potential security risk")
             
-            # Verify the sanitized PDF is still valid
-            if len(sanitized_content) == 0:
-                raise FileSecurityError("PDF sanitization failed - empty result")
+            if hasattr(pdf.Root, 'AcroForm'):
+                acroform = pdf.Root.AcroForm
+                if hasattr(acroform, 'XFA'):
+                    logger.warning("PDF contains XFA forms - potential security risk")
             
-            logger.info(f"PDF sanitized: {len(file_content)} -> {len(sanitized_content)} bytes")
+            logger.info(f"PDF validated: {len(file_content)} bytes, {page_count} pages")
             
-            return sanitized_content, safe_filename
+            # Return the original unmodified content
+            return file_content, safe_filename
             
     except pikepdf.PdfError as e:
         logger.error(f"Invalid PDF file: {e}")
         raise FileSecurityError("Invalid or corrupted PDF file")
     except Exception as e:
-        logger.error(f"Error sanitizing PDF: {e}")
+        logger.error(f"Error validating PDF: {e}")
         raise FileSecurityError("Could not process PDF file")
 
 

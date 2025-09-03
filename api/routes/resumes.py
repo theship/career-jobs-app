@@ -182,7 +182,24 @@ async def upload_resume(
         # Extract text and process
         logger.info("Extracting text from file")
         text_extraction_start = time.time()
-        text_content = await resume_processor.extract_text(file)
+        # Create a mock file object with the content we already have
+        import io
+        from typing import Any
+        
+        class MockFile:
+            def __init__(self, content: bytes, filename: str):
+                self.content = content
+                self.filename = filename
+                self._position = 0
+            
+            async def read(self) -> bytes:
+                return self.content
+            
+            async def seek(self, position: int) -> None:
+                self._position = position
+        
+        mock_file = MockFile(file_content, safe_filename)
+        text_content = await resume_processor.extract_text(mock_file)
         text_extraction_time = int((time.time() - text_extraction_start) * 1000)
 
         await activity_logger.update_action_progress(
