@@ -9,13 +9,22 @@ import time
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
 from ..models.resumes import Resume, ResumeUpdate
 from ..services.activity_logger import activity_logger
 from ..services.auth import get_current_user
 from ..services.resume_processor import ResumeProcessor
 from ..utils.database import get_authenticated_supabase_client
+from ..utils.security import (
+    validate_pdf,
+    validate_csv,
+    sanitize_text,
+    sanitize_filename,
+    calculate_file_hash,
+    limiter,
+    FileSecurityError
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/resumes", tags=["resumes"])
@@ -25,7 +34,9 @@ resume_processor = ResumeProcessor()
 
 
 @router.post("/upload", response_model=Resume)
+@limiter.limit("5/hour")  # Rate limit: 5 uploads per hour per IP
 async def upload_resume(
+    request: Request,  # Required for rate limiter
     file: UploadFile = File(...),
     name: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
@@ -49,35 +60,47 @@ async def upload_resume(
         },
     )
 
-    # Validate file type
-    logger.info(f"Validating file type for {file.filename}")
-    if not file.filename.endswith((".pdf", ".docx", ".txt")):
-        await activity_logger.log_action_complete(
-            log_id=log_id,
-            success=False,
-            error_details="Invalid file type. Only PDF, DOCX, and TXT files are supported.",
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file type. Only PDF, DOCX, and TXT files are supported.",
-        )
-
-    # Validate file size (max 10MB)
+    # Read file content
     file_content = await file.read()
     file_size_mb = len(file_content) / (1024 * 1024)
     logger.info(f"File size: {file_size_mb:.2f}MB")
 
-    if len(file_content) > 10 * 1024 * 1024:
+    # Validate and sanitize file based on type
+    logger.info(f"Validating and sanitizing file: {file.filename}")
+    try:
+        if file.filename.lower().endswith('.pdf'):
+            # Validate and sanitize PDF
+            sanitized_content, safe_filename = validate_pdf(file_content, file.filename)
+            file_content = sanitized_content
+        else:
+            # For now, reject non-PDF files until we add support
+            await activity_logger.log_action_complete(
+                log_id=log_id,
+                success=False,
+                error_details="Currently only PDF files are supported.",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Currently only PDF files are supported.",
+            )
+    except FileSecurityError as e:
         await activity_logger.log_action_complete(
             log_id=log_id,
             success=False,
-            error_details=f"File size ({file_size_mb:.2f}MB) exceeds 10MB limit.",
+            error_details=str(e.detail),
+        )
+        raise
+    except Exception as e:
+        logger.error(f"File validation error: {e}")
+        await activity_logger.log_action_complete(
+            log_id=log_id,
+            success=False,
+            error_details="File validation failed.",
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 10MB limit.",
+            detail="File validation failed. Please ensure your file is a valid PDF.",
         )
-    await file.seek(0)  # Reset file pointer
 
     try:
         # Update progress: File validated
@@ -126,10 +149,10 @@ async def upload_resume(
                     detail="Failed to initialize user profile. Please try again.",
                 )
 
-        # Generate unique filename and storage path
-        file_hash = hashlib.sha256(file_content).hexdigest()
+        # Generate unique filename and storage path using secure hash
+        file_hash = calculate_file_hash(file_content)
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        storage_filename = f"{user_id}/{timestamp}_{file_hash[:8]}_{file.filename}"
+        storage_filename = f"{user_id}/{timestamp}_{file_hash[:8]}_{safe_filename}"
 
         # Upload to Supabase Storage using service client
         # Note: Storage bucket RLS policies need to be configured in Supabase dashboard
@@ -699,7 +722,9 @@ async def reprocess_resume(
 
 
 @router.post("/skills-vocab")
+@limiter.limit("10/hour")  # Rate limit: 10 skills uploads per hour
 async def upload_skills_vocabulary(
+    request: Request,  # Required for rate limiter
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
 ):
@@ -708,16 +733,22 @@ async def upload_skills_vocabulary(
     The CSV must contain columns: skill, category, aliases, tags
     """
     try:
-        # Validate file type
-        if not file.filename.endswith(".csv"):
+        # Read file content
+        content = await file.read()
+        
+        # Validate and sanitize CSV
+        try:
+            df, safe_filename = validate_csv(content, file.filename)
+        except FileSecurityError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only CSV files are supported",
+                detail=str(e.detail)
             )
-
-        # Read and validate CSV content
-        content = await file.read()
-        csv_text = content.decode("utf-8")
+        
+        # Convert DataFrame to CSV text for existing processing
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_text = csv_buffer.getvalue()
         reader = csv.DictReader(io.StringIO(csv_text))
 
         # Validate required columns
