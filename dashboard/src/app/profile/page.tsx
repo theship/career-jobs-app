@@ -104,6 +104,10 @@ export default function ProfilePage() {
   }
 
   const handleSignOut = async () => {
+    // Clear all sensitive data from localStorage before signing out
+    const { clearAllSensitiveData } = await import('@/lib/clear-sensitive-data')
+    clearAllSensitiveData()
+    
     await supabase.auth.signOut()
     router.push('/')
   }

@@ -39,6 +39,8 @@ export interface Resume {
 export interface SkillsVocabulary {
   has_custom_vocab: boolean
   vocab_count?: number
+  skills_count?: number
+  sample_skills?: string[]
   uploaded_at?: string
 }
 

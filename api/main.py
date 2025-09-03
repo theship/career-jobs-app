@@ -10,6 +10,10 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from api.utils.security import limiter
 
 # Load environment variables
 load_dotenv()
@@ -36,17 +40,36 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS
+# Add rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Configure CORS - Locked down to only Next.js
+# In production, FastAPI should only accept requests from Next.js proxy
+if os.getenv("ENVIRONMENT") == "production":
+    # Production: Deny all CORS (only server-to-server allowed)
+    allowed_origins = []
+else:
+    # Development: Only allow Next.js origins
+    allowed_origins = [
+        "http://localhost:3000",  # Next.js dev server
+        os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Next.js dev server
-        "http://localhost:3001",  # Alternative port
-        os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
+    allow_origins=allowed_origins,  # Empty list = no CORS in production
+    allow_credentials=False,  # No cookies needed (using service auth)
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "X-Service-Secret",
+        "X-User-Id",
+        "X-User-Email",
+        "X-User-Token",
     ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    expose_headers=["X-Request-Id"],  # For request tracking
+    max_age=3600,  # Cache preflight for 1 hour
 )
 
 
@@ -70,8 +93,8 @@ async def health_check():
     }
 
 
-# Import and include routers
-from api.routes import auth, jobs, pitch, research, resumes, scoring
+# Import and include routers (moved here to avoid E402)
+from api.routes import auth, jobs, pitch, research, resumes, scoring  # noqa: E402
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(resumes.router, prefix="/api/v1", tags=["resumes"])

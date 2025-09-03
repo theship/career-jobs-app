@@ -24,9 +24,9 @@ async def get_current_user_profile(
     """
     return {
         "user_id": current_user["user_id"],
-        "email": current_user["email"],
-        "role": current_user["role"],
-        "metadata": current_user["metadata"],
+        "email": current_user.get("email"),
+        "role": current_user.get("role", "authenticated"),
+        "metadata": current_user.get("metadata", {}),
     }
 
 
@@ -43,7 +43,7 @@ async def verify_token(
     return {
         "valid": True,
         "user_id": current_user["user_id"],
-        "expires_at": current_user["exp"],
+        "expires_at": current_user.get("exp"),
     }
 
 
@@ -62,5 +62,5 @@ async def get_session_info(
         "user_id": current_user["user_id"],
         "issued_at": current_user.get("iat"),
         "expires_at": current_user.get("exp"),
-        "role": current_user["role"],
+        "role": current_user.get("role", "authenticated"),
     }

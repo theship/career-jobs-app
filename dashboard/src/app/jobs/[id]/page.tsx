@@ -43,6 +43,8 @@ export default function JobDetailPage() {
   }
 
   const handleSignOut = async () => {
+    const { clearAllSensitiveData } = await import('@/lib/clear-sensitive-data')
+    clearAllSensitiveData()
     await supabase.auth.signOut()
     router.push('/')
   }
@@ -160,10 +162,15 @@ function BackButton() {
 function ApplyButton({ jobUrl }: { jobUrl?: string }) {
   if (!jobUrl) return null
 
+  // Ensure the URL has a protocol
+  const validUrl = jobUrl.startsWith('http://') || jobUrl.startsWith('https://') 
+    ? jobUrl 
+    : `https://${jobUrl}`
+
   return (
     <div className="card mt-6">
       <a
-        href={jobUrl}
+        href={validUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="block w-full text-center bg-green-600/90 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium transition-all"

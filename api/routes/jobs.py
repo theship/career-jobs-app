@@ -402,8 +402,7 @@ async def get_job_stats():
         )
     )
 
-    # Jobs by source - we don't have source_ats column in current schema
-    # TODO: Add source tracking when we have the field
+    # Jobs by source - source_ats column not yet in schema (see docs/dev-plan.md)
     jobs_by_source = {"unknown": total_jobs if total_jobs else 0}
 
     # Get jobs by seniority level

@@ -246,6 +246,8 @@ async def get_scores(
                     job_id=score["job_id"],
                     title=job.get("title", "Unknown"),
                     company_name=job.get("company_name", "Unknown"),
+                    location=job.get("location"),
+                    posted_at=job.get("posted_at"),
                     total_score=float(score["total_score"]),
                     rank=idx,
                     percentile=100 - (idx / len(response.data) * 100),
