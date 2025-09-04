@@ -102,8 +102,8 @@ def get_research_service():
     return research_service
 
 
-# In-memory storage for pitches (in production, use database)
-pitch_storage: Dict[str, Dict[str, Any]] = {}
+# Pitch storage now uses database with proper user isolation
+# No more in-memory storage that loses data on restart
 
 
 async def _get_resume_data(resume_id: str, user_token: str) -> Dict[str, Any]:
@@ -317,11 +317,40 @@ async def generate_pitch(
             quality_scores = service.score_pitch_quality(pitch)
             pitch["quality_scores"] = quality_scores
 
-            # Store pitch for later retrieval
-            user_id = current_user.get("user_id", "unknown")
-            pitch_id = f"{user_id}_{request.job_id}_{len(pitch_storage)}"
-            pitch_storage[pitch_id] = pitch
-            pitch["pitch_id"] = pitch_id
+            # Store pitch in database for secure, persistent storage
+            from api.utils.database import get_supabase_service_client
+            supabase = get_supabase_service_client()
+            
+            # Prepare pitch data for database
+            pitch_record = {
+                "user_id": current_user.get("user_id"),
+                "job_id": request.job_id,
+                "job_title": pitch["job_title"],
+                "company_name": pitch["company_name"],
+                "headline": pitch["headline"],
+                "opening": pitch["opening"],
+                "two_minute_pitch": pitch["two_minute_pitch"],
+                "bullet_points": pitch["bullet_points"],
+                "why_this_company": pitch["why_this_company"],
+                "why_this_role": pitch["why_this_role"],
+                "questions_to_ask": pitch["questions_to_ask"],
+                "potential_objections": pitch["potential_objections"],
+                "closing_statement": pitch["closing_statement"],
+                "skills_match_score": pitch.get("skills_match_score"),
+                "quality_scores": pitch.get("quality_scores"),
+                "generated_at": pitch["generated_at"],
+            }
+            
+            # Insert into database
+            result = supabase.table("pitch_history").insert(pitch_record).execute()
+            
+            if result and result.data:
+                pitch_id = result.data[0].get("pitch_id")
+                pitch["pitch_id"] = pitch_id
+                logger.info(f"Pitch stored in database with ID: {pitch_id}")
+            else:
+                logger.error("Failed to store pitch in database")
+                pitch["pitch_id"] = None
 
             # Log quality warning if score is low
             if quality_scores["overall"] < 0.7:

@@ -27,9 +27,31 @@ async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
     # Startup
     logger.info("Starting Career Jobs App API...")
+    
+    # Verify Redis connection (REQUIRED)
+    from api.utils.redis_client import verify_redis_connection
+    logger.info("Verifying Redis connection...")
+    verify_redis_connection()  # Will exit if Redis not available
+    logger.info("Redis connection verified ✓")
+    
+    # Initialize HMAC security
+    from api.utils.config import get_settings
+    from api.utils.hmac_security import initialize_hmac
+    settings = get_settings()
+    if settings.hmac_secret:
+        initialize_hmac(settings.hmac_secret)
+        logger.info("HMAC security initialized ✓")
+    else:
+        logger.warning("HMAC_SECRET not configured - request signing disabled")
+    
     yield
+    
     # Shutdown
     logger.info("Shutting down Career Jobs App API...")
+    
+    # Close Redis connection
+    from api.utils.redis_client import close_redis_connection
+    close_redis_connection()
 
 
 # Create FastAPI app

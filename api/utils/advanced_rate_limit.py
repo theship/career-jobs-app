@@ -7,30 +7,15 @@ import time
 from functools import wraps
 from typing import Any, Dict, Optional
 
-import redis
 import structlog
 from fastapi import HTTPException, Request, status
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+
+from api.utils.redis_client import get_redis_client
 
 logger = structlog.get_logger()
 
-# Redis client for distributed rate limiting
-try:
-    redis_client = redis.Redis(
-        host="localhost",
-        port=6379,
-        db=1,  # Use separate DB for rate limiting
-        decode_responses=True,
-        socket_connect_timeout=1,
-        socket_timeout=1,
-    )
-    redis_client.ping()
-    REDIS_AVAILABLE = True
-except (redis.ConnectionError, redis.TimeoutError):
-    logger.warning("Redis not available for advanced rate limiting")
-    REDIS_AVAILABLE = False
-    redis_client = None
+# Get Redis client (REQUIRED - will fail fast if not available)
+redis_client = get_redis_client()
 
 # Rate limit configurations per endpoint category
 RATE_LIMITS = {
@@ -96,9 +81,6 @@ def check_rate_limit(
     Returns:
         (is_allowed, metadata)
     """
-    if not REDIS_AVAILABLE or not redis_client:
-        return True, {"redis": False}
-
     now = time.time()
     window_start = now - window_seconds
 
@@ -160,12 +142,12 @@ def parse_rate_limit(rate_string: str) -> tuple[int, int]:
 
 class AdvancedRateLimiter:
     """
-    Advanced rate limiter with multiple strategies
+    Advanced rate limiter with Redis (REQUIRED)
     """
 
     def __init__(self):
-        # Fallback to slowapi for basic limiting
-        self.basic_limiter = Limiter(key_func=get_remote_address)
+        # Redis is required - no fallbacks
+        self.redis = get_redis_client()
 
     def limit(self, rate_limit_key: str, rate_string: Optional[str] = None):
         """
@@ -234,9 +216,6 @@ class AdvancedRateLimiter:
         """
         Check if user has exceeded their quota for specific operation
         """
-        if not REDIS_AVAILABLE:
-            return True
-
         quota_config = RATE_LIMITS.get("user", {}).get(quota_type, {}).get(operation)
         if not quota_config:
             return True
@@ -252,9 +231,6 @@ class AdvancedRateLimiter:
         """
         Get current usage statistics for a user
         """
-        if not REDIS_AVAILABLE:
-            return {}
-
         usage = {}
 
         for quota_type, operations in RATE_LIMITS.get("user", {}).items():
@@ -291,9 +267,6 @@ limit_data_operation = advanced_limiter.limit("data_operation", "200/hour")
 # Monitoring functions
 def log_rate_limit_metrics():
     """Log rate limiting metrics for monitoring"""
-    if not REDIS_AVAILABLE:
-        return
-
     # Get all rate limit keys
     keys = redis_client.keys("rate_limit:*")
 
@@ -308,8 +281,5 @@ def log_rate_limit_metrics():
 
 def cleanup_expired_keys():
     """Clean up expired rate limit keys (run periodically)"""
-    if not REDIS_AVAILABLE:
-        return
-
     # Redis handles expiry automatically, but we can force cleanup
     redis_client.execute_command("MEMORY", "PURGE")

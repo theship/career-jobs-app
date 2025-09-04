@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     max_file_size: int = Field(default=10485760)  # 10MB
     allowed_extensions: list = Field(default=[".pdf", ".doc", ".docx", ".txt"])
 
+    # Redis settings (REQUIRED)
+    redis_url: str = Field(default="redis://localhost:6379/0")
+    
+    # HMAC settings
+    hmac_secret: str = Field(default="")
+
     # Logging
     log_level: str = Field(default="INFO")
 

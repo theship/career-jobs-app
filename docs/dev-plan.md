@@ -19,7 +19,41 @@
 
 ## Overview
 
-This document outlines the phased development approach for the Career Jobs App, including acceptance criteria, testing strategies, and milestone definitions. Phase 0–6. Stack: Supabase (Postgres + Auth + Storage + RLS + pgvector), FastAPI, Next.js, OpenAI embeddings, W&B + Weave later for experiments/observability. JWT verification is JWKS‑based.
+This document outlines the phased development approach for the Career Jobs App, including acceptance criteria, testing strategies, and milestone definitions. Phase 0–6. Stack: Supabase (Postgres + Auth + Storage + RLS + pgvector), Redis (caching + security), FastAPI, Next.js, OpenAI embeddings, W&B + Weave later for experiments/observability. JWT verification is JWKS‑based.
+
+## Infrastructure Prerequisites
+
+### Required Services
+- **PostgreSQL** (via Supabase): Primary database with pgvector extension
+- **Redis** (v7.0+): REQUIRED for security features (replay attack prevention, distributed rate limiting, caching)
+- **Supabase**: Auth, Storage, and RLS policies
+- **OpenAI API**: Embeddings and GPT completions
+
+### Local Development Setup
+```bash
+# macOS
+brew install redis
+brew services start redis
+
+# Ubuntu/Debian  
+sudo apt-get install redis-server
+sudo systemctl start redis
+
+# Docker (recommended for consistency)
+docker run -d -p 6379:6379 --name redis redis:7-alpine
+
+# Verify Redis is running
+redis-cli ping  # Should return "PONG"
+```
+
+### Security Feature Dependencies
+⚠️ **CRITICAL**: The following security features REQUIRE Redis to function:
+- Replay attack prevention (nonce tracking)
+- Distributed rate limiting (across multiple workers)
+- User quota management (API usage limits)
+- Secure pitch storage (with proper isolation)
+
+Without Redis, the application runs in "degraded security mode" with limited protection.
 
 ## Source Coverage Matrix (what maps where)
 
@@ -79,6 +113,8 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=eyJ... 
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 OPENAI_API_KEY=sk-...
+REDIS_URL=redis://localhost:6379/0  # Required for security features
+HMAC_SECRET=your-secret-key-here    # For request signing
 
 # Frontend (dashboard/.env.local)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -90,17 +126,23 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ### Phase 1: Foundation & Authentication (Weeks 1-2) ✅ COMPLETE
 
 #### Objectives
-* ✅ Set up core infrastructure
+* ✅ Set up core infrastructure (including Redis for security)
 * ✅ Implement user authentication  
 * ⚠️ Create basic database schema (partial - tables created, migrations pending)
 * ✅ Establish development workflow
+* ⚠️ Configure Redis for security features (partially implemented)
 
 #### Tasks
 
-1. **Database Setup**
+1. **Database & Cache Setup**
    * Configure Supabase project with pgvector extension
    * Create core tables with RLS policies
    * Set up database migrations in Supabase Dashboard
+   * Install and configure Redis for:
+     - Replay attack prevention (nonce storage)
+     - Distributed rate limiting
+     - Session management
+     - Cache layer for expensive operations
 
 2. **Project Structure Setup**
    * Create `/api` directory with FastAPI structure (models, routes, services, utils)
@@ -149,6 +191,13 @@ def test_config_loading():
     settings = load_settings()
     assert settings.supabase_url is not None
     assert settings.openai_api_key is not None
+    assert settings.redis_url is not None  # Redis is required
+
+def test_redis_connection():
+    """Redis is available and connected"""
+    import redis
+    r = redis.from_url("redis://localhost:6379")
+    assert r.ping() == True  # Redis must be running
 
 def test_row_level_security():
     """User can only access their own data through API"""
@@ -1108,16 +1157,17 @@ describe('Job Listings', () => {
 
 After completing Phase 6, consider these enhancements:
 
-### Redis Implementation for Security Features
+### ⚠️ Redis Implementation Status
 
-**Priority: HIGH** - Required to fully enable advanced security measures
+**Priority: CRITICAL** - Redis is a REQUIRED dependency for production security
 
-#### Current Status (Without Redis)
-- ✅ HMAC signature validation (working)
+#### Current Implementation Status
+- ✅ HMAC signature validation (working without Redis)
 - ✅ Timestamp freshness validation (5-minute window)
-- ❌ Replay attack prevention (nonce tracking disabled)
-- ❌ Distributed rate limiting (in-memory only, single server)
-- ❌ Per-user quota management (basic IP limits only)
+- ⚠️ Replay attack prevention (REQUIRES Redis - currently disabled)
+- ⚠️ Distributed rate limiting (REQUIRES Redis - fallback to in-memory)
+- ⚠️ Per-user quota management (REQUIRES Redis - basic IP limits only)
+- ⚠️ Pitch storage isolation (REQUIRES Redis or database - using unsafe in-memory)
 
 #### Implementation Steps
 
