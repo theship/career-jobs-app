@@ -61,7 +61,7 @@ def get_identifier(request: Request, user_id: Optional[str] = None) -> str:
     Get unique identifier for rate limiting
     Combines IP and user ID for accurate tracking
     """
-    ip = get_remote_address(request)
+    ip = request.client.host if request.client else "unknown"
 
     if user_id:
         # Hash the combination for privacy

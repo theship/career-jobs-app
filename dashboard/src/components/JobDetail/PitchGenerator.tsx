@@ -54,6 +54,25 @@ export default function PitchGenerator({
         </div>
       ) : (
         <div className="space-y-4">
+          {/* Action buttons at the top */}
+          <div className="flex gap-2">
+            <button
+              onClick={onCopyToClipboard}
+              className="flex-1 bg-green-600/90 hover:bg-green-600 text-white py-2 px-4 rounded-lg text-sm transition-all"
+            >
+              📋 Copy to Clipboard
+            </button>
+            <button
+              onClick={onRegenerate}
+              disabled={generating}
+              className="flex-1 btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generating ? 'Regenerating...' : '🔄 Regenerate Pitch'}
+            </button>
+          </div>
+
+          <hr className="border-border" />
+
           <PitchSection title="Headline" content={pitch.headline} />
           <PitchSection title="Opening" content={pitch.opening} />
           
@@ -74,20 +93,6 @@ export default function PitchGenerator({
               ))}
             </ul>
           </div>
-
-          <button
-            onClick={onCopyToClipboard}
-            className="w-full bg-green-600/90 hover:bg-green-600 text-white py-2 px-4 rounded-lg text-sm transition-all"
-          >
-            Copy to Clipboard
-          </button>
-
-          <button
-            onClick={onRegenerate}
-            className="w-full btn-secondary text-sm"
-          >
-            Regenerate Pitch
-          </button>
         </div>
       )}
     </div>

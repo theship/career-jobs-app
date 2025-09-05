@@ -64,6 +64,7 @@ flowchart TD
 
 - **FastAPI**: Python web framework with automatic OpenAPI docs
 - **Supabase**: Postgres database with Auth, Storage, and pgvector
+- **Redis** (REQUIRED): Caching, rate limiting, and security features
 - **OpenAI API**: Text embeddings and structured outputs
 - **pdfminer.six**: PDF text extraction
 - **rapidfuzz**: Fuzzy string matching for skill extraction

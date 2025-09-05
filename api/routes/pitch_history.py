@@ -22,16 +22,16 @@ async def get_pitch_history(
 ) -> Dict[str, Any]:
     """
     Retrieve a previously generated pitch from database
-    
+
     Args:
         pitch_id: ID of the pitch to retrieve
         current_user: Authenticated user
-        
+
     Returns:
         Pitch data
     """
     supabase = get_supabase_service_client()
-    
+
     # Get pitch from database (RLS ensures user can only see their own)
     response = (
         supabase.table("pitch_history")
@@ -41,10 +41,10 @@ async def get_pitch_history(
         .limit(1)
         .execute()
     )
-    
+
     if not response or not response.data:
         raise HTTPException(status_code=404, detail="Pitch not found")
-    
+
     return response.data[0]
 
 
@@ -56,17 +56,17 @@ async def list_pitch_history(
 ) -> List[Dict[str, Any]]:
     """
     List recent pitch history for the authenticated user
-    
+
     Args:
         current_user: Authenticated user
         limit: Maximum number of pitches to return
         offset: Number of pitches to skip
-        
+
     Returns:
         List of recent pitches
     """
     supabase = get_supabase_service_client()
-    
+
     # Get user's pitches from database (RLS ensures user isolation)
     response = (
         supabase.table("pitch_history")
@@ -76,10 +76,10 @@ async def list_pitch_history(
         .range(offset, offset + limit - 1)
         .execute()
     )
-    
+
     if not response or not response.data:
         return []
-    
+
     return response.data
 
 
@@ -90,16 +90,16 @@ async def delete_pitch(
 ) -> Dict[str, str]:
     """
     Delete a pitch from history
-    
+
     Args:
         pitch_id: ID of the pitch to delete
         current_user: Authenticated user
-        
+
     Returns:
         Success message
     """
     supabase = get_supabase_service_client()
-    
+
     # Delete pitch (RLS ensures user can only delete their own)
     response = (
         supabase.table("pitch_history")
@@ -108,10 +108,10 @@ async def delete_pitch(
         .eq("user_id", current_user.get("user_id"))
         .execute()
     )
-    
+
     if not response or not response.data:
         raise HTTPException(status_code=404, detail="Pitch not found")
-    
+
     return {"message": "Pitch deleted successfully"}
 
 
@@ -121,15 +121,15 @@ async def get_pitch_stats(
 ) -> Dict[str, Any]:
     """
     Get statistics about user's pitch history
-    
+
     Args:
         current_user: Authenticated user
-        
+
     Returns:
         Statistics about pitches
     """
     supabase = get_supabase_service_client()
-    
+
     # Get user's pitch count
     response = (
         supabase.table("pitch_history")
@@ -137,9 +137,9 @@ async def get_pitch_stats(
         .eq("user_id", current_user.get("user_id"))
         .execute()
     )
-    
+
     total_pitches = response.count if response else 0
-    
+
     # Get recent pitches for average quality score
     recent_response = (
         supabase.table("pitch_history")
@@ -149,7 +149,7 @@ async def get_pitch_stats(
         .limit(20)
         .execute()
     )
-    
+
     avg_quality = 0.0
     if recent_response and recent_response.data:
         quality_scores = [
@@ -159,7 +159,7 @@ async def get_pitch_stats(
         ]
         if quality_scores:
             avg_quality = sum(quality_scores) / len(quality_scores)
-    
+
     return {
         "total_pitches": total_pitches,
         "average_quality_score": avg_quality,

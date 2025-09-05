@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     # OpenAI settings
     openai_api_key: str = Field(...)
-    openai_model: str = Field(default="gpt-4o-mini")
+    openai_model: str = Field(default="gpt-4-turbo-preview")
     openai_embedding_model: str = Field(default="text-embedding-3-small")
 
     # JWT settings
@@ -49,7 +49,7 @@ class Settings(BaseSettings):
 
     # Redis settings (REQUIRED)
     redis_url: str = Field(default="redis://localhost:6379/0")
-    
+
     # HMAC settings
     hmac_secret: str = Field(default="")
 

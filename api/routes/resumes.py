@@ -5,7 +5,7 @@ import io
 import logging
 import time
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
@@ -13,11 +13,11 @@ from ..models.resumes import Resume, ResumeUpdate
 from ..services.activity_logger import activity_logger
 from ..services.auth import get_current_user
 from ..services.resume_processor import ResumeProcessor
+from ..utils.advanced_rate_limit import advanced_limiter
 from ..utils.database import get_authenticated_supabase_client
 from ..utils.security import (
     FileSecurityError,
     calculate_file_hash,
-    limiter,
     validate_csv,
     validate_pdf,
 )
@@ -30,7 +30,7 @@ resume_processor = ResumeProcessor()
 
 
 @router.post("/upload", response_model=Resume)
-@limiter.limit("5/hour")  # Rate limit: 5 uploads per hour per IP
+@advanced_limiter.limit("resume_upload", "5/hour")  # Rate limit: 5 uploads per hour
 async def upload_resume(
     request: Request,  # Required for rate limiter
     file: UploadFile = File(...),
@@ -41,8 +41,10 @@ async def upload_resume(
     start_time = time.time()
     user_id = current_user["user_id"]
 
+    file_size = file.size if hasattr(file, "size") else "unknown"
     logger.info(
-        f"=== RESUME UPLOAD START === User: {user_id}, File: {file.filename}, Size: {file.size if hasattr(file, 'size') else 'unknown'}"
+        f"=== RESUME UPLOAD START === User: {user_id}, "
+        f"File: {file.filename}, Size: {file_size}"
     )
 
     # Start activity logging
@@ -117,7 +119,9 @@ async def upload_resume(
 
         # Use authenticated Supabase client with user's JWT
         logger.info(
-            f"Current user info: user_id={current_user.get('user_id')}, has_token={bool(current_user.get('token'))}, trusted_service={current_user.get('trusted_service')}"
+            f"Current user info: user_id={current_user.get('user_id')}, "
+            f"has_token={bool(current_user.get('token'))}, "
+            f"trusted_service={current_user.get('trusted_service')}"
         )
         supabase = get_authenticated_supabase_client(current_user["token"])
         user_id = current_user["user_id"]
@@ -171,7 +175,8 @@ async def upload_resume(
             # Try to diagnose the specific issue
             if "row-level security policy" in str(storage_error):
                 logger.error(
-                    "RLS policy violation on storage bucket - check Supabase dashboard settings"
+                    "RLS policy violation on storage bucket - "
+                    "check Supabase dashboard settings"
                 )
             raise
 
@@ -206,7 +211,8 @@ async def upload_resume(
             },
         )
         logger.info(
-            f"Text extracted: {len(text_content)} characters in {text_extraction_time}ms"
+            f"Text extracted: {len(text_content)} characters in "
+            f"{text_extraction_time}ms"
         )
 
         # Check for custom vocabulary
@@ -247,7 +253,8 @@ async def upload_resume(
             },
         )
         logger.info(
-            f"Skills extracted: {len(skills_data.skills)} skills in {skills_extraction_time}ms"
+            f"Skills extracted: {len(skills_data.skills)} skills in "
+            f"{skills_extraction_time}ms"
         )
 
         # Generate embeddings
@@ -282,9 +289,12 @@ async def upload_resume(
         logger.info(f"Creating resume record in database for user {user_id}")
         try:
             insert_response = supabase.table("resumes").insert(resume_data).execute()
-            logger.info(
-                f"Database insert successful: resume_id = {insert_response.data[0]['resume_id'] if insert_response.data else 'unknown'}"
+            resume_id = (
+                insert_response.data[0]["resume_id"]
+                if insert_response.data
+                else "unknown"
             )
+            logger.info(f"Database insert successful: resume_id = {resume_id}")
         except Exception as db_error:
             logger.error(f"Database insert failed: {db_error}")
             if "row-level security policy" in str(db_error):
@@ -346,7 +356,8 @@ async def upload_resume(
         )
 
         logger.info(
-            f"Resume upload completed successfully: resume_id={resume_record['resume_id']}, "
+            f"Resume upload completed successfully: "
+            f"resume_id={resume_record['resume_id']}, "
             f"skills={len(skills_data.skills)}, time={total_time}ms"
         )
 
@@ -676,7 +687,7 @@ async def reprocess_resume(
         )
         if vocab_response.data:
             custom_vocab = vocab_response.data[0]["vocab_data"]
-            logger.info(f"Using custom skills vocabulary for reprocessing")
+            logger.info("Using custom skills vocabulary for reprocessing")
 
         # Re-extract skills with latest pipeline and optional custom vocab
         skills_data = await resume_processor.extract_skills(
@@ -733,7 +744,9 @@ async def reprocess_resume(
 
 
 @router.post("/skills-vocab")
-@limiter.limit("10/hour")  # Rate limit: 10 skills uploads per hour
+@advanced_limiter.limit(
+    "skills_upload", "10/hour"
+)  # Rate limit: 10 skills uploads per hour
 async def upload_skills_vocabulary(
     request: Request,  # Required for rate limiter
     file: UploadFile = File(...),

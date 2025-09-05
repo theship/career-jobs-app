@@ -1157,17 +1157,17 @@ describe('Job Listings', () => {
 
 After completing Phase 6, consider these enhancements:
 
-### ⚠️ Redis Implementation Status
+### ✅ Redis Implementation Status
 
-**Priority: CRITICAL** - Redis is a REQUIRED dependency for production security
+**Status: COMPLETE** - Redis is now a REQUIRED dependency, fully implemented
 
-#### Current Implementation Status
-- ✅ HMAC signature validation (working without Redis)
+#### Implementation Status (Completed 2025-01-05)
+- ✅ HMAC signature validation with Redis-based nonce tracking
 - ✅ Timestamp freshness validation (5-minute window)
-- ⚠️ Replay attack prevention (REQUIRES Redis - currently disabled)
-- ⚠️ Distributed rate limiting (REQUIRES Redis - fallback to in-memory)
-- ⚠️ Per-user quota management (REQUIRES Redis - basic IP limits only)
-- ⚠️ Pitch storage isolation (REQUIRES Redis or database - using unsafe in-memory)
+- ✅ Replay attack prevention (Redis-based nonce cache)
+- ✅ Distributed rate limiting (Redis sliding window algorithm)
+- ✅ Per-user quota management (granular operation limits)
+- ✅ Pitch storage isolation (database with RLS policies)
 
 #### Implementation Steps
 
@@ -1232,20 +1232,37 @@ redis-cli
 > KEYS rate_limit:*
 ```
 
-### Critical Security & Privacy Fixes
+### ✅ Security & Privacy Fixes (COMPLETED)
 
-**Priority: CRITICAL** - Privacy vulnerability with pitch storage
+**Status: RESOLVED** - Pitch storage now secure in database
 
-#### Pitch Storage Migration to Database
-- **Current Issue**: Pitches stored in browser localStorage are accessible to other users on same device
-- **Backend Issue**: Pitches stored in memory (api/routes/pitch.py:106) are lost on server restart
-- **Solution**: 
-  1. Create `pitch_history` table in Supabase with proper RLS policies
-  2. Store all generated pitches in database tied to user_id
-  3. Remove localStorage caching entirely
-  4. Implement server-side caching with user isolation
+#### Pitch Storage Migration (Completed 2025-01-05)
+- ✅ Created `pitch_history` table in Supabase with RLS policies
+- ✅ All pitches now stored in database tied to user_id
+- ✅ Proper user isolation via Row Level Security
+- ✅ Server-side caching with Redis for performance
+- ✅ localStorage cleared on logout for additional security
 
-**Immediate Mitigation**: Clear all localStorage data on logout (implemented)
+### Next.js ESLint Migration (REQUIRED)
+**Priority: HIGH** - Next.js 15 deprecates `next lint`, removal in Next.js 16
+
+#### Migration Steps Required
+1. Install ESLint and Next.js plugin:
+   ```bash
+   npm install --save-dev eslint eslint-config-next @typescript-eslint/parser @typescript-eslint/eslint-plugin
+   ```
+2. Create `.eslintrc.json` with Next.js configuration:
+   ```json
+   {
+     "extends": ["next/core-web-vitals", "next/typescript"],
+     "rules": {
+       "react/no-unescaped-entities": "off",
+       "@next/next/no-page-custom-font": "off"
+     }
+   }
+   ```
+3. Update `package.json` script from `"lint": "next lint"` to `"lint": "eslint . --ext .js,.jsx,.ts,.tsx"`
+4. Run migration codemod: `npx @next/codemod@canary next-lint-to-eslint-cli .`
 
 ### Code TODOs to Address
 * **Ingestion Configuration** (ingestion/orchestrator.py:47): Load scrapers from config file or environment variables instead of hardcoding
