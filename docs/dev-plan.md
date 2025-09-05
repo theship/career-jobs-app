@@ -1,5 +1,11 @@
 # Career Jobs App - Development Plan
 
+## Related Documentation
+- **Architecture Overview**: [`project-structure-overview.md`](./project-structure-overview.md)
+- **Security Details**: [`security-overview.md`](./security-overview.md) | [`security-maintenance.md`](./security-maintenance.md)
+- **AIEWF Workflow**: [`dev-overview.md`](./dev-overview.md)
+- **Quick Start**: [`../README.md`](../README.md)
+
 ## 📊 Quick Status Summary (Updated 2025-09-05)
 
 ### Project Progress
@@ -10,6 +16,7 @@
 - **Phase 5: AI Research & Pitch** ✅ COMPLETE (100%)
 - **Phase 6: Export & Integration** ✅ COMPLETE (100%)
 - **Phase 7: Frontend UI Implementation** ✅ COMPLETE (100%)
+- **Phase 8: Corrections to Implementation** ✅ COMPLETE (100%)
 
 ### Current State
 - **Test Status:** 77/77 tests passing ✅
@@ -126,7 +133,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 ## Development Phases
 
-### Phase 1: Foundation & Authentication (Weeks 1-2) ✅ COMPLETE
+### Phase 1: Foundation & Authentication ✅ COMPLETE
 
 #### Objectives
 * ✅ Set up core infrastructure (including Redis for security)
@@ -265,7 +272,7 @@ describe('Authentication Flow', () => {
 })
 ```
 
-### Phase 2: Resume Processing Pipeline (Weeks 3-4) ✅ COMPLETE
+### Phase 2: Resume Processing Pipeline ✅ COMPLETE
 
 **Implementation Note**: The skill extraction and embedding generation functionality are integrated into `/api/services/resume_processor.py` rather than separate files. This provides a more cohesive implementation while maintaining all the planned functionality.
 
@@ -452,7 +459,7 @@ describe('Resume Upload', () => {
 })
 ```
 
-### Phase 3: Job Ingestion System (Weeks 5-7) ✅ COMPLETE
+### Phase 3: Job Ingestion System ✅ COMPLETE
 
 **Implementation Notes**: 
 - The code has been updated to match the exact database schema from `supabase/schema.sql`. Field mappings use `job_id` as primary key, `seniority` for experience level, and `description_text`/`requirements_text` for job details.
@@ -546,7 +553,7 @@ def test_job_deduplication():
 
 **Note**: Frontend acceptance tests for job listings have been moved to Phase 7 (Frontend UI Implementation) as they require actual UI components to be built first.
 
-### Phase 4: Scoring Engine (Weeks 8-9) ✅ COMPLETE
+### Phase 4: Scoring Engine ✅ COMPLETE
 
 #### Objectives
 * ✅ Implement multi-factor scoring algorithm
@@ -716,7 +723,7 @@ describe('Job Scoring', () => {
 })
 ```
 
-### Phase 5: AI Research & Pitch Generation (Weeks 10-11) ✅ COMPLETE
+### Phase 5: AI Research & Pitch Generation ✅ COMPLETE
 
 #### Objectives
 * ✅ Implement company research agent
@@ -887,7 +894,7 @@ describe('AI Research & Pitches', () => {
 })
 ```
 
-### Phase 6: Export & Reporting (Weeks 12-13) ✅ COMPLETE
+### Phase 6: Export & Reporting ✅ COMPLETE
 
 #### Objectives
 * ✅ Display job matches in sortable/filterable table UI
@@ -1004,7 +1011,7 @@ describe('Matches Table', () => {
 })
 ```
 
-### Phase 7: Frontend UI Implementation (Weeks 14-15) ✅ COMPLETE
+### Phase 7: Frontend UI Implementation ✅ COMPLETE
 
 #### Objectives
 * Implement actual UI components for job listings
@@ -1072,6 +1079,98 @@ describe('Job Listings', () => {
   })
 })
 ```
+
+### Phase 8: Corrections to Implementation ✅ COMPLETE
+
+#### ✅ Redis Implementation Status
+
+**Status: COMPLETE** - Redis is now a REQUIRED dependency, fully implemented
+
+##### Implementation Status (Completed 2025-01-05)
+- ✅ HMAC signature validation with Redis-based nonce tracking
+- ✅ Timestamp freshness validation (5-minute window)
+- ✅ Replay attack prevention (Redis-based nonce cache)
+- ✅ Distributed rate limiting (Redis sliding window algorithm)
+- ✅ Per-user quota management (granular operation limits)
+- ✅ Pitch storage isolation (database with RLS policies)
+
+##### Implementation Steps
+
+1. **Install and Configure Redis**
+   ```bash
+   # macOS
+   brew install redis
+   brew services start redis
+   
+   # Ubuntu/Debian
+   sudo apt-get install redis-server
+   sudo systemctl start redis
+   
+   # Docker (recommended for consistency)
+   docker run -d -p 6379:6379 --name redis redis:7-alpine
+   ```
+
+2. **Install Python Redis Client**
+   ```bash
+   pip install redis
+   ```
+
+3. **Verify Redis Connection**
+   ```bash
+   redis-cli ping  # Should return "PONG"
+   ```
+
+4. **Test Security Features**
+   ```python
+   # Test replay prevention
+   curl -X POST http://localhost:8000/api/test \
+     -H "X-Signature: $SIGNATURE" \
+     -H "X-Timestamp: $TIMESTAMP" \
+     -H "X-Nonce: $NONCE"
+   
+   # Repeat same request - should be rejected
+   ```
+
+5. **Production Deployment**
+   - Use Redis Sentinel or Redis Cluster for high availability
+   - Configure Redis persistence (AOF or RDB)
+   - Set up Redis password authentication
+   - Use Redis Cloud/ElastiCache for managed service
+
+##### Security Benefits Once Enabled
+- **Replay Attack Prevention**: Each nonce can only be used once within 10-minute window
+- **Distributed Rate Limiting**: Rate limits work across multiple server instances
+- **User Quota Tracking**: Granular per-operation limits (uploads, AI calls, exports)
+- **Security Event Correlation**: Track patterns across requests
+
+##### Monitoring & Verification
+```python
+# Check Redis is being used
+grep "Redis available" logs/api.log
+
+# Monitor nonce cache
+redis-cli
+> KEYS nonce:*
+> TTL nonce:some-uuid
+
+# View rate limit buckets
+> KEYS rate_limit:*
+```
+
+#### ✅ Security & Privacy Implementation
+
+**Status: COMPLETE** - All security features fully implemented
+
+##### Security Features (Completed 2025-01-05)
+- ✅ Created `pitch_history` table in Supabase with RLS policies
+- ✅ All pitches stored in database tied to user_id with proper isolation
+- ✅ Redis-based security features fully operational:
+  - HMAC request signing with nonce validation
+  - Replay attack prevention with 10-minute window
+  - Distributed rate limiting across workers
+  - Per-user API quota management
+- ✅ localStorage cleared on logout for client-side security
+- ✅ Advanced rate limiting with multiple tiers (authenticated, premium, public)
 
 ## Testing Strategy
 
@@ -1190,96 +1289,6 @@ All 7 phases have been successfully completed with the following key achievement
 ## Next Steps
 
 With all phases complete, consider these enhancements:
-
-### ✅ Redis Implementation Status
-
-**Status: COMPLETE** - Redis is now a REQUIRED dependency, fully implemented
-
-#### Implementation Status (Completed 2025-01-05)
-- ✅ HMAC signature validation with Redis-based nonce tracking
-- ✅ Timestamp freshness validation (5-minute window)
-- ✅ Replay attack prevention (Redis-based nonce cache)
-- ✅ Distributed rate limiting (Redis sliding window algorithm)
-- ✅ Per-user quota management (granular operation limits)
-- ✅ Pitch storage isolation (database with RLS policies)
-
-#### Implementation Steps
-
-1. **Install and Configure Redis**
-   ```bash
-   # macOS
-   brew install redis
-   brew services start redis
-   
-   # Ubuntu/Debian
-   sudo apt-get install redis-server
-   sudo systemctl start redis
-   
-   # Docker (recommended for consistency)
-   docker run -d -p 6379:6379 --name redis redis:7-alpine
-   ```
-
-2. **Install Python Redis Client**
-   ```bash
-   pip install redis
-   ```
-
-3. **Verify Redis Connection**
-   ```bash
-   redis-cli ping  # Should return "PONG"
-   ```
-
-4. **Test Security Features**
-   ```python
-   # Test replay prevention
-   curl -X POST http://localhost:8000/api/test \
-     -H "X-Signature: $SIGNATURE" \
-     -H "X-Timestamp: $TIMESTAMP" \
-     -H "X-Nonce: $NONCE"
-   
-   # Repeat same request - should be rejected
-   ```
-
-5. **Production Deployment**
-   - Use Redis Sentinel or Redis Cluster for high availability
-   - Configure Redis persistence (AOF or RDB)
-   - Set up Redis password authentication
-   - Use Redis Cloud/ElastiCache for managed service
-
-#### Security Benefits Once Enabled
-- **Replay Attack Prevention**: Each nonce can only be used once within 10-minute window
-- **Distributed Rate Limiting**: Rate limits work across multiple server instances
-- **User Quota Tracking**: Granular per-operation limits (uploads, AI calls, exports)
-- **Security Event Correlation**: Track patterns across requests
-
-#### Monitoring & Verification
-```python
-# Check Redis is being used
-grep "Redis available" logs/api.log
-
-# Monitor nonce cache
-redis-cli
-> KEYS nonce:*
-> TTL nonce:some-uuid
-
-# View rate limit buckets
-> KEYS rate_limit:*
-```
-
-### ✅ Security & Privacy Implementation
-
-**Status: COMPLETE** - All security features fully implemented
-
-#### Security Features (Completed 2025-01-05)
-- ✅ Created `pitch_history` table in Supabase with RLS policies
-- ✅ All pitches stored in database tied to user_id with proper isolation
-- ✅ Redis-based security features fully operational:
-  - HMAC request signing with nonce validation
-  - Replay attack prevention with 10-minute window
-  - Distributed rate limiting across workers
-  - Per-user API quota management
-- ✅ localStorage cleared on logout for client-side security
-- ✅ Advanced rate limiting with multiple tiers (authenticated, premium, public)
 
 ### Next.js ESLint Migration (REQUIRED)
 **Priority: HIGH** - Next.js 15 deprecates `next lint`, removal in Next.js 16
