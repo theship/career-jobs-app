@@ -61,14 +61,14 @@ class JobScore:
     job_id: str
     title: str
     company_name: str
-    
+
     # Individual scores
     cosine_sim: float
     skill_overlap: float
     seniority_fit: float
     geodist_km: float
     recency_bonus: float
-    
+
     # Optional fields
     location: Optional[str] = None
     posted_at: Optional[datetime] = None
