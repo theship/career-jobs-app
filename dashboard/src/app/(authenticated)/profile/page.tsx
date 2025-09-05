@@ -121,39 +121,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-surface/50 backdrop-blur-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gradient-red">
-                Career Jobs App
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="nav-link">
-                Dashboard
-              </Link>
-              <Link href="/jobs" className="nav-link">
-                Browse Jobs
-              </Link>
-              <Link href="/profile" className="nav-link nav-link-active">
-                Profile
-              </Link>
-              <button
-                onClick={handleSignOut}
-                className="btn-ghost text-sm"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-light text-text-primary mb-8">Your Profile</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -382,7 +350,6 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </main>
   )
 }

@@ -135,45 +135,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-surface/50 backdrop-blur-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gradient-red">
-                Career Jobs App
-              </Link>
-            </div>
-            <div className="flex items-center space-x-6">
-              <Link href="/jobs" className="nav-link">
-                Browse Jobs
-              </Link>
-              <Link href="/matches" className="nav-link">
-                My Matches
-              </Link>
-              <Link href="/profile" className="nav-link">
-                Profile
-              </Link>
-              <button
-                onClick={async () => {
-                  const { clearAllSensitiveData } = await import('@/lib/clear-sensitive-data')
-                  clearAllSensitiveData()
-                  await supabase.auth.signOut()
-                  setUser(null)  // Clear user state
-                  router.push('/')
-                }}
-                className="btn-ghost text-sm"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-light text-text-primary mb-8">Dashboard</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -335,7 +297,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </main>
   )
 }
