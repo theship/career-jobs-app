@@ -8,16 +8,13 @@ import io
 import logging
 import os
 import re
-from pathlib import Path
-from typing import BinaryIO, Optional, Tuple
+from typing import Tuple
 
 import bleach
 import magic
 import pandas as pd
 import pikepdf
 from fastapi import HTTPException
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +31,6 @@ ALLOWED_PDF_MIMETYPES = {"application/pdf"}
 
 ALLOWED_CSV_EXTENSIONS = {".csv", ".txt"}
 ALLOWED_CSV_MIMETYPES = {"text/csv", "text/plain", "application/csv"}
-
-# Rate limiter for upload endpoints
-limiter = Limiter(key_func=get_remote_address)
 
 
 class FileSecurityError(HTTPException):
@@ -105,7 +99,7 @@ def validate_pdf(file_content: bytes, filename: str) -> Tuple[bytes, str]:
     safe_filename = sanitize_filename(filename)
     ext = os.path.splitext(safe_filename)[1].lower()
     if ext not in ALLOWED_PDF_EXTENSIONS:
-        raise FileSecurityError(f"Invalid file extension. Only PDF files are allowed")
+        raise FileSecurityError("Invalid file extension. Only PDF files are allowed")
 
     # Verify MIME type using python-magic
     try:
@@ -172,7 +166,7 @@ def validate_csv(file_content: bytes, filename: str) -> Tuple[pd.DataFrame, str]
     ext = os.path.splitext(safe_filename)[1].lower()
     if ext not in ALLOWED_CSV_EXTENSIONS:
         raise FileSecurityError(
-            f"Invalid file extension. Only CSV/TXT files are allowed"
+            "Invalid file extension. Only CSV/TXT files are allowed"
         )
 
     try:

@@ -37,6 +37,9 @@ wandb>=0.18.0  # Weights & Biases for experiment tracking
 jsonschema>=4.20.0  # For validating structured outputs
 tenacity>=8.2.0  # For retry logic on API calls
 
+# Caching and Security
+redis>=5.0.0  # Required for rate limiting, caching, and security features
+
 # Utilities
 pyyaml>=6.0.0  # For config files
 python-jose[cryptography]>=3.3.0  # Additional JWT support

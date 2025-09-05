@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from api.main import app
-from api.services.auth import JWTAuthService
+from api.services.auth import get_current_user
 
 client = TestClient(app)
 

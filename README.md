@@ -188,3 +188,36 @@ git push
 
 Once the workflow completes, `make dev` will start much faster (the sandbox pulls `ghcr.io/<org>/<repo>:dev`).
 
+---
+
+## Next Steps
+
+### Phase 1 - Immediate (Critical)
+- [ ] Update all tests to require Redis (no fallback mode)
+- [ ] Add integration tests for Redis-backed services
+- [ ] Complete frontend testing suite
+- [ ] Add monitoring and alerting for Redis connection
+
+### Phase 2 - Short-term Improvements
+- [ ] Implement job ingestion with proper embedding service (currently using placeholders)
+- [ ] Add job cleanup logic based on business rules
+- [ ] Implement export system tests (Phase 6)
+- [ ] Add comprehensive API documentation
+
+### Phase 3 - Architecture & Performance
+- [ ] Consider adding Redis Sentinel for HA
+- [ ] Implement Redis cluster for scaling
+- [ ] Add Redis persistence configuration
+- [ ] Optimize embedding caching strategy
+
+### Known Issues
+- Long lines in some Python files exceed 88 chars (non-critical)
+- Some test files have module-level imports not at top
+- Whitespace issues in scripts (trailing spaces, blank lines)
+
+### Documentation TODOs
+- Complete skill_extraction.txt documentation
+- Add job_posting.json schema documentation
+- Add resume.json schema documentation
+- Update deployment guide with Redis requirements
+

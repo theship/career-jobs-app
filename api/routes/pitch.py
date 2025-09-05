@@ -102,8 +102,8 @@ def get_research_service():
     return research_service
 
 
-# In-memory storage for pitches (in production, use database)
-pitch_storage: Dict[str, Dict[str, Any]] = {}
+# Pitch storage now uses database with proper user isolation
+# No more in-memory storage that loses data on restart
 
 
 async def _get_resume_data(resume_id: str, user_token: str) -> Dict[str, Any]:
@@ -274,9 +274,8 @@ async def generate_pitch(
         Generated pitch with multiple components
     """
     try:
-        logger.info(
-            f"User {current_user.get('user_id', 'unknown')} generating pitch for job {request.job_id}"
-        )
+        user_id = current_user.get("user_id", "unknown")
+        logger.info(f"User {user_id} generating pitch for job {request.job_id}")
 
         # Get resume and job data from database
         user_token = current_user.get("token", "")
@@ -317,11 +316,41 @@ async def generate_pitch(
             quality_scores = service.score_pitch_quality(pitch)
             pitch["quality_scores"] = quality_scores
 
-            # Store pitch for later retrieval
-            user_id = current_user.get("user_id", "unknown")
-            pitch_id = f"{user_id}_{request.job_id}_{len(pitch_storage)}"
-            pitch_storage[pitch_id] = pitch
-            pitch["pitch_id"] = pitch_id
+            # Store pitch in database for secure, persistent storage
+            from api.utils.database import get_supabase_service_client
+
+            supabase = get_supabase_service_client()
+
+            # Prepare pitch data for database
+            pitch_record = {
+                "user_id": current_user.get("user_id"),
+                "job_id": request.job_id,
+                "job_title": pitch["job_title"],
+                "company_name": pitch["company_name"],
+                "headline": pitch["headline"],
+                "opening": pitch["opening"],
+                "two_minute_pitch": pitch["two_minute_pitch"],
+                "bullet_points": pitch["bullet_points"],
+                "why_this_company": pitch["why_this_company"],
+                "why_this_role": pitch["why_this_role"],
+                "questions_to_ask": pitch["questions_to_ask"],
+                "potential_objections": pitch["potential_objections"],
+                "closing_statement": pitch["closing_statement"],
+                "skills_match_score": pitch.get("skills_match_score"),
+                "quality_scores": pitch.get("quality_scores"),
+                "generated_at": pitch["generated_at"],
+            }
+
+            # Insert into database
+            result = supabase.table("pitch_history").insert(pitch_record).execute()
+
+            if result and result.data:
+                pitch_id = result.data[0].get("pitch_id")
+                pitch["pitch_id"] = pitch_id
+                logger.info(f"Pitch stored in database with ID: {pitch_id}")
+            else:
+                logger.error("Failed to store pitch in database")
+                pitch["pitch_id"] = None
 
             # Log quality warning if score is low
             if quality_scores["overall"] < 0.7:
@@ -332,6 +361,11 @@ async def generate_pitch(
             return PitchResponse(**pitch)
 
         except (HTTPException, ValueError, Exception) as e:
+            # Log the actual error for debugging
+            logger.error(
+                f"Pitch generation failed: {type(e).__name__}: {str(e)}", exc_info=True
+            )
+
             # If OpenAI is not available, return the data fields instead
             logger.info("Pitch generation service unavailable, returning data fields")
 
@@ -378,15 +412,26 @@ Skills Match Score: {skills_score:.0%}"""
                 "job_title": job_data.get("title", "Position"),
                 "company_name": job_data.get("company_name", "Company"),
                 "headline": "Pitch Generation Service Unavailable",
-                "opening": "The AI pitch generation service is currently unavailable. Below are the matched job and profile details that would be used to generate your personalized pitch:",
+                "opening": (
+                    "The AI pitch generation service is currently unavailable. "
+                    "Below are the matched job and profile details that would be "
+                    "used to generate your personalized pitch:"
+                ),
                 "two_minute_pitch": f"{job_fields}\n\n{resume_fields}",
                 "bullet_points": [
                     "AI pitch generation requires OpenAI API configuration",
                     "Your resume and job details have been successfully matched",
-                    f"Your skills match score for this position is {skills_score:.0%}",
+                    f"Your skills match score for this position is "
+                    f"{skills_score:.0%}",
                 ],
-                "why_this_company": "Company research data would appear here when AI service is available.",
-                "why_this_role": "Role-specific pitch would appear here when AI service is available.",
+                "why_this_company": (
+                    "Company research data would appear here when "
+                    "AI service is available."
+                ),
+                "why_this_role": (
+                    "Role-specific pitch would appear here when "
+                    "AI service is available."
+                ),
                 "questions_to_ask": [
                     {
                         "question": "What are the key challenges for this role?",
@@ -407,7 +452,10 @@ Skills Match Score: {skills_score:.0%}"""
                         "response": "Please try again later or contact support",
                     }
                 ],
-                "closing_statement": "When the AI service is available, you'll receive a fully personalized pitch tailored to this specific opportunity.",
+                "closing_statement": (
+                    "When the AI service is available, you'll receive a fully "
+                    "personalized pitch tailored to this specific opportunity."
+                ),
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "skills_match_score": skills_score,
             }
@@ -437,10 +485,23 @@ async def generate_email_template(
         Email subject and body
     """
     try:
-        # Retrieve stored pitch
-        pitch = pitch_storage.get(request.pitch_id)
-        if not pitch:
+        # Retrieve pitch from database
+        from api.utils.database import get_supabase_service_client
+
+        supabase = get_supabase_service_client()
+        response = (
+            supabase.table("pitch_history")
+            .select("*")
+            .eq("pitch_id", request.pitch_id)
+            .eq("user_id", current_user.get("user_id"))
+            .limit(1)
+            .execute()
+        )
+
+        if not response or not response.data:
             raise HTTPException(status_code=404, detail="Pitch not found")
+
+        pitch = response.data[0]
 
         # Generate email template
         service = get_pitch_service()
@@ -474,10 +535,23 @@ async def generate_interview_prep(
         Interview preparation guide
     """
     try:
-        # Retrieve stored pitch
-        pitch = pitch_storage.get(request.pitch_id)
-        if not pitch:
+        # Retrieve pitch from database
+        from api.utils.database import get_supabase_service_client
+
+        supabase = get_supabase_service_client()
+        response = (
+            supabase.table("pitch_history")
+            .select("*")
+            .eq("pitch_id", request.pitch_id)
+            .eq("user_id", current_user.get("user_id"))
+            .limit(1)
+            .execute()
+        )
+
+        if not response or not response.data:
             raise HTTPException(status_code=404, detail="Pitch not found")
+
+        pitch = response.data[0]
 
         # Get company research if available
         company_domain = pitch.get("company_domain")
@@ -541,10 +615,22 @@ async def get_pitch_quality(
         Quality scores and improvement suggestions
     """
     try:
-        # Retrieve stored pitch
-        pitch = pitch_storage.get(pitch_id)
-        if not pitch:
+        # Retrieve pitch from database
+        from api.utils.database import get_supabase_service_client
+
+        supabase = get_supabase_service_client()
+        response = (
+            supabase.table("pitch_history")
+            .select("*")
+            .eq("pitch_id", pitch_id)
+            .limit(1)
+            .execute()
+        )
+
+        if not response or not response.data:
             raise HTTPException(status_code=404, detail="Pitch not found")
+
+        pitch = response.data[0]
 
         # Calculate quality scores
         service = get_pitch_service()

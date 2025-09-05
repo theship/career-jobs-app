@@ -15,8 +15,7 @@ from api.services.activity_logger import activity_logger
 from api.services.auth import get_current_user
 from api.services.experiments import ExperimentConfig, ExperimentTracker
 from api.services.score_explainer import ScoreExplainer
-from api.utils.database import get_supabase_client
-from api.utils.vector_utils import ensure_vector_format, parse_pgvector_string
+from api.utils.vector_utils import parse_pgvector_string
 from scoring_engine.ranker import JobRanker, JobScore, ScoringWeights
 
 logger = logging.getLogger(__name__)
@@ -823,12 +822,10 @@ async def export_scores(
             posted_at = None
             if job.get("posted_at"):
                 try:
-                    from datetime import datetime
-
                     posted_at = datetime.fromisoformat(
                         job["posted_at"].replace("Z", "+00:00")
                     )
-                except:
+                except (ValueError, TypeError):
                     pass
 
             score = JobScore(
@@ -949,7 +946,10 @@ async def optimize_scoring_weights(
         "sweep_id": sweep_id,
         "project": tracker.project_name,
         "config": sweep_config,
-        "instructions": f"Run sweep agent with: wandb agent {tracker.entity}/{tracker.project_name}/{sweep_id}",
+        "instructions": (
+            f"Run sweep agent with: wandb agent "
+            f"{tracker.entity}/{tracker.project_name}/{sweep_id}"
+        ),
     }
 
 

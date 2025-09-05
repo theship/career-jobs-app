@@ -64,6 +64,7 @@ flowchart TD
 
 - **FastAPI**: Python web framework with automatic OpenAPI docs
 - **Supabase**: Postgres database with Auth, Storage, and pgvector
+- **Redis** (REQUIRED): Caching, rate limiting, and security features
 - **OpenAI API**: Text embeddings and structured outputs
 - **pdfminer.six**: PDF text extraction
 - **rapidfuzz**: Fuzzy string matching for skill extraction
@@ -358,16 +359,25 @@ GET  /api/v1/scores/export       - Download scores as CSV
 
 ## Security Considerations
 
+### Required Security Infrastructure
+
+- **Redis**: REQUIRED for complete security implementation
+  - Replay attack prevention via nonce tracking
+  - Distributed rate limiting across multiple workers
+  - Per-user API quota enforcement
+  - Secure session management
+
 ### Data Protection
 
 - Row-Level Security (RLS) for multi-tenant isolation
 - JWT verification via JWKS (no hardcoded secrets)
+- HMAC request signing for API authentication
 - File storage with SHA256 integrity checks
 - User-namespaced storage paths
 
 ### API Security
 
-- Rate limiting per user
+- Rate limiting per user (REQUIRES Redis for distribution)
 - Input validation with Pydantic models
 - Structured AI outputs to prevent injection
 - Source URL verification for research claims
@@ -679,19 +689,25 @@ The AIEWF setup ensures:
 ### Local Development
 
 ```bash
+# Start Redis (REQUIRED)
+redis-server  # or docker run -d -p 6379:6379 redis:7-alpine
+
 # Backend
-cd backend
+cd api
 pip install -r requirements.txt
-uvicorn main:app --reload
+python -m uvicorn api.main:app --reload
 
 # Frontend  
-cd frontend
+cd dashboard
 npm install
 npm run dev
 
 # Database
 supabase start
 supabase db reset
+
+# Verify all services
+python scripts/validate_dependencies.py  # Checks Redis, Supabase, etc.
 ```
 
 ### Testing Strategy

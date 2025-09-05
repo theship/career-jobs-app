@@ -8,29 +8,15 @@ import json
 import time
 from typing import Dict, Optional, Tuple
 
-import redis
 import structlog
 from fastapi import HTTPException, Request, status
 
+from api.utils.redis_client import get_redis_client
+
 logger = structlog.get_logger()
 
-# Redis connection for replay prevention
-# In production, use Redis Sentinel or Cluster for HA
-try:
-    redis_client = redis.Redis(
-        host="localhost",
-        port=6379,
-        db=0,
-        decode_responses=True,
-        socket_connect_timeout=1,
-        socket_timeout=1,
-    )
-    redis_client.ping()
-    REDIS_AVAILABLE = True
-except (redis.ConnectionError, redis.TimeoutError):
-    logger.warning("Redis not available - replay prevention disabled")
-    REDIS_AVAILABLE = False
-    redis_client = None
+# Get Redis client (REQUIRED for replay prevention)
+redis_client = get_redis_client()
 
 # Configuration
 HMAC_SECRET = None  # Set from environment
@@ -117,22 +103,21 @@ def verify_request_signature(
     except (ValueError, TypeError):
         return False, "Invalid timestamp format"
 
-    # Check for replay attack using nonce
-    if REDIS_AVAILABLE and redis_client:
-        nonce_key = f"nonce:{nonce}"
+    # Check for replay attack using nonce (REQUIRED)
+    nonce_key = f"nonce:{nonce}"
 
-        # Check if nonce was already used
-        if redis_client.exists(nonce_key):
-            logger.warning(
-                "Replay attack detected - nonce reuse",
-                nonce=nonce,
-                path=request.url.path,
-                ip=request.client.host if request.client else "unknown",
-            )
-            return False, "Nonce already used (replay attack)"
+    # Check if nonce was already used
+    if redis_client.exists(nonce_key):
+        logger.warning(
+            "Replay attack detected - nonce reuse",
+            nonce=nonce,
+            path=request.url.path,
+            ip=request.client.host if request.client else "unknown",
+        )
+        return False, "Nonce already used (replay attack)"
 
-        # Store nonce with expiry
-        redis_client.setex(nonce_key, NONCE_EXPIRY_SECONDS, timestamp)
+    # Store nonce with expiry
+    redis_client.setex(nonce_key, NONCE_EXPIRY_SECONDS, timestamp)
 
     # Generate expected signature
     body_str = body.decode("utf-8") if body else None
@@ -210,9 +195,6 @@ def cleanup_expired_nonces():
     Cleanup expired nonces from Redis (run periodically)
     This is handled automatically by Redis TTL, but can be called manually
     """
-    if not REDIS_AVAILABLE or not redis_client:
-        return
-
     # Redis handles expiry automatically with SETEX
     # This function is here for manual cleanup if needed
     pass
@@ -272,14 +254,11 @@ class HMACClient:
 # Monitoring and alerting
 def log_security_metrics():
     """Log security metrics for monitoring"""
-    if not REDIS_AVAILABLE or not redis_client:
-        return
-
     # Count nonces (active requests)
     nonce_count = len(redis_client.keys("nonce:*"))
 
     logger.info(
         "HMAC security metrics",
         active_nonces=nonce_count,
-        redis_available=REDIS_AVAILABLE,
+        redis_available=True,  # Always true now since Redis is required
     )

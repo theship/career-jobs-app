@@ -10,10 +10,6 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-
-from api.utils.security import limiter
 
 # Load environment variables
 load_dotenv()
@@ -27,9 +23,34 @@ async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
     # Startup
     logger.info("Starting Career Jobs App API...")
+
+    # Verify Redis connection (REQUIRED)
+    from api.utils.redis_client import verify_redis_connection
+
+    logger.info("Verifying Redis connection...")
+    verify_redis_connection()  # Will exit if Redis not available
+    logger.info("Redis connection verified ✓")
+
+    # Initialize HMAC security
+    from api.utils.config import get_settings
+    from api.utils.hmac_security import initialize_hmac
+
+    settings = get_settings()
+    if settings.hmac_secret:
+        initialize_hmac(settings.hmac_secret)
+        logger.info("HMAC security initialized ✓")
+    else:
+        logger.warning("HMAC_SECRET not configured - request signing disabled")
+
     yield
+
     # Shutdown
     logger.info("Shutting down Career Jobs App API...")
+
+    # Close Redis connection
+    from api.utils.redis_client import close_redis_connection
+
+    close_redis_connection()
 
 
 # Create FastAPI app
@@ -40,9 +61,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add rate limiter
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Rate limiting is now handled by Redis-based advanced_rate_limit.py
+# No need for slowapi anymore
 
 # Configure CORS - Locked down to only Next.js
 # In production, FastAPI should only accept requests from Next.js proxy
