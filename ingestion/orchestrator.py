@@ -27,8 +27,9 @@ class JobIngestionOrchestrator:
     def __init__(self):
         """Initialize orchestrator with connectors and services"""
         self.settings = get_settings()
+        # Use service role key for ingestion to bypass RLS
         self.supabase: Client = create_client(
-            self.settings.supabase_url, self.settings.supabase_anon_key
+            self.settings.supabase_url, self.settings.supabase_service_role_key
         )
         self.normalizer = JobNormalizer()
         self.connectors: Dict[str, ATSConnector] = {}
@@ -49,10 +50,21 @@ class JobIngestionOrchestrator:
 
     def _initialize_connectors(self):
         """Initialize ATS connectors based on configuration"""
-        # TODO: Load from config file or environment variables
-        # For now, initialize with example connectors
-
-        # Example: Initialize Greenhouse if configured
+        # Initialize public connectors (no API keys required)
+        try:
+            from ingestion.connectors.lever_public import LeverPublicConnector
+            from ingestion.connectors.greenhouse_public import GreenhousePublicConnector
+            
+            # Public connectors using companies.csv
+            self.connectors["lever_public"] = LeverPublicConnector()
+            logger.info("Initialized Lever public connector")
+            
+            self.connectors["greenhouse_public"] = GreenhousePublicConnector()
+            logger.info("Initialized Greenhouse public connector")
+        except ImportError as e:
+            logger.warning(f"Could not import public connectors: {e}")
+        
+        # Initialize authenticated connectors if API keys are configured
         if (
             hasattr(self.settings, "greenhouse_api_key")
             and self.settings.greenhouse_api_key
@@ -60,14 +72,14 @@ class JobIngestionOrchestrator:
             self.connectors["greenhouse"] = GreenhouseConnector(
                 api_key=self.settings.greenhouse_api_key
             )
-            logger.info("Initialized Greenhouse connector")
+            logger.info("Initialized Greenhouse connector (authenticated)")
 
         # Example: Initialize Lever if configured
         if hasattr(self.settings, "lever_api_key") and self.settings.lever_api_key:
             self.connectors["lever"] = LeverConnector(
                 api_key=self.settings.lever_api_key
             )
-            logger.info("Initialized Lever connector")
+            logger.info("Initialized Lever connector (authenticated)")
 
     async def generate_embedding(self, text: str) -> Optional[List[float]]:
         """Generate embedding vector for job text using OpenAI

@@ -477,9 +477,11 @@ career-jobs-app/
 │   ├── connectors/       # ATS-specific connectors
 │   │   ├── __init__.py
 │   │   ├── base.py       # Base connector class
-│   │   ├── greenhouse.py # Greenhouse API (implemented)
-│   │   └── lever.py      # Lever API (implemented)
-│   │       # Note: ashby.py not implemented yet
+│   │   ├── greenhouse.py # Greenhouse API (authenticated)
+│   │   ├── lever.py      # Lever API (authenticated)
+│   │   ├── greenhouse_public.py # ✅ Public API (no auth needed)
+│   │   ├── lever_public.py      # ✅ Public API (no auth needed)
+│   │   └── ashby.py      # Ashby API (planned)
 │   ├── normalizers/      # Data transformation
 │   │   ├── __init__.py
 │   │   └── normalizer.py # Job data normalizer
@@ -540,6 +542,7 @@ career-jobs-app/
 │   ├── ats_sources.yaml  # ATS connector configuration
 │   ├── settings.yaml     # Application settings
 │   ├── skills_vocab.csv  # Canonical skills list
+│   ├── target_companies.csv # ✅ Company list for public API ingestion
 │   ├── prompts/          # AI prompt templates
 │   │   ├── company_research.txt
 │   │   ├── pitch_generation.txt

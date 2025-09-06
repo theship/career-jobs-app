@@ -222,9 +222,23 @@ class JobRanker:
         job_required_skills = job_data.get("required_skills", [])
         job_preferred_skills = job_data.get("preferred_skills", [])
 
-        skills_score = self.skills_matcher.match_skills(
-            resume_skills, job_required_skills, job_preferred_skills
-        )
+        # Check if we have skills data
+        has_skills_data = bool(resume_skills) or bool(job_required_skills) or bool(job_preferred_skills)
+        
+        if has_skills_data:
+            skills_score = self.skills_matcher.match_skills(
+                resume_skills, job_required_skills, job_preferred_skills
+            )
+        else:
+            # No skills data available, create a neutral score
+            skills_score = SkillsScore(
+                exact_matches=[],
+                fuzzy_matches=[],
+                missing_required=[],
+                missing_preferred=[],
+                overlap_ratio=0.0,
+                weighted_score=0.0,  # Will redistribute weight
+            )
 
         # Calculate geographic score
         geo_score = self.geo_scorer.calculate_geo_score(
@@ -247,14 +261,32 @@ class JobRanker:
             posted_date = datetime.fromisoformat(posted_date.replace("Z", "+00:00"))
         recency_bonus = self.calculate_recency_bonus(posted_date)
 
-        # Calculate total score
-        total_score = (
-            self.weights.cosine_similarity * similarity_score.normalized_score
-            + self.weights.skills_overlap * skills_score.weighted_score
-            + self.weights.seniority_fit * seniority_fit
-            + self.weights.geographic_score * geo_score.score
-            + self.weights.recency_bonus * recency_bonus
-        )
+        # Calculate total score with dynamic weight redistribution
+        if not has_skills_data:
+            # Redistribute skills weight to other factors when no skills data
+            # Increase cosine similarity weight since it's our main signal
+            adjusted_weights = ScoringWeights(
+                cosine_similarity=self.weights.cosine_similarity + self.weights.skills_overlap * 0.7,
+                skills_overlap=0.0,  # No skills data
+                seniority_fit=self.weights.seniority_fit + self.weights.skills_overlap * 0.1,
+                geographic_score=self.weights.geographic_score + self.weights.skills_overlap * 0.1,
+                recency_bonus=self.weights.recency_bonus + self.weights.skills_overlap * 0.1,
+            )
+            total_score = (
+                adjusted_weights.cosine_similarity * similarity_score.normalized_score
+                + adjusted_weights.seniority_fit * seniority_fit
+                + adjusted_weights.geographic_score * geo_score.score
+                + adjusted_weights.recency_bonus * recency_bonus
+            )
+        else:
+            # Use normal weights when skills data is available
+            total_score = (
+                self.weights.cosine_similarity * similarity_score.normalized_score
+                + self.weights.skills_overlap * skills_score.weighted_score
+                + self.weights.seniority_fit * seniority_fit
+                + self.weights.geographic_score * geo_score.score
+                + self.weights.recency_bonus * recency_bonus
+            )
 
         return JobScore(
             job_id=job_data.get("job_id", ""),

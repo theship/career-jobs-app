@@ -466,6 +466,14 @@ describe('Resume Upload', () => {
 - Backend acceptance tests are fully implemented and passing (17/17 tests in `test_job_ingestion.py`)
 - Frontend acceptance tests moved to Phase 7 when UI components will be implemented
 
+**2025-09-06 Update - Public API Ingestion**:
+- Added `PublicLeverConnector` and `PublicGreenhouseConnector` for keyless job ingestion
+- Created `config/target_companies.csv` for configurable company list (configuration data, not runtime data)
+- Successfully ingested 39+ real jobs from companies like Spotify, Stripe, Pinterest
+- All jobs now have embeddings generated via OpenAI API
+- Implemented proper security: job_postings table protected by RLS (service-role only)
+- Note: Company list is in `config/` directory alongside other configuration files, separate from `config/prompts/company_research.txt` which is for AI pitch generation
+
 #### Objectives
 * ✅ Implement ATS connectors for job fetching
 * ✅ Create job normalization pipeline

@@ -228,13 +228,14 @@ async def upload_resume(
             skills_count = vocab_response.data[0]["skills_count"]
             logger.info(f"Using custom skills vocabulary with {skills_count} skills")
 
-            # Update vocab usage stats
-            supabase.table("user_skills_vocab").update(
-                {
-                    "last_used_at": datetime.utcnow().isoformat(),
-                    "usage_count": vocab_response.data[0].get("usage_count", 0) + 1,
-                }
-            ).eq("user_id", user_id).execute()
+            # Update vocab usage stats (commented out - columns don't exist yet)
+            # TODO: Add last_used_at and usage_count columns to user_skills_vocab table
+            # supabase.table("user_skills_vocab").update(
+            #     {
+            #         "last_used_at": datetime.utcnow().isoformat(),
+            #         "usage_count": vocab_response.data[0].get("usage_count", 0) + 1,
+            #     }
+            # ).eq("user_id", user_id).execute()
 
         # Extract skills using multi-stage pipeline with optional custom vocab
         logger.info("Extracting skills from resume")

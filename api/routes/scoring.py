@@ -132,16 +132,24 @@ async def get_resume_data(resume_id: str, supabase):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase):
-    """Fetch jobs data and embeddings from database"""
+async def get_jobs_data(job_ids: Optional[List[str]], limit: int, supabase_param):
+    """Fetch jobs data and embeddings from database
+    
+    Note: Always uses service client to bypass RLS since jobs need to be 
+    accessible for scoring regardless of user permissions.
+    """
     try:
-        # Build query
-        query = supabase.table("job_postings").select("*")
+        # ALWAYS use service client for jobs to bypass RLS
+        from api.utils.database import get_supabase_service_client
+        supabase = get_supabase_service_client()
+        
+        # Build query - MUST have embeddings for scoring
+        query = supabase.table("job_postings").select("*").not_.is_("embedding", "null")
 
         if job_ids:
             query = query.in_("job_id", job_ids)
         else:
-            # Get recent jobs
+            # Get recent jobs with embeddings
             query = query.order("posted_at", desc=True)
 
         query = query.limit(limit)
@@ -383,7 +391,10 @@ async def run_scoring(
         )
         jobs_fetch_time = int((time.time() - jobs_fetch_start) * 1000)
 
-        logger.info(f"Fetched {len(jobs_data)} jobs in {jobs_fetch_time}ms")
+        # CRITICAL DEBUG
+        print(f"DEBUG: Fetched {len(jobs_data)} jobs with embeddings for resume {request.resume_id}")
+        logger.info(f"Fetched {len(jobs_data)} jobs with embeddings in {jobs_fetch_time}ms for resume {request.resume_id}")
+        
         await activity_logger.update_action_progress(
             log_id=log_id,
             status="in_progress",
@@ -395,6 +406,7 @@ async def run_scoring(
         )
 
         if not jobs_data:
+            print(f"DEBUG: No jobs found for scoring! Returning empty results.")
             await activity_logger.log_action_complete(
                 log_id=log_id,
                 success=True,
@@ -436,6 +448,10 @@ async def run_scoring(
             min_score_threshold=request.min_score,
         )
         scoring_time = int((time.time() - scoring_start) * 1000)
+        
+        # CRITICAL DEBUG
+        print(f"DEBUG: Ranking completed: {len(scores)} scores from {len(jobs_data)} jobs")
+        logger.info(f"Ranking completed for resume {request.resume_id}: {len(scores)} scores generated from {len(jobs_data)} jobs")
 
         # Log scoring statistics
         if scores:
@@ -506,14 +522,21 @@ async def run_scoring(
                 processing_time_ms,
             )
 
-        # Store scoring results in database
-        background_tasks.add_task(
-            store_scoring_results,
-            request.resume_id,
-            scores,
-            current_user["user_id"],
-            supabase,
-        )
+        # Store scoring results in database (synchronously for reliability)
+        # Note: Was using background_tasks but they were failing silently
+        logger.info(f"About to store {len(scores)} scores for resume {request.resume_id}")
+        try:
+            store_scoring_results(
+                request.resume_id,
+                scores,
+                current_user["user_id"],
+                supabase,
+            )
+            logger.info(f"Successfully stored scores for resume {request.resume_id}")
+        except Exception as e:
+            logger.error(f"Failed to store scores for resume {request.resume_id}: {e}", exc_info=True)
+            # Don't fail the whole request if storage fails
+            # The scores are still returned to the user
 
         # Log successful completion
         await activity_logger.log_action_complete(
@@ -954,43 +977,43 @@ async def optimize_scoring_weights(
 
 
 # Background tasks
-async def store_scoring_results(
+def store_scoring_results(
     resume_id: str, scores: List[JobScore], user_id: str, supabase
 ):
-    """Store scoring results in database for caching and history"""
+    """Store scoring results in database for caching and history
+    
+    Note: This is a regular function, not async, because FastAPI's 
+    BackgroundTasks handles it in a thread pool.
+    """
     try:
-        # First, check which scores already exist
-        existing_scores = (
-            supabase.table("scores")
-            .select("job_id")
-            .eq("resume_id", resume_id)
-            .eq("user_id", user_id)
-            .execute()
-        )
-        existing_job_ids = {score["job_id"] for score in existing_scores.data or []}
-
+        # Delete existing scores for this resume-user combination
+        # This ensures we always have fresh scores
+        supabase.table("scores").delete().eq("resume_id", resume_id).eq("user_id", user_id).execute()
+        
         records = []
-        for score in scores[:50]:  # Store top 50
-            # Skip if score already exists for this job
-            if score.job_id in existing_job_ids:
-                continue
-
+        # Store all scores, not just top 50 - let the frontend filter
+        for score in scores:
             record = {
                 "resume_id": resume_id,
                 "job_id": score.job_id,
                 "user_id": user_id,
-                "cosine_sim": score.cosine_sim,
-                "skill_overlap": score.skill_overlap,
-                "seniority_fit": score.seniority_fit,
-                "geodist_km": score.geodist_km if score.geodist_km else None,
-                "recency_bonus": score.recency_bonus,
-                "total_score": score.total_score,
+                "cosine_sim": float(score.cosine_sim),
+                "skill_overlap": float(score.skill_overlap),
+                "seniority_fit": float(score.seniority_fit),
+                "geodist_km": float(score.geodist_km) if score.geodist_km else None,
+                "recency_bonus": float(score.recency_bonus),
+                "total_score": float(score.total_score),
             }
             records.append(record)
-
+        
         if records:
-            supabase.table("scores").insert(records).execute()
-            logger.info(f"Stored {len(records)} new scores for resume {resume_id}")
-
+            # Insert in batches to avoid timeout
+            batch_size = 50
+            for i in range(0, len(records), batch_size):
+                batch = records[i:i+batch_size]
+                supabase.table("scores").insert(batch).execute()
+            logger.info(f"Stored {len(records)} scores for resume {resume_id}")
+        else:
+            logger.warning(f"No scores to store for resume {resume_id}")
     except Exception as e:
-        logger.error(f"Failed to store scoring results: {e}")
+        logger.error(f"Failed to store scoring results: {e}", exc_info=True)
