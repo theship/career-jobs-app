@@ -173,6 +173,7 @@ User Data Protection (supabase/schema.sql):
 ALTER TABLE app_user ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resumes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_postings ENABLE ROW LEVEL SECURITY;  -- Added 2025-09-06
 
 -- Users can only access their own data
 CREATE POLICY "Users can view own resumes" ON resumes
@@ -180,6 +181,9 @@ CREATE POLICY "Users can view own resumes" ON resumes
 
 CREATE POLICY "Users can insert own resumes" ON resumes
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Job postings: NO POLICIES (service role only)
+-- This ensures job data is only accessible via backend API with SERVICE_ROLE_KEY
 
 ## 6. Authenticated Database Connections
 
@@ -232,6 +236,20 @@ The updated implementation enforces a single authentication path with these laye
 - Development friendly - Clear separation of concerns
 
 ---
+
+## Job Data Protection Implementation (2025-09-06)
+
+The job_postings table follows a service-only access pattern:
+
+1. **Database Level**: RLS enabled with NO policies - only SERVICE_ROLE_KEY can access
+2. **API Level**: All job endpoints require SERVICE_SECRET authentication
+3. **Data Access**: Uses get_supabase_service_client() to bypass RLS
+
+This ensures:
+- No direct client access to job data (prevents scraping)
+- All access goes through authenticated API layer
+- Business logic controls what users see
+- Protects competitive advantage of curated job data and embeddings
 
 # Multiple defensive layers and comprehensive coverage implemented
 

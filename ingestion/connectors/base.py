@@ -171,6 +171,28 @@ class ATSConnector(ABC):
         """
         pass
 
+    def filter_last_7_days(self, jobs: List[JobListing]) -> List[JobListing]:
+        """
+        Filter jobs to only those posted in the last 7 days
+
+        Args:
+            jobs: List of JobListing objects
+
+        Returns:
+            Filtered list of jobs from the last 7 days
+        """
+        from datetime import datetime, timedelta, timezone
+
+        now = datetime.now(timezone.utc)
+        seven_days_ago = now - timedelta(days=7)
+
+        filtered = []
+        for job in jobs:
+            if job.posted_at and job.posted_at >= seven_days_ago:
+                filtered.append(job)
+
+        return filtered
+
     @abstractmethod
     async def fetch_job_details(self, job_id: str) -> JobListing:
         """

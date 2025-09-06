@@ -246,11 +246,19 @@ Once the workflow completes, `make dev` will start much faster (the sandbox pull
 - **AI Integration**: OpenAI for embeddings, company research, and pitch generation
 - **Testing**: 77 tests passing across all components
 
+### 🔄 Recent Improvements
+- [x] Implement job ingestion with proper embedding service ✅ (OpenAI embeddings working)
+- [x] Add public API connectors for Lever/Greenhouse ✅ (no keys required)
+- [x] Implement proper RLS security for job data ✅ (service-role only access)
+
 ### 🔄 Future Enhancements
 - **Email Notifications**: Integrate Resend/SendGrid for match alerts
 - **Weave Integration**: Add LLM observability for production monitoring
 - **Next.js ESLint Migration**: Required for Next.js 16 compatibility
 - **Redis HA**: Add Sentinel or cluster for production scaling
+- **Job Cleanup Logic**: Add cleanup based on business rules
+- **Export System Tests**: Implement Phase 6 tests
+- **API Documentation**: Add comprehensive API docs
 
 ### 📚 Documentation
 - **Architecture Overview**: [`docs/project-structure-overview.md`](./docs/project-structure-overview.md)

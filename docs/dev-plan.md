@@ -466,6 +466,14 @@ describe('Resume Upload', () => {
 - Backend acceptance tests are fully implemented and passing (17/17 tests in `test_job_ingestion.py`)
 - Frontend acceptance tests moved to Phase 7 when UI components will be implemented
 
+**2025-09-06 Update - Public API Ingestion**:
+- Added `PublicLeverConnector` and `PublicGreenhouseConnector` for keyless job ingestion
+- Created `config/target_companies.csv` for configurable company list (configuration data, not runtime data)
+- Successfully ingested 39+ real jobs from companies like Spotify, Stripe, Pinterest
+- All jobs now have embeddings generated via OpenAI API
+- Implemented proper security: job_postings table protected by RLS (service-role only)
+- Note: Company list is in `config/` directory alongside other configuration files, separate from `config/prompts/company_research.txt` which is for AI pitch generation
+
 #### Objectives
 * ✅ Implement ATS connectors for job fetching
 * ✅ Create job normalization pipeline
@@ -1310,6 +1318,50 @@ With all phases complete, consider these enhancements:
    ```
 3. Update `package.json` script from `"lint": "next lint"` to `"lint": "eslint . --ext .js,.jsx,.ts,.tsx"`
 4. Run migration codemod: `npx @next/codemod@canary next-lint-to-eslint-cli .`
+
+### Automated Job Ingestion Strategy
+**Priority: HIGH** - System needs fresh job data to remain valuable
+
+#### Design Considerations Before Implementation
+1. **Job Lifecycle Management**
+   - Define retention policy (e.g., keep jobs for 90 days after posting)
+   - Handle job expiration (mark as expired vs delete)
+   - Preserve user-saved jobs even if expired from source
+   
+2. **User Interaction Features Needed**
+   - "Save Job" functionality for users to bookmark positions
+   - "Applied" status tracking
+   - Hide/dismiss jobs user isn't interested in
+   - Notification preferences for new matches
+
+3. **Data Management Strategy**
+   - Create `user_saved_jobs` table for bookmarked positions
+   - Add `is_active` flag to job_postings (don't delete, mark inactive)
+   - Track `last_seen_at` from source to detect removed jobs
+   - Consider archival strategy for old jobs (separate table?)
+
+#### Implementation Options
+1. **GitHub Actions with Cron** (Recommended for simplicity)
+   ```yaml
+   on:
+     schedule:
+       - cron: '0 2 * * *'  # Run at 2 AM UTC daily
+   ```
+   - Pros: Free, easy to monitor, integrated with repo
+   - Cons: Limited to 6-hour runtime, public visibility of runs
+
+2. **Supabase Edge Functions** (Alternative)
+   - Pros: Runs in same infrastructure as database
+   - Cons: Requires additional setup and monitoring
+
+3. **External Service** (Render/Railway cron)
+   - Pros: More control, longer runtimes
+   - Cons: Additional service to manage
+
+#### Required Secrets for Automation
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` 
+- `OPENAI_API_KEY`
 
 ### Minor Code TODOs Remaining
 * **Ingestion Configuration** (ingestion/orchestrator.py:47): Load scrapers from config file or environment variables instead of hardcoding

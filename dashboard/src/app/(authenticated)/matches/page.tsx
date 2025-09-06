@@ -167,17 +167,16 @@ export default function MatchesPage() {
       if (result.results && result.results.length > 0) {
         saveCachedMatches(selectedResume, result.results)
         showSuccess(`Found ${result.results.length} job matches!`, 'Scoring Complete')
-      } else if (!hasCustomSkills) {
-        // No matches and no custom skills - suggest uploading skills vocab
-        const uploadSkills = await confirm(
-          'No job matches found. This might be because the system needs your custom skills vocabulary to better understand your expertise. Would you like to upload a custom skills CSV now?',
-          'Upload Skills Vocabulary?'
-        )
-        if (uploadSkills) {
-          setShowSkillsUpload(true)
-        }
       } else {
-        showInfo('No matches found with current criteria. Try adjusting your resume or waiting for more jobs to be added.', 'No Matches')
+        // No matches found
+        if (!hasCustomSkills) {
+          showInfo(
+            'No strong matches found. The system matched your resume using AI embeddings, but uploading a custom skills vocabulary CSV could improve accuracy by identifying specific technical skills.',
+            'Matches Generated'
+          )
+        } else {
+          showInfo('No matches found with current criteria. Try adjusting your resume or waiting for more jobs to be added.', 'No Matches')
+        }
       }
     } catch (error: any) {
       console.error('Failed to run scoring:', error)
@@ -223,6 +222,20 @@ export default function MatchesPage() {
         <p className="text-text-secondary">
           Generate and manage job match scores based on your resume
         </p>
+        {!hasCustomSkills && (
+          <div className="mt-4 p-3 bg-surface border border-border rounded">
+            <p className="text-sm text-text-secondary">
+              <strong className="text-accent-red">Tip:</strong> Upload a custom skills vocabulary CSV to improve matching accuracy. 
+              The system will still match jobs using AI embeddings, but skills matching helps identify specific technical requirements.
+              <button
+                onClick={() => setShowSkillsUpload(true)}
+                className="ml-2 text-accent-red hover:text-accent-red-light underline hover:no-underline transition-colors"
+              >
+                Upload Skills
+              </button>
+            </p>
+          </div>
+        )}
 
         {/* Resume Selection and Actions */}
         <div className="flex gap-4 items-end mt-6">

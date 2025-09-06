@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from api.services.auth import get_current_user
-from api.utils.database import get_supabase_client
+from api.utils.database import get_supabase_service_client
 from ingestion.orchestrator import JobIngestionOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -76,13 +76,14 @@ class IngestionResponse(BaseModel):
     details: dict
 
 
-# Public endpoints (no auth required for job browsing)
+# Protected endpoints (require service authentication)
 @router.get("", response_model=List[JobResponse])
 async def list_jobs(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     seniority: Optional[str] = Query(None),
     remote_type: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     List all jobs with optional filters
@@ -96,7 +97,8 @@ async def list_jobs(
     Returns:
         List of jobs
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS for job data
+    supabase = get_supabase_service_client()
 
     # Build query
     query = supabase.table("job_postings").select("*")
@@ -118,7 +120,7 @@ async def list_jobs(
 
 
 @router.get("/{job_id}", response_model=JobResponse)
-async def get_job(job_id: str):
+async def get_job(job_id: str, current_user: dict = Depends(get_current_user)):
     """
     Get a specific job by ID
 
@@ -128,7 +130,8 @@ async def get_job(job_id: str):
     Returns:
         Job details
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS for job data
+    supabase = get_supabase_service_client()
 
     response = supabase.table("job_postings").select("*").eq("job_id", job_id).execute()
 
@@ -139,7 +142,9 @@ async def get_job(job_id: str):
 
 
 @router.post("/search", response_model=List[JobResponse])
-async def search_jobs(request: JobSearchRequest):
+async def search_jobs(
+    request: JobSearchRequest, current_user: dict = Depends(get_current_user)
+):
     """
     Search jobs with advanced filters
 
@@ -149,7 +154,8 @@ async def search_jobs(request: JobSearchRequest):
     Returns:
         List of matching jobs
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS for job data
+    supabase = get_supabase_service_client()
 
     # Build query
     query = supabase.table("job_postings").select("*")
@@ -198,7 +204,11 @@ async def search_jobs(request: JobSearchRequest):
 
 
 @router.get("/similar/{job_id}", response_model=List[JobResponse])
-async def find_similar_jobs(job_id: str, limit: int = Query(10, ge=1, le=50)):
+async def find_similar_jobs(
+    job_id: str,
+    limit: int = Query(10, ge=1, le=50),
+    current_user: dict = Depends(get_current_user),
+):
     """
     Find jobs similar to a given job
 
@@ -209,7 +219,8 @@ async def find_similar_jobs(job_id: str, limit: int = Query(10, ge=1, le=50)):
     Returns:
         List of similar jobs
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS for job data
+    supabase = get_supabase_service_client()
 
     # Get reference job
     ref_response = (
@@ -374,14 +385,15 @@ async def cleanup_jobs(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/stats/summary", response_model=dict)
-async def get_job_stats():
+async def get_job_stats(current_user: dict = Depends(get_current_user)):
     """
     Get job statistics summary
 
     Returns:
         Job statistics
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS for job data
+    supabase = get_supabase_service_client()
 
     # Get total jobs
     total_response = (

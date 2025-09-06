@@ -1,0 +1,84 @@
+ALEX CHEN
+Senior Software Engineer | Full Stack Developer | Machine Learning Enthusiast
+
+Email: alex.chen.tech@example.com | Phone: (555) 123-4567
+LinkedIn: linkedin.com/in/alexchen | GitHub: github.com/alexchen
+Location: San Francisco, CA (Open to remote)
+
+PROFESSIONAL SUMMARY
+Experienced Senior Software Engineer with 8+ years building scalable distributed systems and data platforms. 
+Passionate about machine learning, cloud infrastructure, and creating exceptional user experiences. 
+Proven track record of leading cross-functional teams and delivering high-impact products at scale.
+
+TECHNICAL SKILLS
+Programming Languages: Python, JavaScript, TypeScript, Java, Go, Scala, SQL, Rust
+Frontend: React, Next.js, Vue.js, Angular, Redux, GraphQL, Webpack, CSS3, HTML5, Tailwind CSS
+Backend: Node.js, Django, Flask, FastAPI, Spring Boot, Express.js, REST APIs, GraphQL
+Databases: PostgreSQL, MySQL, MongoDB, Redis, Cassandra, DynamoDB, Elasticsearch, Snowflake
+Cloud & Infrastructure: AWS (EC2, S3, Lambda, RDS, ECS), GCP, Azure, Docker, Kubernetes, Terraform
+Data Engineering: Apache Spark, Kafka, Airflow, Databricks, ETL pipelines, Data warehousing
+Machine Learning: TensorFlow, PyTorch, Scikit-learn, Pandas, NumPy, MLflow, Feature engineering
+DevOps: CI/CD, Jenkins, GitHub Actions, GitLab CI, Monitoring, Logging, Prometheus, Grafana
+Tools: Git, Jira, Confluence, Datadog, New Relic, Segment, Amplitude, Figma
+
+PROFESSIONAL EXPERIENCE
+
+Senior Software Engineer | TechCorp Solutions
+San Francisco, CA | January 2020 - Present
+
+• Led development of real-time data pipeline processing 100M+ events daily using Kafka and Spark
+• Architected microservices platform reducing deployment time by 70% using Kubernetes and GitOps
+• Built machine learning recommendation system increasing user engagement by 45%
+• Mentored team of 5 junior engineers and established engineering best practices
+• Implemented observability stack with Prometheus and Grafana reducing incident response time by 60%
+• Designed and built REST APIs serving 10M+ requests per day with 99.9% uptime
+• Collaborated with product managers and designers to deliver features impacting 2M+ users
+
+Software Engineer II | DataStream Inc.
+San Francisco, CA | June 2017 - December 2019
+
+• Developed full-stack web applications using React, Node.js, and PostgreSQL
+• Built data visualization dashboards processing terabytes of customer analytics data
+• Implemented A/B testing framework increasing conversion rates by 25%
+• Optimized database queries reducing page load times by 50%
+• Contributed to open-source projects and internal developer tools
+• Participated in on-call rotation and incident response
+
+Software Engineer | StartupXYZ
+Palo Alto, CA | August 2015 - May 2017
+
+• Full-stack development using Python/Django and React
+• Built payment processing system handling $10M+ in transactions
+• Implemented automated testing increasing code coverage from 40% to 85%
+• Developed mobile-responsive UI components used across all products
+• Integrated third-party APIs including Stripe, Twilio, and SendGrid
+
+EDUCATION
+
+Master of Science in Computer Science
+Stanford University | 2013 - 2015
+Focus: Machine Learning and Distributed Systems
+
+Bachelor of Science in Computer Science
+University of California, Berkeley | 2009 - 2013
+Summa Cum Laude, GPA: 3.9/4.0
+
+PROJECTS & ACHIEVEMENTS
+
+• Open Source Contributor: Active contributor to React, TensorFlow, and Apache Spark projects
+• Tech Blog: Write technical articles on Medium with 10K+ followers
+• Hackathon Winner: First place at TechCrunch Disrupt Hackathon 2022
+• Conference Speaker: Presented at ReactConf and PyData on scaling ML systems
+• Patents: Co-inventor on 2 patents for distributed caching algorithms
+
+CERTIFICATIONS
+
+• AWS Certified Solutions Architect - Professional
+• Google Cloud Professional Data Engineer
+• Kubernetes Certified Administrator (CKA)
+• Databricks Certified Associate Developer
+
+INTERESTS
+
+Machine Learning, Distributed Systems, Cloud Architecture, Developer Tools, Music Technology, 
+Data Visualization, Open Source, Technical Writing, Mentoring
