@@ -1,5 +1,11 @@
 # Career Jobs App - Project Structure Overview
 
+## Related Documentation
+- **Development Plan & Status**: [`dev-plan.md`](./dev-plan.md)
+- **Security Implementation**: [`security-overview.md`](./security-overview.md)
+- **Quick Start Guide**: [`../README.md`](../README.md)
+- **Dev Context**: [`../CLAUDE.md`](../CLAUDE.md)
+
 ## Overview
 
 The Career Jobs App is a production-grade system that ingests company-hosted job postings, matches them against user résumés using semantic search and multi-factor scoring, generates company-specific research, and produces personalized pitch recommendations.
@@ -60,23 +66,25 @@ flowchart TD
 
 ## Technology Stack
 
-### Backend
+### Backend (Implemented)
 
 - **FastAPI**: Python web framework with automatic OpenAPI docs
 - **Supabase**: Postgres database with Auth, Storage, and pgvector
-- **Redis** (REQUIRED): Caching, rate limiting, and security features
-- **OpenAI API**: Text embeddings and structured outputs
+- **Redis** (REQUIRED): Caching, rate limiting, replay attack prevention, and security features
+- **OpenAI API**: Text embeddings (text-embedding-3-large) and structured outputs
 - **pdfminer.six**: PDF text extraction
+- **python-docx**: DOCX file support
 - **rapidfuzz**: Fuzzy string matching for skill extraction
-- **onnxruntime**: Optional offline NER model support
-- **Weights & Biases**: Experiment tracking, hyperparameter optimization, dataset lineage
-- **Weave**: LLM observability, evaluation, and quality monitoring
+- **Weights & Biases**: Experiment tracking and hyperparameter optimization (integrated)
+- **HMAC Security**: Request signing and validation
 
-### Frontend
+### Frontend (Implemented)
 
-- **Next.js** (recommended): React framework with SSR support
-- **Supabase Auth**: JWT-based authentication
-- **Tailwind CSS**: Utility-first styling
+- **Next.js 15.5.0**: React framework with App Router (latest stable version)
+- **Supabase Auth**: JWT-based authentication with JWKS verification
+- **Tailwind CSS**: Dark theme with red accents (as per design brief)
+- **TypeScript**: Type-safe development
+- **React Hooks**: State management with localStorage caching
 
 ### Infrastructure
 
@@ -413,9 +421,9 @@ career-jobs-app/
     └── dev.sh             # Sandbox creation/resumption logic
 ```
 
-### Planned Application Structure
+### Actual Implementation Structure
 
-Based on successful AIEWF patterns from civic-steward-visionboard:
+Current implementation as of 2025-09-05:
 
 ```text
 career-jobs-app/
@@ -425,34 +433,39 @@ career-jobs-app/
 │   ├── main.py           # FastAPI application entry point
 │   ├── models/           # Database models and schemas
 │   │   ├── __init__.py
-│   │   ├── jobs.py       # Job posting models
 │   │   ├── resumes.py    # Resume models  
-│   │   ├── scores.py     # Scoring models
-│   │   └── research.py   # Company research models
+│   │   ├── security.py   # Security models (HMAC, rate limits)
+│   │   └── users.py      # User models
 │   ├── routes/           # API route handlers
 │   │   ├── __init__.py
 │   │   ├── auth.py       # Authentication routes
 │   │   ├── jobs.py       # Job CRUD and search
+│   │   ├── pitch.py      # Pitch generation endpoints
+│   │   ├── pitch_history.py # Pitch history management
+│   │   ├── research.py   # Company research endpoints
 │   │   ├── resumes.py    # Resume upload and processing
-│   │   ├── scoring.py    # Job scoring, ranking, and CSV export
-│   │   ├── research.py   # ✅ Company research endpoints (Phase 5)
-│   │   └── pitch.py      # ✅ Pitch generation endpoints (Phase 5)
+│   │   └── scoring.py    # Job scoring, ranking, and CSV export
 │   ├── services/         # Business logic layer
 │   │   ├── __init__.py
-│   │   ├── auth.py       # JWT verification
-│   │   ├── embeddings.py # OpenAI embedding service
-│   │   ├── skill_extractor.py # Multi-stage skill extraction (dict/fuzzy/LLM)
-│   │   ├── storage.py    # File storage service
-│   │   ├── research.py   # ✅ Company research service (Phase 5)
-│   │   ├── pitch_generator.py # ✅ Pitch generation service (Phase 5)
+│   │   ├── activity_logger.py # User activity tracking
+│   │   ├── auth.py       # JWT/JWKS verification
+│   │   ├── cache.py      # Redis caching implementation
+│   │   ├── experiments.py # W&B experiment tracking
+│   │   ├── pitch_generator.py # Pitch generation service
+│   │   ├── research.py   # Company research service
+│   │   ├── resume_processor.py # Resume processing & embeddings
 │   │   ├── score_explainer.py # Score explanation service
-│   │   └── experiments.py # W&B experiment tracking
+│   │   └── storage.py    # Supabase storage service
 │   ├── utils/            # Shared utilities
 │   │   ├── __init__.py
-│   │   ├── database.py   # Supabase client connections  
+│   │   ├── advanced_rate_limit.py # Advanced rate limiting
 │   │   ├── config.py     # Application configuration
-│   │   └── cache.py      # Redis/memory caching (placeholder)
-│   └── static/           # Static assets (favicons, etc.)
+│   │   ├── database.py   # Supabase client connections
+│   │   ├── hmac_security.py # HMAC request signing
+│   │   ├── redis_client.py # Redis connection manager
+│   │   ├── security.py   # Security utilities
+│   │   └── vector_utils.py # Vector operations
+│   └── static/           # (empty - no static assets yet)
 ├── scoring_engine/        # ✅ IMPLEMENTED - Core matching logic
 │   ├── __init__.py
 │   ├── similarity.py     # Vector similarity calculations
@@ -464,83 +477,98 @@ career-jobs-app/
 │   ├── connectors/       # ATS-specific connectors
 │   │   ├── __init__.py
 │   │   ├── base.py       # Base connector class
-│   │   ├── greenhouse.py # Greenhouse API
-│   │   ├── lever.py      # Lever API
-│   │   └── ashby.py      # Ashby API
+│   │   ├── greenhouse.py # Greenhouse API (implemented)
+│   │   └── lever.py      # Lever API (implemented)
+│   │       # Note: ashby.py not implemented yet
 │   ├── normalizers/      # Data transformation
 │   │   ├── __init__.py
-│   │   └── job_normalizer.py
+│   │   └── normalizer.py # Job data normalizer
 │   └── orchestrator.py   # Ingestion scheduling/management
-├── config/
-│   └── skills_vocab.csv  # canonical skills list (see dev-plan.md / Phase 2)
-├── dashboard/            # ✅ IMPLEMENTED - Next.js frontend
+├── dashboard/            # ✅ IMPLEMENTED - Next.js 15.5.0 frontend
 │   ├── package.json
 │   ├── next.config.ts
 │   ├── tsconfig.json
+│   ├── tailwind.config.ts
 │   ├── src/
-│   │   ├── app/          # Next.js 13+ app directory
+│   │   ├── app/          # Next.js App Router
 │   │   │   ├── layout.tsx
 │   │   │   ├── page.tsx  # Landing page
-│   │   │   ├── dashboard/ # Main dashboard
-│   │   │   ├── login/    # Authentication
-│   │   │   ├── register/ # User registration
-│   │   │   ├── jobs/     # Job browsing/details
-│   │   │   ├── matches/  # ✅ Job matches table (Phase 6)
-│   │   │   └── profile/  # User profile/resume
-│   │   ├── components/   # React components
-│   │   │   ├── ui/       # Reusable UI components
+│   │   │   ├── dashboard/
+│   │   │   │   └── page.tsx
+│   │   │   ├── jobs/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [id]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── login/
+│   │   │   │   └── page.tsx
+│   │   │   ├── matches/
+│   │   │   │   └── page.tsx
+│   │   │   ├── profile/
+│   │   │   │   └── page.tsx
+│   │   │   └── register/
+│   │   │       └── page.tsx
+│   │   ├── components/
+│   │   │   ├── JobDetail/
+│   │   │   │   ├── JobInfo.tsx
+│   │   │   │   ├── MatchScore.tsx
+│   │   │   │   └── PitchGenerator.tsx
+│   │   │   ├── ui/
 │   │   │   │   └── Modal.tsx
-│   │   │   ├── MatchesTable.tsx      # ✅ Sortable matches table (Phase 6)
-│   │   │   └── SkillsVocabUpload.tsx # ✅ Skills CSV upload (Phase 6)
-│   │   ├── contexts/     # React contexts
+│   │   │   ├── MatchesTable.tsx
+│   │   │   ├── ResumeUploadProgress.tsx
+│   │   │   ├── SkillsVocabUpload.tsx
+│   │   │   └── SkillsVocabularyUpload.tsx
+│   │   ├── contexts/
 │   │   │   └── NotificationContext.tsx
-│   │   ├── lib/          # Frontend utilities
+│   │   ├── lib/
+│   │   │   ├── api-client.ts
+│   │   │   ├── clear-sensitive-data.ts
 │   │   │   ├── supabase.ts
-│   │   │   ├── api.ts    # API client
 │   │   │   └── utils.ts
-│   │   └── types/        # TypeScript definitions
+│   │   ├── services/      # Service layer architecture
+│   │   │   ├── auth.ts
+│   │   │   ├── base.ts
+│   │   │   ├── index.ts
+│   │   │   ├── jobs.ts
+│   │   │   ├── pitch.ts
+│   │   │   ├── resume.ts
+│   │   │   └── scoring.ts
+│   │   └── types/
+│   │       └── index.ts
 │   └── public/           # Static assets
-├── config/               # ✅ PARTIALLY IMPLEMENTED - Configuration management
-│   ├── skills_vocab.csv  # ✅ Canonical skills list
-│   ├── prompts/          # ✅ AI prompt templates
-│   │   ├── company_research.txt # ✅ Phase 5
-│   │   ├── pitch_generation.txt # ✅ Phase 5
-│   │   └── skill_extraction.txt # TODO
-│   └── schemas/          # ✅ JSON schemas for validation
-│       ├── job_posting.json     # TODO
-│       ├── resume.json           # TODO
-│       └── company_research.json # ✅ Phase 5
-├── data/                 # ✅ PARTIALLY IMPLEMENTED - Data management
-│   ├── raw/              # Raw ATS data
-│   ├── processed/        # Normalized job data
+├── config/               # ✅ IMPLEMENTED - Configuration management
+│   ├── ats_sources.yaml  # ATS connector configuration
+│   ├── settings.yaml     # Application settings
+│   ├── skills_vocab.csv  # Canonical skills list
+│   ├── prompts/          # AI prompt templates
+│   │   ├── company_research.txt
+│   │   ├── pitch_generation.txt
+│   │   └── skill_extraction.txt
+│   └── schemas/          # JSON schemas for validation
+│       └── company_research.json
+├── data/                 # Data directories (created at runtime)
 │   ├── embeddings/       # Cached embedding vectors
-│   ├── research/         # ✅ Cached company research data (Phase 5)
-│   └── exports/          # Generated CSV exports
-├── experiments/          # 🔨 TO BE CREATED - W&B experiment configs
-│   ├── scoring_sweeps.yaml
-│   ├── evaluation_datasets/
-│   └── sweep_configs/
-├── evals/                # 🔨 TO BE CREATED - Weave evaluations
+│   ├── exports/          # Generated CSV exports
+│   └── research/         # Cached company research data
+├── scripts/              # ✅ IMPLEMENTED - Utility scripts
+│   ├── create_test_resume.py    # Test resume generator
+│   ├── generate_job_embeddings.py # Batch embedding generation
+│   ├── load_sample_jobs.py      # Sample data loader
+│   ├── run_ingestion.py         # Manual ingestion trigger
+│   ├── setup_test_user.py       # Test user setup
+│   └── validate_dependencies.py # Dependency validator
+├── tests/                # ✅ IMPLEMENTED - Comprehensive testing (77 tests)
 │   ├── __init__.py
-│   ├── research_eval.py  # Company research evaluation
-│   ├── pitch_eval.py     # Pitch generation evaluation
-│   ├── datasets/         # Evaluation datasets
-│   └── scorers/          # Custom scoring functions
-├── scripts/              # 🔨 TO BE CREATED - Utility scripts
-│   ├── __init__.py
-│   ├── seed_data.py      # Development data seeding
-│   ├── migrate_data.py   # Data migration utilities
-│   ├── generate_embeddings.py # Batch embedding generation
-│   ├── run_experiments.py # W&B experiment runner
-│   ├── run_evaluations.py # Weave evaluation runner
-│   └── backup_data.py    # Data backup utilities
-├── tests/                # ✅ IMPLEMENTED - Comprehensive testing
-│   ├── __init__.py
-│   ├── api/              # API endpoint tests
-│   ├── scoring_engine/   # Scoring algorithm tests
-│   ├── ingestion/        # Data ingestion tests
-│   ├── integration/      # End-to-end tests
-│   └── fixtures/         # Test data and fixtures
+│   ├── conftest.py       # Pytest configuration
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── test_auth.py  # Authentication tests
+│   │   └── test_resume_integration.py
+│   ├── test_ai_research.py      # AI research & pitch tests
+│   ├── test_job_ingestion.py    # Job ingestion tests
+│   ├── test_job_ingestion_acceptance.py
+│   ├── test_resume_processing.py # Resume processing tests
+│   └── test_scoring_engine.py   # Scoring engine tests
 ├── requirements.txt      # Python dependencies
 ├── package.json          # Node.js dependencies (for tools)
 └── pytest.ini           # Python test configuration
@@ -548,39 +576,39 @@ career-jobs-app/
 
 ### Structure Design Philosophy
 
-#### Key Improvements from Civic-Steward Pattern
+#### Key Architectural Patterns
 
 **1. Domain-Driven Top-Level Organization**
 
-- `api/` - FastAPI backend (not nested under `/backend`)
-- `scoring_engine/` - Core business logic (like `alignment_engine/`)
-- `ingestion/` - Data ingestion pipeline
-- `dashboard/` - Next.js frontend (like `dashboard/`)
+- `api/` - FastAPI backend with clear separation of concerns
+- `scoring_engine/` - Core business logic for job matching
+- `ingestion/` - Data ingestion pipeline for ATS systems
+- `dashboard/` - Next.js frontend with App Router
 
 **2. Configuration-Driven Development**
 
 - `config/` directory with YAML files for settings
 - Prompt templates in `config/prompts/`
 - JSON schemas for validation
-- ATS source configurations
+- Skills vocabulary CSV for customization
 
-**3. Comprehensive Data Management**
+**3. Data Management**
 
-- Structured `data/` directory with processing stages
-- Separation of raw, processed, and cached data
-- Dedicated export directory
+- Structured `data/` directories created at runtime
+- Caching strategy for embeddings and research
+- Export functionality for CSV downloads
 
 **4. Service-Oriented Architecture**
 
 - Clear separation between models, routes, and services
-- Dedicated utilities and caching layer
+- Dedicated utilities for security, caching, and database
 - Business logic isolated in domain engines
 
-**5. Experiment Tracking & LLM Observability**
+**5. Experiment Tracking**
 
-- W&B for scoring algorithm optimization and dataset lineage
-- Weave for LLM call tracing, evaluation, and quality monitoring
-- Automated regression detection and performance optimization
+- W&B integration for scoring algorithm optimization
+- Experiment service for tracking and dataset management
+- Configurable scoring weights and thresholds
 
 #### AIEWF Component Details
 
@@ -599,25 +627,13 @@ career-jobs-app/
 
 ##### Utility Scripts (`/scripts` - Application)
 
-- **`seed_data.py`**: Development data seeding for testing
-- **`migrate_data.py`**: Data migration utilities
-- **`generate_embeddings.py`**: Batch embedding generation for performance
-- **`run_experiments.py`**: W&B experiment orchestration and sweep management
-- **`run_evaluations.py`**: Weave evaluation runner for LLM quality checks
-- **`backup_data.py`**: Data backup and recovery utilities
-
-##### Experiment Tracking (`/experiments` - W&B)
-
-- **`scoring_sweeps.yaml`**: Bayesian optimization config for scoring weights
-- **`evaluation_datasets/`**: Curated datasets for model performance testing
-- **`sweep_configs/`**: Various sweep configurations for different optimization goals
-
-##### LLM Evaluation (`/evals` - Weave)
-
-- **`research_eval.py`**: Company research quality evaluation with custom scorers
-- **`pitch_eval.py`**: Pitch generation quality and personalization evaluation  
-- **`datasets/`**: Ground truth datasets for LLM evaluation
-- **`scorers/`**: Custom scoring functions for hallucination, accuracy, and relevance
+The following scripts are implemented:
+- **`create_test_resume.py`**: Generate test resumes for development
+- **`generate_job_embeddings.py`**: Batch embedding generation for jobs
+- **`load_sample_jobs.py`**: Load sample job data for testing
+- **`run_ingestion.py`**: Manual trigger for job ingestion
+- **`setup_test_user.py`**: Create test users in the system
+- **`validate_dependencies.py`**: Check all required services are running
 
 ##### Makefile Targets
 
@@ -627,8 +643,6 @@ make dev      # Start/resume Daytona sandbox with dev.sh
 make stop     # Stop all running sandboxes
 make prune    # Delete archived sandboxes to free disk space
 make lint-sh  # Shellcheck validation for shell scripts
-make sweep    # Run W&B scoring weight optimization sweep
-make eval     # Run Weave LLM evaluation suite
 ```
 
 ##### Hybrid Development Workflow

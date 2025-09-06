@@ -135,45 +135,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-surface/50 backdrop-blur-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gradient-red">
-                Career Jobs App
-              </Link>
-            </div>
-            <div className="flex items-center space-x-6">
-              <Link href="/jobs" className="nav-link">
-                Browse Jobs
-              </Link>
-              <Link href="/matches" className="nav-link">
-                My Matches
-              </Link>
-              <Link href="/profile" className="nav-link">
-                Profile
-              </Link>
-              <button
-                onClick={async () => {
-                  const { clearAllSensitiveData } = await import('@/lib/clear-sensitive-data')
-                  clearAllSensitiveData()
-                  await supabase.auth.signOut()
-                  setUser(null)  // Clear user state
-                  router.push('/')
-                }}
-                className="btn-ghost text-sm"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-light text-text-primary mb-8">Dashboard</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -276,24 +238,24 @@ export default function DashboardPage() {
               {scores.length > 0 ? (
                 <div className="space-y-4">
                   {scores.map((score, index) => (
-                    <div key={score.job_id || `score-${index}`} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={score.job_id || `score-${index}`} className="border border-border rounded-lg p-4 hover:bg-surface transition-colors">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-medium text-lg">{score.job_title}</h3>
+                          <h3 className="font-medium text-lg">{score.title || score.job_title}</h3>
                           <p className="text-text-secondary">{score.company_name}</p>
                           <p className="text-sm text-text-muted mt-1">{score.location}</p>
                           <div className="flex gap-2 mt-2">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                              {score.seniority || 'All levels'}
+                            <span className="px-2 py-1 bg-blue-900/20 text-blue-400 text-xs rounded border border-blue-400/20">
+                              {score.seniority || score.seniority_fit ? `${Math.round((score.seniority_fit || 0) * 100)}% fit` : 'All levels'}
                             </span>
-                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                            <span className="px-2 py-1 bg-green-900/20 text-green-400 text-xs rounded border border-green-400/20">
                               {score.remote_type || 'On-site'}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-blue-600">
-                            {Math.round((score.overall_score || 0) * 100)}%
+                          <div className="text-2xl font-bold text-accent-red">
+                            {Math.round((score.total_score || 0) * 100)}%
                           </div>
                           <p className="text-xs text-text-muted">Match Score</p>
                           <Link
@@ -307,35 +269,62 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              ) : jobs.length > 0 ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-text-secondary mb-4">
-                    Upload a resume to see personalized job matches
-                  </p>
-                  {jobs.map((job) => (
-                    <div key={job.job_id} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <h3 className="font-medium text-lg">{job.title}</h3>
-                      <p className="text-text-secondary">{job.company_name}</p>
-                      <p className="text-sm text-text-muted mt-1">{job.location}</p>
-                      <Link
-                        href={`/jobs/${job.job_id}`}
-                        className="mt-2 inline-block text-accent-red hover:text-accent-red-light text-sm"
-                      >
-                        View Details →
-                      </Link>
-                    </div>
-                  ))}
+              ) : resumes.length > 0 ? (
+                // User has resume but no matches - show action buttons
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <p className="text-text-primary text-lg font-medium mb-2">No job matches yet</p>
+                  <p className="text-text-secondary mb-6">Generate matches to see personalized job recommendations</p>
+                  <div className="flex gap-4 justify-center">
+                    <Link 
+                      href="/matches" 
+                      className="btn-primary px-6 py-2"
+                    >
+                      Generate Matches
+                    </Link>
+                    <Link 
+                      href="/jobs" 
+                      className="btn-secondary px-6 py-2"
+                    >
+                      Browse All Jobs
+                    </Link>
+                  </div>
                 </div>
               ) : (
+                // No resume uploaded yet - prompt to upload
                 <div className="text-center py-8">
-                  <p className="text-text-secondary">No jobs available yet</p>
-                  <p className="text-sm text-text-muted mt-2">Check back later for new opportunities</p>
+                  <svg className="mx-auto h-12 w-12 text-text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="text-text-primary text-lg font-medium mb-2">Upload Your Resume to Get Job Matches</p>
+                  <p className="text-text-secondary mb-6">We'll analyze your skills and experience to find the best matching opportunities</p>
+                  <label className="inline-block cursor-pointer">
+                    <span className="btn-primary px-6 py-2">
+                      Upload Resume
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleResumeUpload}
+                      disabled={uploadingResume}
+                    />
+                  </label>
+                  <div className="mt-4">
+                    <Link 
+                      href="/jobs" 
+                      className="text-accent-red hover:text-accent-red-light text-sm"
+                    >
+                      or browse all jobs without matching →
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </main>
   )
 }

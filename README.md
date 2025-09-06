@@ -1,6 +1,10 @@
 # Career Jobs App — Dev Quickstart
 
-For full details see **[`./docs/dev-overview.md`](./docs/dev-overview.md)**. This README is the **short, practical guide** for the hybrid Cursor + Daytona + Claude Code workflow you'll use day‑to‑day.
+For full project architecture see **[`./docs/project-structure-overview.md`](./docs/project-structure-overview.md)**.  
+For development planning and progress see **[`./docs/dev-plan.md`](./docs/dev-plan.md)**.  
+For AIEWF workflow details see **[`./docs/dev-overview.md`](./docs/dev-overview.md)**.  
+
+This README is the **short, practical guide** for getting the application running.
 
 ---
 
@@ -10,18 +14,49 @@ For full details see **[`./docs/dev-overview.md`](./docs/dev-overview.md)**. Thi
 ```bash
 git clone git@github.com:theship/career-jobs-app.git
 cd career-jobs-app
-cp .env.example .env    # add DAYTONA_API_KEY and GH_PAT
+cp .env.example .env    # add API keys (see below)
+
+# Install Redis (REQUIRED for security features)
+# macOS:
+brew install redis
+brew services start redis
+
+# Ubuntu/Debian:
+# sudo apt-get install redis-server
+# sudo systemctl start redis
+
+# Docker alternative:
+# docker run -d -p 6379:6379 --name redis redis:7-alpine
+
+# Verify Redis is running
+redis-cli ping  # Should return "PONG"
 
 # Set up Python environment
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Load environment variables and login to Daytona
+# For AIEWF workflow (optional):
 source .env
 daytona login --api-key $DAYTONA_API_KEY
-
 make setup              # installs daytona, jq, gh, shellcheck, node/pnpm (macOS: via Brewfile)
+```
+
+### Required Environment Variables
+Add these to your `.env` file:
+```bash
+# Backend (.env)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+OPENAI_API_KEY=sk-...
+REDIS_URL=redis://localhost:6379/0  # Required for security features
+HMAC_SECRET=your-secret-key-here    # For request signing
+
+# For AIEWF workflow (optional)
+DAYTONA_API_KEY=your-daytona-key
+GH_PAT=your-github-pat
+ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
 ### 2) Start Daytona sandbox and install Claude Code
@@ -104,8 +139,20 @@ Add a tiny alias in the sandbox:
 
 ### 4) Running the Application
 
+#### Prerequisites
+```bash
+# Ensure Redis is running (REQUIRED)
+redis-cli ping  # Should return "PONG"
+
+# Verify all dependencies
+python scripts/validate_dependencies.py
+```
+
 #### Backend API Server
 ```bash
+# Activate Python environment
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+
 # Start the FastAPI backend server
 python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
@@ -152,12 +199,10 @@ npm run dev
 - **CI (source of truth for PRs):** Full test suites; see `.github/workflows/`
 
 ### Current Test Status
-- **Phase 1-3 Backend Tests**: ✅ 40/40 tests passing
-- **Phase 4 Scoring Engine Tests**: ✅ 25/25 tests passing  
-- **Phase 5 AI Research & Pitch Tests**: ✅ 12/12 tests passing
-- **Phase 6 Export System**: 🔄 TODO
-- **Phase 7 Frontend Tests**: 🔄 TODO
-- See `docs/TESTING_NOTES.md` for detailed test information
+- **Total Tests**: ✅ 77/77 tests passing
+- **Backend Coverage**: Authentication, Resume Processing, Job Ingestion, Scoring Engine, AI Research & Pitch
+- **Security Features**: Redis-based HMAC validation, rate limiting, replay attack prevention
+- **Frontend**: Full UI implementation with Next.js 15.5.0
 
 ---
 
@@ -190,34 +235,26 @@ Once the workflow completes, `make dev` will start much faster (the sandbox pull
 
 ---
 
-## Next Steps
+## Project Status
 
-### Phase 1 - Immediate (Critical)
-- [ ] Update all tests to require Redis (no fallback mode)
-- [ ] Add integration tests for Redis-backed services
-- [ ] Complete frontend testing suite
-- [ ] Add monitoring and alerting for Redis connection
+### ✅ Completed Features
+- **All 7 Development Phases Complete** - See [`docs/dev-plan.md`](./docs/dev-plan.md) for details
+- **Backend API**: FastAPI with comprehensive route structure
+- **Frontend**: Next.js 15.5.0 with dark theme UI
+- **Database**: Supabase with pgvector for semantic search
+- **Security**: Redis-based HMAC validation, rate limiting, replay attack prevention
+- **AI Integration**: OpenAI for embeddings, company research, and pitch generation
+- **Testing**: 77 tests passing across all components
 
-### Phase 2 - Short-term Improvements
-- [ ] Implement job ingestion with proper embedding service (currently using placeholders)
-- [ ] Add job cleanup logic based on business rules
-- [ ] Implement export system tests (Phase 6)
-- [ ] Add comprehensive API documentation
+### 🔄 Future Enhancements
+- **Email Notifications**: Integrate Resend/SendGrid for match alerts
+- **Weave Integration**: Add LLM observability for production monitoring
+- **Next.js ESLint Migration**: Required for Next.js 16 compatibility
+- **Redis HA**: Add Sentinel or cluster for production scaling
 
-### Phase 3 - Architecture & Performance
-- [ ] Consider adding Redis Sentinel for HA
-- [ ] Implement Redis cluster for scaling
-- [ ] Add Redis persistence configuration
-- [ ] Optimize embedding caching strategy
-
-### Known Issues
-- Long lines in some Python files exceed 88 chars (non-critical)
-- Some test files have module-level imports not at top
-- Whitespace issues in scripts (trailing spaces, blank lines)
-
-### Documentation TODOs
-- Complete skill_extraction.txt documentation
-- Add job_posting.json schema documentation
-- Add resume.json schema documentation
-- Update deployment guide with Redis requirements
+### 📚 Documentation
+- **Architecture Overview**: [`docs/project-structure-overview.md`](./docs/project-structure-overview.md)
+- **Development Plan**: [`docs/dev-plan.md`](./docs/dev-plan.md)
+- **Security Details**: [`docs/security-overview.md`](./docs/security-overview.md)
+- **AIEWF Workflow**: [`docs/dev-overview.md`](./docs/dev-overview.md)
 

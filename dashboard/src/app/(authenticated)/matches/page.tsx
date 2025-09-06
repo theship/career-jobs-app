@@ -216,95 +216,83 @@ export default function MatchesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Job Matches</h1>
-              <p className="mt-2 text-gray-600">
-                View and manage your job match scores based on your resume
-              </p>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="text-blue-600 hover:text-blue-800"
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="card mb-6">
+        <h1 className="text-3xl font-light text-text-primary mb-2">Generate Matches</h1>
+        <p className="text-text-secondary">
+          Generate and manage job match scores based on your resume
+        </p>
+
+        {/* Resume Selection and Actions */}
+        <div className="flex gap-4 items-end mt-6">
+          <div className="flex-1">
+            <label className="input-label">
+              Select Resume
+            </label>
+            <select
+              value={selectedResume}
+              onChange={(e) => {
+                setSelectedResume(e.target.value)
+                // Save the selected resume to localStorage
+                if (e.target.value) {
+                  localStorage.setItem('last_selected_resume', e.target.value)
+                }
+              }}
+              className="w-full input-dark"
             >
-              ← Back to Dashboard
+              <option value="">Choose a resume...</option>
+              {resumes.map((resume) => (
+                <option key={resume.resume_id} value={resume.resume_id}>
+                  {resume.filename} - {resume.skills_count || 0} skills
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={runScoring}
+            disabled={!selectedResume || runningScoring}
+            className="btn-primary disabled:opacity-50"
+          >
+            {runningScoring ? 'Running...' : 'Generate New Matches'}
+          </button>
+        </div>
+      </div>
+
+      {/* Matches Table */}
+      <div className="card">
+        {resumes.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-text-secondary mb-4">
+              No resumes uploaded yet. Upload a resume to generate job matches.
+            </p>
+            <button
+              onClick={() => router.push('/profile')}
+              className="btn-primary"
+            >
+              Upload Resume
             </button>
           </div>
-
-          {/* Resume Selection and Actions */}
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Resume
-              </label>
-              <select
-                value={selectedResume}
-                onChange={(e) => {
-                  setSelectedResume(e.target.value)
-                  // Save the selected resume to localStorage
-                  if (e.target.value) {
-                    localStorage.setItem('last_selected_resume', e.target.value)
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-              >
-                <option value="">Choose a resume...</option>
-                {resumes.map((resume) => (
-                  <option key={resume.resume_id} value={resume.resume_id}>
-                    {resume.filename} - {resume.skills_count || 0} skills
-                  </option>
-                ))}
-              </select>
-            </div>
+        ) : matches.length === 0 && !loading ? (
+          <div className="p-8 text-center">
+            <p className="text-text-secondary mb-4">
+              No matches found yet. Generate matches to see results.
+            </p>
             <button
               onClick={runScoring}
               disabled={!selectedResume || runningScoring}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+              className="btn-primary disabled:opacity-50"
             >
-              {runningScoring ? 'Running...' : 'Run New Scoring'}
+              {runningScoring ? 'Generating...' : 'Generate Matches'}
             </button>
           </div>
-        </div>
-
-        {/* Matches Table */}
-        <div className="bg-white rounded-lg shadow">
-          {resumes.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-600 mb-4">
-                No resumes uploaded yet. Upload a resume to see job matches.
-              </p>
-              <button
-                onClick={() => router.push('/profile')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Upload Resume
-              </button>
-            </div>
-          ) : matches.length === 0 && !loading ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-600 mb-4">
-                No matches found yet. Run scoring to find job matches.
-              </p>
-              <button
-                onClick={runScoring}
-                disabled={!selectedResume || runningScoring}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-              >
-                {runningScoring ? 'Running...' : 'Run Scoring'}
-              </button>
-            </div>
-          ) : (
-            <MatchesTable 
-              matches={matches} 
-              loading={loading}
-              onDownloadCSV={downloadCSV}
-            />
-          )}
-        </div>
+        ) : (
+          <MatchesTable 
+            matches={matches} 
+            loading={loading}
+            onDownloadCSV={downloadCSV}
+          />
+        )}
       </div>
       
       {/* Skills Vocabulary Upload Modal */}
@@ -333,6 +321,6 @@ export default function MatchesPage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   )
 }

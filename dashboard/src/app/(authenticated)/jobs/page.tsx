@@ -73,57 +73,7 @@ export default function JobsPage() {
   }, [filters])
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-surface/50 backdrop-blur-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gradient-red">
-                Career Jobs App
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <>
-                  <Link href="/dashboard" className="nav-link">
-                    Dashboard
-                  </Link>
-                  <Link href="/profile" className="nav-link">
-                    Profile
-                  </Link>
-                  <button
-                    onClick={async () => {
-                      const { clearAllSensitiveData } = await import('@/lib/clear-sensitive-data')
-                      clearAllSensitiveData()
-                      await supabase.auth.signOut()
-                      router.push('/')
-                    }}
-                    className="btn-ghost text-sm"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="nav-link">
-                    Sign In
-                  </Link>
-                  <Link 
-                    href="/register" 
-                    className="btn-primary text-sm"
-                  >
-                    Get Started
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-light text-text-primary mb-8">Browse Jobs</h1>
 
         {/* Search and Filters */}
@@ -268,7 +218,6 @@ export default function JobsPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+    </main>
   )
 }
