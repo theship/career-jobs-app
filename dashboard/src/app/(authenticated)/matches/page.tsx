@@ -161,8 +161,6 @@ export default function MatchesPage() {
       }
 
       const result = await api.runScoring(selectedResume, 100, 0.0)
-      console.log('Scoring API returned:', result)
-      console.log('Number of results:', result.results?.length || 0)
       setMatches(result.results || [])
       
       // Cache the new matches

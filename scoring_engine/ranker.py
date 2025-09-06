@@ -223,8 +223,12 @@ class JobRanker:
         job_preferred_skills = job_data.get("preferred_skills", [])
 
         # Check if we have skills data
-        has_skills_data = bool(resume_skills) or bool(job_required_skills) or bool(job_preferred_skills)
-        
+        has_skills_data = (
+            bool(resume_skills)
+            or bool(job_required_skills)
+            or bool(job_preferred_skills)
+        )
+
         if has_skills_data:
             skills_score = self.skills_matcher.match_skills(
                 resume_skills, job_required_skills, job_preferred_skills
@@ -256,8 +260,6 @@ class JobRanker:
         # Calculate recency bonus
         posted_date = job_data.get("posted_at")
         if isinstance(posted_date, str):
-            from datetime import datetime
-
             posted_date = datetime.fromisoformat(posted_date.replace("Z", "+00:00"))
         recency_bonus = self.calculate_recency_bonus(posted_date)
 
@@ -266,11 +268,15 @@ class JobRanker:
             # Redistribute skills weight to other factors when no skills data
             # Increase cosine similarity weight since it's our main signal
             adjusted_weights = ScoringWeights(
-                cosine_similarity=self.weights.cosine_similarity + self.weights.skills_overlap * 0.7,
+                cosine_similarity=self.weights.cosine_similarity
+                + self.weights.skills_overlap * 0.7,
                 skills_overlap=0.0,  # No skills data
-                seniority_fit=self.weights.seniority_fit + self.weights.skills_overlap * 0.1,
-                geographic_score=self.weights.geographic_score + self.weights.skills_overlap * 0.1,
-                recency_bonus=self.weights.recency_bonus + self.weights.skills_overlap * 0.1,
+                seniority_fit=self.weights.seniority_fit
+                + self.weights.skills_overlap * 0.1,
+                geographic_score=self.weights.geographic_score
+                + self.weights.skills_overlap * 0.1,
+                recency_bonus=self.weights.recency_bonus
+                + self.weights.skills_overlap * 0.1,
             )
             total_score = (
                 adjusted_weights.cosine_similarity * similarity_score.normalized_score

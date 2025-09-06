@@ -40,17 +40,17 @@ class LeverPublicConnector(ATSConnector):
         """Load target companies from CSV file"""
         companies = []
         csv_path = Path(self.company_csv_path)
-        
+
         if not csv_path.exists():
             logger.warning(f"Company CSV not found at {csv_path}")
             return companies
-            
+
         with open(csv_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row["ats_system"] == "lever" and row["active"] == "true":
                     companies.append(row)
-        
+
         logger.info(f"Loaded {len(companies)} Lever companies from {csv_path}")
         return companies
 
@@ -64,10 +64,10 @@ class LeverPublicConnector(ATSConnector):
     async def fetch_job_details(self, job_id: str) -> Optional[JobListing]:
         """
         Fetch detailed information for a specific job
-        
+
         Args:
             job_id: The job identifier
-            
+
         Returns:
             JobListing object or None
         """
@@ -90,44 +90,44 @@ class LeverPublicConnector(ATSConnector):
             List of JobListing objects
         """
         all_jobs = []
-        
+
         # If specific company requested
         if company_id:
             companies_to_fetch = [{"company_id": company_id}]
         else:
             companies_to_fetch = self.companies
-        
+
         async with AsyncClient() as client:
             for company in companies_to_fetch:
                 try:
                     company_id = company["company_id"]
                     display_name = company.get("display_name", company_id)
-                    
+
                     logger.info(f"Fetching jobs from Lever for {display_name}")
-                    
+
                     # Apply rate limiting
                     await self.rate_limiter.acquire()
-                    
+
                     # Lever public API endpoint
                     url = f"{self.base_url}/{company_id}"
                     params = {"mode": "json"}
-                    
+
                     response = await client.get(
                         url,
                         params=params,
                         timeout=30.0,
                         follow_redirects=True,
                     )
-                    
+
                     if response.status_code == 200:
                         jobs_data = response.json()
-                        
+
                         # Parse each job
                         for job_data in jobs_data[:limit] if limit else jobs_data:
                             job = self._parse_job(job_data, display_name)
                             if job:
                                 all_jobs.append(job)
-                        
+
                         logger.info(
                             f"Fetched {len(jobs_data)} jobs from {display_name}"
                         )
@@ -135,15 +135,15 @@ class LeverPublicConnector(ATSConnector):
                         logger.warning(
                             f"Failed to fetch from {display_name}: {response.status_code}"
                         )
-                        
+
                 except Exception as e:
                     logger.error(f"Error fetching from {company_id}: {e}")
                     continue
-        
+
         # Filter to last 7 days (temporarily disabled to get some data)
         # recent_jobs = self.filter_last_7_days(all_jobs)
         # logger.info(f"Total jobs fetched: {len(recent_jobs)} (from last 7 days)")
-        
+
         logger.info(f"Total jobs fetched: {len(all_jobs)}")
         return all_jobs
 
@@ -165,16 +165,14 @@ class LeverPublicConnector(ATSConnector):
                 location = job_data["categories"]["location"]
             elif job_data.get("workplaceType"):
                 location = job_data["workplaceType"]
-            
+
             # Parse posted date
             posted_at = None
             if job_data.get("createdAt"):
                 # Lever provides timestamp in milliseconds
                 timestamp_ms = job_data["createdAt"]
-                posted_at = datetime.fromtimestamp(
-                    timestamp_ms / 1000, tz=timezone.utc
-                )
-            
+                posted_at = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
+
             # Build description
             description_parts = []
             if job_data.get("description"):
@@ -183,7 +181,7 @@ class LeverPublicConnector(ATSConnector):
                 for list_item in job_data["lists"]:
                     if list_item.get("text"):
                         description_parts.append(list_item["text"])
-            
+
             return JobListing(
                 external_id=job_data["id"],
                 title=job_data["text"],  # Lever uses 'text' for job title
@@ -192,7 +190,9 @@ class LeverPublicConnector(ATSConnector):
                 department=job_data.get("categories", {}).get("department"),
                 posted_at=posted_at,
                 application_url=job_data.get("hostedUrl") or job_data.get("applyUrl"),
-                description="\n\n".join(description_parts) if description_parts else None,
+                description=(
+                    "\n\n".join(description_parts) if description_parts else None
+                ),
                 employment_type=job_data.get("categories", {}).get("commitment"),
                 seniority=job_data.get("categories", {}).get("level"),
                 source_ats="lever",

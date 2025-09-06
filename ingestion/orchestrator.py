@@ -52,18 +52,18 @@ class JobIngestionOrchestrator:
         """Initialize ATS connectors based on configuration"""
         # Initialize public connectors (no API keys required)
         try:
-            from ingestion.connectors.lever_public import LeverPublicConnector
             from ingestion.connectors.greenhouse_public import GreenhousePublicConnector
-            
+            from ingestion.connectors.lever_public import LeverPublicConnector
+
             # Public connectors using companies.csv
             self.connectors["lever_public"] = LeverPublicConnector()
             logger.info("Initialized Lever public connector")
-            
+
             self.connectors["greenhouse_public"] = GreenhousePublicConnector()
             logger.info("Initialized Greenhouse public connector")
         except ImportError as e:
             logger.warning(f"Could not import public connectors: {e}")
-        
+
         # Initialize authenticated connectors if API keys are configured
         if (
             hasattr(self.settings, "greenhouse_api_key")

@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from api.services.auth import get_current_user
-from api.utils.database import get_supabase_client, get_supabase_service_client
+from api.utils.database import get_supabase_service_client
 from ingestion.orchestrator import JobIngestionOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -142,7 +142,9 @@ async def get_job(job_id: str, current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/search", response_model=List[JobResponse])
-async def search_jobs(request: JobSearchRequest, current_user: dict = Depends(get_current_user)):
+async def search_jobs(
+    request: JobSearchRequest, current_user: dict = Depends(get_current_user)
+):
     """
     Search jobs with advanced filters
 
@@ -202,7 +204,11 @@ async def search_jobs(request: JobSearchRequest, current_user: dict = Depends(ge
 
 
 @router.get("/similar/{job_id}", response_model=List[JobResponse])
-async def find_similar_jobs(job_id: str, limit: int = Query(10, ge=1, le=50), current_user: dict = Depends(get_current_user)):
+async def find_similar_jobs(
+    job_id: str,
+    limit: int = Query(10, ge=1, le=50),
+    current_user: dict = Depends(get_current_user),
+):
     """
     Find jobs similar to a given job
 

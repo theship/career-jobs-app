@@ -182,15 +182,15 @@ class ATSConnector(ABC):
             Filtered list of jobs from the last 7 days
         """
         from datetime import datetime, timedelta, timezone
-        
+
         now = datetime.now(timezone.utc)
         seven_days_ago = now - timedelta(days=7)
-        
+
         filtered = []
         for job in jobs:
             if job.posted_at and job.posted_at >= seven_days_ago:
                 filtered.append(job)
-        
+
         return filtered
 
     @abstractmethod
