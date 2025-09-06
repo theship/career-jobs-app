@@ -200,3 +200,7 @@ cython_debug/
 
 # Design files
 docs/preferred-UI-styling/
+
+# test files
+config/target_companies.csv
+config/test_resume_tech.txt
