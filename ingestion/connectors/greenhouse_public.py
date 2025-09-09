@@ -116,12 +116,23 @@ class GreenhousePublicConnector(ATSConnector):
                             if job:
                                 all_jobs.append(job)
 
-                        logger.info(
-                            f"Fetched {len(jobs_data)} jobs from {display_name}"
+                        # Log differently based on whether jobs were found
+                        if len(jobs_data) == 0:
+                            logger.info(
+                                f"No open positions at {display_name} (valid endpoint)"
+                            )
+                        else:
+                            logger.info(
+                                f"Fetched {len(jobs_data)} jobs from {display_name}"
+                            )
+                    elif response.status_code == 404:
+                        logger.error(
+                            f"Company {display_name} not found on Greenhouse (404) - may need different board token or doesn't use Greenhouse"
                         )
+                        # Don't raise exception, just skip this company
                     else:
                         logger.warning(
-                            f"Failed to fetch from {display_name}: {response.status_code}"
+                            f"Unexpected status from {display_name}: {response.status_code}"
                         )
 
                 except Exception as e:

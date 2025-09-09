@@ -118,12 +118,23 @@ class AshbyPublicConnector(ATSConnector):
                             if job:
                                 all_jobs.append(job)
                         
-                        logger.info(
-                            f"Fetched {len(jobs_data)} jobs from {display_name}"
+                        # Log differently based on whether jobs were found
+                        if len(jobs_data) == 0:
+                            logger.info(
+                                f"No open positions at {display_name} (valid endpoint)"
+                            )
+                        else:
+                            logger.info(
+                                f"Fetched {len(jobs_data)} jobs from {display_name}"
+                            )
+                    elif response.status_code == 404:
+                        logger.error(
+                            f"Company {display_name} not found on Ashby (404) - may need different client name or doesn't use Ashby"
                         )
+                        # Don't raise exception, just skip this company  
                     else:
                         logger.warning(
-                            f"Failed to fetch from {display_name}: {response.status_code}"
+                            f"Unexpected status from {display_name}: {response.status_code}"
                         )
                         
                 except Exception as e:
@@ -188,16 +199,19 @@ class AshbyPublicConnector(ATSConnector):
                     salary_max = tier.get("max")
                     currency = comp.get("currency", "USD")
             
-            # Parse posted date
+            # Parse posted date - try multiple fields
             posted_at = None
-            if job_data.get("publishedDate"):
-                try:
-                    # Ashby uses ISO format
-                    posted_at = datetime.fromisoformat(
-                        job_data["publishedDate"].replace("Z", "+00:00")
-                    )
-                except:
-                    logger.debug(f"Could not parse date: {job_data.get('publishedDate')}")
+            date_fields = ["publishedDate", "publishedAt", "createdAt", "updatedAt"]
+            for field in date_fields:
+                if job_data.get(field):
+                    try:
+                        # Ashby uses ISO format
+                        posted_at = datetime.fromisoformat(
+                            job_data[field].replace("Z", "+00:00")
+                        )
+                        break
+                    except:
+                        logger.debug(f"Could not parse date from {field}: {job_data.get(field)}")
             
             # Build description from various fields
             description_parts = []
