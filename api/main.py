@@ -114,7 +114,7 @@ async def health_check():
 
 
 # Import and include routers (moved here to avoid E402)
-from api.routes import auth, jobs, pitch, research, resumes, scoring  # noqa: E402
+from api.routes import admin, auth, jobs, pitch, research, resumes, scoring  # noqa: E402
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(resumes.router, prefix="/api/v1", tags=["resumes"])
@@ -124,4 +124,5 @@ app.include_router(
 )  # Add prefix here
 app.include_router(research.router, tags=["research"])  # Prefix already in router
 app.include_router(pitch.router, tags=["pitch"])  # Prefix already in router
+app.include_router(admin.router, tags=["admin"])  # Admin endpoints (prefix in router)
 # app.include_router(export.router, prefix="/api/v1/export", tags=["export"])

@@ -6,12 +6,14 @@ Central coordinator for fetching, normalizing, and storing jobs from multiple AT
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 from uuid import uuid4
+import os
 
 import openai
 
 from api.utils.config import get_settings
+from api.services.company_manager import CompanyManager
 from ingestion.connectors.base import ATSConnector, JobListing
 from ingestion.connectors.greenhouse import GreenhouseConnector
 from ingestion.connectors.lever import LeverConnector
@@ -33,6 +35,13 @@ class JobIngestionOrchestrator:
         )
         self.normalizer = JobNormalizer()
         self.connectors: Dict[str, ATSConnector] = {}
+        
+        # Initialize company manager
+        self.company_manager = CompanyManager(self.supabase)
+        
+        # Parallel processing settings
+        self.max_concurrent = int(os.getenv("MAX_CONCURRENT_FETCHES", "20"))
+        self.semaphore = asyncio.Semaphore(self.max_concurrent)
 
         # Initialize OpenAI client for embeddings
         if self.settings.openai_api_key:
@@ -54,13 +63,17 @@ class JobIngestionOrchestrator:
         try:
             from ingestion.connectors.greenhouse_public import GreenhousePublicConnector
             from ingestion.connectors.lever_public import LeverPublicConnector
+            from ingestion.connectors.ashby_public import AshbyPublicConnector
 
-            # Public connectors using companies.csv
-            self.connectors["lever_public"] = LeverPublicConnector()
+            # Public connectors - companies will be loaded from database
+            self.connectors["lever"] = LeverPublicConnector()
             logger.info("Initialized Lever public connector")
 
-            self.connectors["greenhouse_public"] = GreenhousePublicConnector()
+            self.connectors["greenhouse"] = GreenhousePublicConnector()
             logger.info("Initialized Greenhouse public connector")
+            
+            self.connectors["ashby"] = AshbyPublicConnector()
+            logger.info("Initialized Ashby public connector")
         except ImportError as e:
             logger.warning(f"Could not import public connectors: {e}")
 
@@ -69,14 +82,14 @@ class JobIngestionOrchestrator:
             hasattr(self.settings, "greenhouse_api_key")
             and self.settings.greenhouse_api_key
         ):
-            self.connectors["greenhouse"] = GreenhouseConnector(
+            self.connectors["greenhouse_auth"] = GreenhouseConnector(
                 api_key=self.settings.greenhouse_api_key
             )
             logger.info("Initialized Greenhouse connector (authenticated)")
 
         # Example: Initialize Lever if configured
         if hasattr(self.settings, "lever_api_key") and self.settings.lever_api_key:
-            self.connectors["lever"] = LeverConnector(
+            self.connectors["lever_auth"] = LeverConnector(
                 api_key=self.settings.lever_api_key
             )
             logger.info("Initialized Lever connector (authenticated)")
@@ -112,6 +125,7 @@ class JobIngestionOrchestrator:
         limit_per_source: Optional[int] = None,
         normalize: bool = True,
         store: bool = True,
+        parallel: bool = True,
     ) -> Dict[str, List[JobListing]]:
         """
         Ingest jobs from all configured sources
@@ -120,30 +134,244 @@ class JobIngestionOrchestrator:
             limit_per_source: Maximum jobs to fetch per source
             normalize: Whether to normalize job data
             store: Whether to store jobs in database
+            parallel: Whether to fetch from companies in parallel
 
         Returns:
-            Dictionary mapping source name to list of ingested jobs
+            Dictionary mapping company to list of ingested jobs
+        """
+        # Get companies from database
+        companies = await self.company_manager.get_companies_for_ingestion(limit=100)
+        
+        if not companies:
+            logger.warning("No companies found for ingestion")
+            return {}
+        
+        logger.info(f"Found {len(companies)} companies for ingestion")
+        
+        # Group companies by ATS system
+        companies_by_ats = {}
+        for company in companies:
+            ats = company["ats_system"]
+            if ats not in companies_by_ats:
+                companies_by_ats[ats] = []
+            companies_by_ats[ats].append(company)
+        
+        # Configure connectors with their companies
+        for ats_system, ats_companies in companies_by_ats.items():
+            if ats_system in self.connectors:
+                connector = self.connectors[ats_system]
+                if hasattr(connector, "set_companies"):
+                    connector.set_companies(ats_companies)
+        
+        if parallel:
+            return await self._ingest_parallel(
+                companies, limit_per_source, normalize, store
+            )
+        else:
+            return await self._ingest_sequential(
+                companies, limit_per_source, normalize, store
+            )
+
+    async def _ingest_parallel(
+        self,
+        companies: List[Dict],
+        limit_per_source: Optional[int],
+        normalize: bool,
+        store: bool,
+    ) -> Dict[str, List[JobListing]]:
+        """
+        Ingest from multiple companies in parallel
+        
+        Args:
+            companies: List of company records from database
+            limit_per_source: Maximum jobs per company
+            normalize: Whether to normalize job data
+            store: Whether to store jobs
+            
+        Returns:
+            Dictionary mapping company to jobs
         """
         results = {}
-
-        for source_name, connector in self.connectors.items():
-            try:
-                logger.info(f"Starting ingestion from {source_name}")
-                jobs = await self.ingest_from_source(
-                    connector,
-                    source_name,
-                    limit=limit_per_source,
-                    normalize=normalize,
-                    store=store,
+        
+        # Create tasks for parallel execution
+        tasks = []
+        for company in companies:
+            task = self._ingest_single_company(
+                company, limit_per_source, normalize, store
+            )
+            tasks.append(task)
+        
+        # Execute in parallel with semaphore limiting concurrency
+        completed = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results
+        for company, result in zip(companies, completed):
+            company_key = f"{company['ats_system']}_{company['display_name']}"
+            
+            if isinstance(result, Exception):
+                logger.error(f"Failed to ingest from {company_key}: {result}")
+                results[company_key] = []
+                # Record failure
+                await self.company_manager.record_fetch_attempt(
+                    company["id"], False, 0, str(result)
                 )
-                results[source_name] = jobs
-                logger.info(f"Ingested {len(jobs)} jobs from {source_name}")
-            except Exception as e:
-                logger.error(f"Failed to ingest from {source_name}: {e}")
-                results[source_name] = []
-
+            else:
+                results[company_key] = result
+                logger.info(f"Ingested {len(result)} jobs from {company_key}")
+        
         return results
-
+    
+    async def _ingest_sequential(
+        self,
+        companies: List[Dict],
+        limit_per_source: Optional[int],
+        normalize: bool,
+        store: bool,
+    ) -> Dict[str, List[JobListing]]:
+        """
+        Ingest from companies sequentially (fallback mode)
+        """
+        results = {}
+        
+        for company in companies:
+            company_key = f"{company['ats_system']}_{company['display_name']}"
+            try:
+                jobs = await self._ingest_single_company(
+                    company, limit_per_source, normalize, store
+                )
+                results[company_key] = jobs
+            except Exception as e:
+                logger.error(f"Failed to ingest from {company_key}: {e}")
+                results[company_key] = []
+                await self.company_manager.record_fetch_attempt(
+                    company["id"], False, 0, str(e)
+                )
+        
+        return results
+    
+    async def _ingest_single_company(
+        self,
+        company: Dict,
+        limit: Optional[int],
+        normalize: bool,
+        store: bool,
+    ) -> List[JobListing]:
+        """
+        Ingest jobs from a single company
+        
+        Args:
+            company: Company record from database
+            limit: Maximum jobs to fetch
+            normalize: Whether to normalize
+            store: Whether to store
+            
+        Returns:
+            List of ingested jobs
+        """
+        async with self.semaphore:  # Limit concurrent requests
+            ats_system = company["ats_system"]
+            company_id = company["company_id"]
+            display_name = company["display_name"]
+            
+            if ats_system not in self.connectors:
+                logger.error(f"No connector for ATS system: {ats_system}")
+                return []
+            
+            connector = self.connectors[ats_system]
+            
+            # Start timing
+            start_time = datetime.now(timezone.utc)
+            
+            # Create history entry
+            history_id = await self.company_manager.record_ingestion_history(
+                company["id"],
+                start_time,
+                status="running"
+            )
+            
+            try:
+                # Fetch jobs
+                if ats_system == "lever":
+                    raw_jobs = await connector.fetch_jobs(company_id=company_id, limit=limit)
+                elif ats_system == "greenhouse":
+                    raw_jobs = await connector.fetch_jobs(board_token=company_id, limit=limit)
+                elif ats_system == "ashby":
+                    raw_jobs = await connector.fetch_jobs(client_name=company_id, limit=limit)
+                else:
+                    raw_jobs = await connector.fetch_jobs(limit=limit)
+                
+                logger.info(f"Fetched {len(raw_jobs)} raw jobs from {display_name}")
+                
+                # Normalize if requested
+                if normalize:
+                    jobs = []
+                    for raw_job in raw_jobs:
+                        try:
+                            normalized = self.normalizer.normalize(raw_job)
+                            jobs.append(normalized)
+                        except Exception as e:
+                            logger.warning(f"Failed to normalize job: {e}")
+                            jobs.append(raw_job)
+                else:
+                    jobs = raw_jobs
+                
+                # Store if requested
+                jobs_created = 0
+                jobs_updated = 0
+                embeddings_generated = 0
+                
+                if store:
+                    stored_jobs, created, updated, embeddings = await self._store_jobs_with_metrics(
+                        jobs, f"{ats_system}_{company_id}"
+                    )
+                    jobs = stored_jobs
+                    jobs_created = created
+                    jobs_updated = updated
+                    embeddings_generated = embeddings
+                
+                # Update history and company records
+                end_time = datetime.now(timezone.utc)
+                
+                if history_id:
+                    await self.company_manager.update_ingestion_history(
+                        history_id,
+                        completed_at=end_time.isoformat(),
+                        jobs_fetched=len(raw_jobs),
+                        jobs_created=jobs_created,
+                        jobs_updated=jobs_updated,
+                        embeddings_generated=embeddings_generated,
+                        status="success",
+                        duration_ms=int((end_time - start_time).total_seconds() * 1000)
+                    )
+                
+                # Record successful fetch
+                await self.company_manager.record_fetch_attempt(
+                    company["id"], True, len(raw_jobs)
+                )
+                
+                return jobs
+                
+            except Exception as e:
+                logger.error(f"Failed to ingest from {display_name}: {e}")
+                
+                # Update history with failure
+                if history_id:
+                    end_time = datetime.now(timezone.utc)
+                    await self.company_manager.update_ingestion_history(
+                        history_id,
+                        completed_at=end_time.isoformat(),
+                        status="failed",
+                        error_details=str(e),
+                        duration_ms=int((end_time - start_time).total_seconds() * 1000)
+                    )
+                
+                # Record failed fetch
+                await self.company_manager.record_fetch_attempt(
+                    company["id"], False, 0, str(e)
+                )
+                
+                raise
+    
     async def ingest_from_source(
         self,
         connector: ATSConnector,
@@ -195,20 +423,23 @@ class JobIngestionOrchestrator:
 
         return jobs
 
-    async def _store_jobs(
+    async def _store_jobs_with_metrics(
         self, jobs: List[JobListing], source_name: str
-    ) -> List[JobListing]:
+    ) -> Tuple[List[JobListing], int, int, int]:
         """
-        Store jobs in Supabase database
+        Store jobs in Supabase database with metrics
 
         Args:
             jobs: List of job listings to store
             source_name: Name of the ATS source
 
         Returns:
-            List of successfully stored jobs
+            Tuple of (stored_jobs, created_count, updated_count, embeddings_count)
         """
         stored = []
+        created = 0
+        updated = 0
+        embeddings_generated = 0
 
         for job in jobs:
             try:
@@ -296,6 +527,7 @@ class JobIngestionOrchestrator:
                         .execute()
                     )
                     logger.debug(f"Updated job {job_id}")
+                    updated += 1
                 else:
                     # Insert new job
                     job_data["first_seen_at"] = datetime.now(timezone.utc).isoformat()
@@ -303,6 +535,10 @@ class JobIngestionOrchestrator:
                         self.supabase.table("job_postings").insert(job_data).execute()
                     )
                     logger.debug(f"Inserted new job {job_id}")
+                    created += 1
+                
+                if embedding:
+                    embeddings_generated += 1
 
                 stored.append(job)
 
@@ -311,6 +547,22 @@ class JobIngestionOrchestrator:
                 continue
 
         logger.info(f"Stored {len(stored)}/{len(jobs)} jobs from {source_name}")
+        return stored, created, updated, embeddings_generated
+    
+    async def _store_jobs(
+        self, jobs: List[JobListing], source_name: str
+    ) -> List[JobListing]:
+        """
+        Store jobs in Supabase database (backward compatibility)
+        
+        Args:
+            jobs: List of job listings to store
+            source_name: Name of the ATS source
+            
+        Returns:
+            List of successfully stored jobs
+        """
+        stored, _, _, _ = await self._store_jobs_with_metrics(jobs, source_name)
         return stored
 
     async def deduplicate_jobs(self) -> int:

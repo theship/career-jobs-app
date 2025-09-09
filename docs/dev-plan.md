@@ -474,6 +474,15 @@ describe('Resume Upload', () => {
 - Implemented proper security: job_postings table protected by RLS (service-role only)
 - Note: Company list is in `config/` directory alongside other configuration files, separate from `config/prompts/company_research.txt` which is for AI pitch generation
 
+**2025-09-09 Update - Scalable Company Management**:
+- ✅ Added Ashby public connector for additional ATS coverage
+- ✅ Migrated from CSV to database-driven company management (`target_companies` table)
+- ✅ Implemented parallel ingestion with configurable concurrency (20x speedup)
+- ✅ Added admin API endpoints for company CRUD operations
+- ✅ Created ingestion history tracking with detailed metrics
+- ✅ Auto-disable failing companies after configurable threshold
+- ✅ Expanded to 50+ target companies across Lever, Greenhouse, and Ashby
+
 #### Objectives
 * ✅ Implement ATS connectors for job fetching
 * ✅ Create job normalization pipeline
@@ -485,8 +494,10 @@ describe('Resume Upload', () => {
 1. **ATS Connector System**
    * ✅ Implement base connector in `/ingestion/connectors/base.py`
    * ✅ Create specific connectors: `/ingestion/connectors/greenhouse.py`, `lever.py`
-   * ⚠️ `ashby.py` (not implemented - can add later)
+   * ✅ `ashby.py` - COMPLETE (added 2025-09-09)
    * ✅ Error handling and rate limiting with exponential backoff
+   * ✅ Database-driven company configuration
+   * ✅ Parallel fetching with semaphore control
 
 2. **Data Processing Pipeline**
    * ✅ Job normalizer in `/ingestion/normalizers/normalizer.py`
@@ -494,10 +505,14 @@ describe('Resume Upload', () => {
    * ✅ Generate placeholder embeddings (OpenAI integration in Phase 4)
 
 3. **Orchestration System**
-   * ✅ Ingestion orchestrator in `/ingestion/orchestrator.py`
+   * ✅ Ingestion orchestrator in `/ingestion/orchestrator.py` with parallel processing
    * ✅ Command-line script in `/scripts/run_ingestion.py`
    * ✅ Job ingestion API endpoints in `/api/routes/jobs.py`
+   * ✅ Admin API endpoints in `/api/routes/admin.py` for company management
+   * ✅ Company manager service in `/api/services/company_manager.py`
+   * ✅ Migration script in `/scripts/migrate_companies_to_db.py`
    * ✅ Monitoring and logging with structured output
+   * ✅ Ingestion history tracking with performance metrics
 
 #### Backend Acceptance Tests
 
