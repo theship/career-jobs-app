@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from api.services.auth import get_current_user, require_admin
@@ -23,6 +23,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 # Pydantic models for request/response
 class CompanyCreateRequest(BaseModel):
     """Request model for creating a company"""
+
     ats_system: str  # lever, greenhouse, ashby
     company_id: str
     display_name: str
@@ -35,6 +36,7 @@ class CompanyCreateRequest(BaseModel):
 
 class CompanyUpdateRequest(BaseModel):
     """Request model for updating a company"""
+
     display_name: Optional[str] = None
     industry: Optional[str] = None
     company_size: Optional[str] = None
@@ -46,6 +48,7 @@ class CompanyUpdateRequest(BaseModel):
 
 class CompanyResponse(BaseModel):
     """Response model for a company"""
+
     id: str
     ats_system: str
     company_id: str
@@ -66,6 +69,7 @@ class CompanyResponse(BaseModel):
 
 class IngestionStatsResponse(BaseModel):
     """Response model for ingestion statistics"""
+
     total_runs: int
     successful_runs: int
     failed_runs: int
@@ -79,6 +83,7 @@ class IngestionStatsResponse(BaseModel):
 
 class IngestionRunRequest(BaseModel):
     """Request model for triggering ingestion"""
+
     ats_system: Optional[str] = None  # Filter by ATS
     company_ids: Optional[List[str]] = None  # Specific companies
     limit_per_company: Optional[int] = None
@@ -93,20 +98,19 @@ async def list_companies(
 ):
     """
     List all target companies with their status
-    
+
     Requires admin privileges
     """
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         companies = await company_manager.get_all_companies(
-            active_only=active_only,
-            ats_system=ats_system
+            active_only=active_only, ats_system=ats_system
         )
-        
+
         return companies
-        
+
     except Exception as e:
         logger.error(f"Failed to list companies: {e}")
         raise HTTPException(status_code=500, detail="Failed to list companies")
@@ -119,26 +123,25 @@ async def create_company(
 ):
     """
     Add a new target company
-    
+
     Requires admin privileges
     """
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         # Check if company already exists
         existing = await company_manager.get_all_companies(
-            active_only=False,
-            ats_system=request.ats_system
+            active_only=False, ats_system=request.ats_system
         )
-        
+
         for company in existing:
             if company["company_id"] == request.company_id:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Company {request.company_id} already exists for {request.ats_system}"
+                    detail=f"Company {request.company_id} already exists for {request.ats_system}",
                 )
-        
+
         # Create new company
         company = await company_manager.add_company(
             ats_system=request.ats_system,
@@ -147,14 +150,14 @@ async def create_company(
             industry=request.industry,
             priority=request.priority,
             check_frequency_days=request.check_frequency_days,
-            metadata=request.metadata
+            metadata=request.metadata,
         )
-        
+
         if not company:
             raise HTTPException(status_code=500, detail="Failed to create company")
-        
+
         return company
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -170,26 +173,26 @@ async def update_company(
 ):
     """
     Update a target company's settings
-    
+
     Requires admin privileges
     """
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         # Build update dict from non-None values
         updates = {k: v for k, v in request.dict().items() if v is not None}
-        
+
         if not updates:
             raise HTTPException(status_code=400, detail="No updates provided")
-        
+
         company = await company_manager.update_company(company_id, **updates)
-        
+
         if not company:
             raise HTTPException(status_code=404, detail="Company not found")
-        
+
         return company
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -204,20 +207,20 @@ async def delete_company(
 ):
     """
     Delete a target company
-    
+
     Requires admin privileges
     """
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         success = await company_manager.delete_company(company_id)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="Company not found")
-        
+
         return {"message": "Company deleted successfully"}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -233,20 +236,19 @@ async def get_company_stats(
 ):
     """
     Get ingestion statistics for a specific company
-    
+
     Requires admin privileges
     """
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         stats = await company_manager.get_company_stats(
-            company_uuid=company_id,
-            days=days
+            company_uuid=company_id, days=days
         )
-        
+
         return stats
-        
+
     except Exception as e:
         logger.error(f"Failed to get stats for company {company_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to get company stats")
@@ -259,17 +261,17 @@ async def get_overall_stats(
 ):
     """
     Get overall ingestion statistics across all companies
-    
+
     Requires admin privileges
     """
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         stats = await company_manager.get_company_stats(days=days)
-        
+
         return stats
-        
+
     except Exception as e:
         logger.error(f"Failed to get overall stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to get statistics")
@@ -283,37 +285,39 @@ async def trigger_ingestion(
 ):
     """
     Manually trigger job ingestion
-    
+
     Requires admin privileges
     """
     try:
         # Create orchestrator
         orchestrator = JobIngestionOrchestrator()
-        
+
         # If specific companies requested, filter them
         if request.company_ids:
             # Get specific companies from database
             supabase = get_supabase_service_client()
             company_manager = CompanyManager(supabase)
-            
+
             # This would need to be implemented to filter by IDs
             # For now, we'll run all companies
-            logger.info(f"Running ingestion for specific companies: {request.company_ids}")
-        
+            logger.info(
+                f"Running ingestion for specific companies: {request.company_ids}"
+            )
+
         # Add to background tasks
         background_tasks.add_task(
             run_ingestion_background,
             orchestrator,
             request.limit_per_company,
-            request.parallel
+            request.parallel,
         )
-        
+
         return {
             "message": "Ingestion started in background",
             "parallel": request.parallel,
-            "limit_per_company": request.limit_per_company
+            "limit_per_company": request.limit_per_company,
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to trigger ingestion: {e}")
         raise HTTPException(status_code=500, detail="Failed to trigger ingestion")
@@ -322,28 +326,28 @@ async def trigger_ingestion(
 async def run_ingestion_background(
     orchestrator: JobIngestionOrchestrator,
     limit_per_company: Optional[int],
-    parallel: bool
+    parallel: bool,
 ):
     """
     Background task to run ingestion
     """
     try:
         logger.info(f"Starting background ingestion (parallel={parallel})")
-        
+
         results = await orchestrator.ingest_all_sources(
             limit_per_source=limit_per_company,
             normalize=True,
             store=True,
-            parallel=parallel
+            parallel=parallel,
         )
-        
+
         total_jobs = sum(len(jobs) for jobs in results.values())
         logger.info(f"Background ingestion complete: {total_jobs} total jobs")
-        
+
         # Run cleanup
         duplicates_removed = await orchestrator.deduplicate_jobs()
         logger.info(f"Removed {duplicates_removed} duplicate jobs")
-        
+
     except Exception as e:
         logger.error(f"Background ingestion failed: {e}")
 
@@ -355,35 +359,29 @@ async def reset_company_failures(
 ):
     """
     Reset consecutive failure counts for companies
-    
+
     Requires admin privileges
     """
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         # Get companies to reset
         if company_ids:
             companies = [{"id": cid} for cid in company_ids]
         else:
             companies = await company_manager.get_all_companies(active_only=False)
-        
+
         # Reset each company
         reset_count = 0
         for company in companies:
             await company_manager.update_company(
-                company["id"],
-                consecutive_failures=0,
-                error_details=None,
-                active=True
+                company["id"], consecutive_failures=0, error_details=None, active=True
             )
             reset_count += 1
-        
-        return {
-            "message": f"Reset {reset_count} companies",
-            "count": reset_count
-        }
-        
+
+        return {"message": f"Reset {reset_count} companies", "count": reset_count}
+
     except Exception as e:
         logger.error(f"Failed to reset company failures: {e}")
         raise HTTPException(status_code=500, detail="Failed to reset failures")
