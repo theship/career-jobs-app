@@ -21,7 +21,7 @@ class LeverPublicConnector(ATSConnector):
     def __init__(self):
         """
         Initialize Lever public connector
-        
+
         Note: Companies are now loaded from database, not CSV
         """
         # No API key needed for public endpoints
@@ -36,7 +36,7 @@ class LeverPublicConnector(ATSConnector):
     def set_companies(self, companies: List[dict]):
         """
         Set companies to fetch from (called by orchestrator)
-        
+
         Args:
             companies: List of company dicts from database
         """

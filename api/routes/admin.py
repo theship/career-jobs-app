@@ -4,14 +4,13 @@ Endpoints for managing target companies and ingestion
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, List, Optional
-from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from api.services.auth import get_current_user, require_admin
+from api.services.auth import require_admin
 from api.services.company_manager import CompanyManager
 from api.utils.database import get_supabase_service_client
 from ingestion.orchestrator import JobIngestionOrchestrator
@@ -294,11 +293,7 @@ async def trigger_ingestion(
 
         # If specific companies requested, filter them
         if request.company_ids:
-            # Get specific companies from database
-            supabase = get_supabase_service_client()
-            company_manager = CompanyManager(supabase)
-
-            # This would need to be implemented to filter by IDs
+            # NOTE: CompanyManager would be used here to filter by IDs
             # For now, we'll run all companies
             logger.info(
                 f"Running ingestion for specific companies: {request.company_ids}"

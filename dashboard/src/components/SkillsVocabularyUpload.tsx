@@ -148,13 +148,6 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
         ${result.skills_count} skills in ${result.sample_skills?.length || 0} categories.
         Your custom skills will now be used for resume analysis.`
       )
-      
-      // Log to console for debugging
-      console.log('Skills vocabulary uploaded:', {
-        skills_count: result.skills_count,
-        sample: result.sample_skills,
-        timestamp: new Date().toISOString()
-      })
 
       // Reset state after short delay
       setTimeout(() => {

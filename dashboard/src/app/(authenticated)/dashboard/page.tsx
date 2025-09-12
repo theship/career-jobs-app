@@ -10,7 +10,6 @@ import { useNotification } from '@/contexts/NotificationContext'
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [resumes, setResumes] = useState<any[]>([])
-  const [jobs, setJobs] = useState<any[]>([])
   const [scores, setScores] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [uploadingResume, setUploadingResume] = useState(false)
@@ -22,6 +21,7 @@ export default function DashboardPage() {
   useEffect(() => {
     checkAuth()
     fetchData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const checkAuth = async () => {
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       // Fetch all data in parallel - don't block on any single request
-      const [resumesResult, jobsResult] = await Promise.allSettled([
+      const [resumesResult] = await Promise.allSettled([
         api.getResumes().catch(err => {
           console.error('Failed to load resumes:', err)
           return []
@@ -49,22 +49,19 @@ export default function DashboardPage() {
 
       // Process results
       const resumesData = resumesResult.status === 'fulfilled' ? resumesResult.value : []
-      const jobsData = jobsResult.status === 'fulfilled' ? jobsResult.value : []
       
       setResumes(resumesData)
-      setJobs(jobsData)
       
       // If user has resumes, fetch existing scores in background (non-blocking)
       if (resumesData && resumesData.length > 0) {
         api.getScores(resumesData[0].resume_id, 10)
           .then(scores => {
-            console.log('Dashboard scores loaded:', scores?.length || 0)
+            // Dashboard scores loaded successfully
             if (scores && scores.length > 0) {
               setScores(scores)
             }
           })
-          .catch((error) => {
-            console.log('No scores yet for dashboard:', error)
+          .catch(() => {
             // No scores yet, that's fine - don't block UI
           })
       }

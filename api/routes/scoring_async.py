@@ -146,9 +146,9 @@ async def stream_scoring_updates(
                 # Send heartbeat every 30 seconds to keep connection alive
                 current_time = time.time()
                 if current_time - last_heartbeat > 30:
-                    yield f": heartbeat\n\n"
+                    yield ": heartbeat\n\n"
                     last_heartbeat = current_time
-                    
+
                 await asyncio.sleep(0.1)
 
         except asyncio.CancelledError:
@@ -291,7 +291,7 @@ async def process_scoring_async(
 
         # Process jobs in batches
         for i in range(0, total_jobs, batch_size):
-            batch = jobs_data[i:i + batch_size]
+            batch = jobs_data[i : i + batch_size]
             batch_num = i // batch_size + 1
 
             # Score batch
@@ -390,7 +390,7 @@ async def process_scoring_async(
                         match_level = "high"
                     elif score.total_score >= 0.5:
                         match_level = "medium"
-                    
+
                     batch_data.append(
                         {
                             "job_id": score.job_id,
@@ -542,14 +542,14 @@ async def get_scores(
         results = []
         for score in response.data:
             job = score.get("job_postings", {})
-            
+
             # Determine match level based on score
             match_level = "low"
             if score["total_score"] >= 0.7:
                 match_level = "high"
             elif score["total_score"] >= 0.5:
                 match_level = "medium"
-                
+
             results.append(
                 {
                     "job_id": score["job_id"],

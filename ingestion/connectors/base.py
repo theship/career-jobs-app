@@ -25,7 +25,7 @@ class JobListing(BaseModel):
     title: str = Field(..., description="Job title")
     company_name: str = Field(..., description="Company name")
     location: str = Field(..., description="Job location (city, state, country)")
-    
+
     # Date field (made optional since some APIs don't provide it)
     posted_at: Optional[datetime] = Field(None, description="When the job was posted")
 

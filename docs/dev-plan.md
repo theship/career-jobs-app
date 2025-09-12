@@ -1429,9 +1429,10 @@ With all phases complete, consider these enhancements:
 - `OPENAI_API_KEY`
 
 ### Minor Code TODOs Remaining
-* **Ingestion Configuration** (ingestion/orchestrator.py:47): Load scrapers from config file or environment variables instead of hardcoding
-* **Job Cleanup Logic** (ingestion/orchestrator.py:388): Implement business rules for cleaning up old/duplicate jobs  
-* **Source Tracking** (api/routes/jobs.py:406): Add source field to job uploads to track origin
+* **Embedding Service Integration** (ingestion/orchestrator.py:632): Implement actual embedding service instead of placeholder
+* **Job Cleanup Logic** (ingestion/orchestrator.py:659): Implement business rules for cleaning up old/duplicate jobs  
+* **Geocoding Re-enablement** (scoring_engine/geo_scorer.py:189): Re-enable geocoding when service is available (see Geocoding Service Implementation above)
+* **Skills Vocabulary Tracking** (api/routes/resumes.py:232): Add last_used_at and usage_count columns to user_skills_vocab table
 * **Email Notifications**: Implement email service integration (Resend/SendGrid) for match alerts
 * **Weave Integration**: Add LLM observability for production monitoring
 

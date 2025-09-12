@@ -26,12 +26,13 @@ export default function MatchesPage() {
   })
   
   const supabase = createClient()
-  const { showSuccess, showError, showInfo, showWarning, confirm } = useNotification()
+  const { showSuccess, showError, showInfo, showWarning } = useNotification()
 
   useEffect(() => {
     checkUser()
     checkCustomSkills()
     loadCachedMatches()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function MatchesPage() {
         fetchMatches()
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedResume])
 
   const checkUser = async () => {
@@ -61,7 +63,7 @@ export default function MatchesPage() {
     try {
       const vocabInfo = await api.getSkillsVocabulary()
       setHasCustomSkills(vocabInfo.has_custom_vocab || false)
-    } catch (error) {
+    } catch {
       setHasCustomSkills(false)
       // Don't show error on initial load - it's expected if no skills uploaded yet
       // The user will be prompted when they try to run scoring
@@ -185,7 +187,7 @@ export default function MatchesPage() {
       eventSource = api.scoringService.streamScoringUpdates(
         startResult.task_id,
         (data) => {
-          console.log('SSE update:', data)
+          // Process SSE update
           
           if (data.type === 'status') {
             if (data.status === 'fetching_data') {
@@ -238,12 +240,12 @@ export default function MatchesPage() {
             showError(data.message || 'Scoring failed', 'Error')
           }
         },
-        (error) => {
-          console.error('SSE error:', error)
+        () => {
+          // Handle SSE error
           showError('Connection lost. Please try again.', 'Connection Error')
         },
         () => {
-          console.log('SSE complete')
+          // SSE stream complete
           setRunningScoring(false)
         }
       )

@@ -6,7 +6,6 @@ Handles CRUD operations and business logic for target companies
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
-from uuid import UUID
 
 from supabase import Client
 
