@@ -31,19 +31,17 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
   const [sortKey, setSortKey] = useState<SortKey>('total_score')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [filterScore, setFilterScore] = useState<number>(0)
-  const [filterLocation, setFilterLocation] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
+
 
   // Filter matches
   const filteredMatches = useMemo(() => {
     return matches.filter(match => {
       const scoreFilter = match.total_score >= filterScore
-      const locationFilter = !filterLocation || 
-        match.location?.toLowerCase().includes(filterLocation.toLowerCase())
-      return scoreFilter && locationFilter
+      return scoreFilter
     })
-  }, [matches, filterScore, filterLocation])
+  }, [matches, filterScore])
 
   // Sort matches
   const sortedMatches = useMemo(() => {
@@ -134,18 +132,6 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
             />
             <span className="ml-2 text-sm">{(filterScore * 100).toFixed(0)}%</span>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location
-            </label>
-            <input
-              type="text"
-              placeholder="Filter by location"
-              value={filterLocation}
-              onChange={(e) => setFilterLocation(e.target.value)}
-              className="px-3 py-1 border rounded-md"
-            />
-          </div>
         </div>
         <button
           onClick={onDownloadCSV}
@@ -186,12 +172,6 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
               </th>
               <th 
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('location')}
-              >
-                Location <SortIcon column="location" />
-              </th>
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('skill_overlap')}
               >
                 Skills Match <SortIcon column="skill_overlap" />
@@ -223,19 +203,16 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
                     </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap font-medium">
-                  {match.company_name}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                  {match.company_name ? match.company_name.charAt(0).toUpperCase() + match.company_name.slice(1) : ''}
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900 line-clamp-2">
                     {match.title}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {match.location}
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm">
+                  <div className="text-sm text-gray-900">
                     {(match.skill_overlap * 100).toFixed(0)}%
                   </div>
                 </td>

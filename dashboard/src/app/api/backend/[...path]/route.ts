@@ -104,8 +104,21 @@ async function handleRequest(
     
     // Get response data
     const contentType = response.headers.get('content-type')
+    
+    // Handle SSE (Server-Sent Events) - stream directly
+    if (contentType?.includes('text/event-stream')) {
+      // For SSE, we need to return the response body directly as a stream
+      return new NextResponse(response.body, {
+        status: response.status,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      })
+    }
+    
     let data
-
     if (contentType?.includes('application/json')) {
       data = await response.json()
     } else if (contentType?.includes('text/')) {

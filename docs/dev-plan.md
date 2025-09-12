@@ -1340,6 +1340,27 @@ All 7 phases have been successfully completed with the following key achievement
 
 With all phases complete, consider these enhancements:
 
+### Geocoding Service Implementation
+**Priority: HIGH** - Location-based matching currently disabled
+
+#### Current Status
+- Geocoding temporarily disabled due to OpenStreetMap/Nominatim service unavailability
+- Geographic distance scoring returns default 0.5 score for all matches
+- Location column removed from UI to avoid confusion
+
+#### Implementation Options
+1. **Primary**: Implement Google Maps Geocoding API (reliable, requires API key)
+2. **Alternative**: Use Mapbox Geocoding API (good reliability, generous free tier)
+3. **Fallback**: Cache common city coordinates in database
+4. **Consider**: Pre-geocode job locations during ingestion to avoid runtime delays
+
+#### Technical Requirements
+- Add geocoding API credentials to environment variables
+- Implement retry logic with exponential backoff
+- Cache geocoded results in Redis or database
+- Add timeout handling to prevent scoring delays
+- Consider batch geocoding during off-peak hours
+
 ### Next.js ESLint Migration (PARTIALLY COMPLETE)
 **Priority: HIGH** - Next.js 15 deprecates `next lint`, removal in Next.js 16
 

@@ -12,9 +12,17 @@ interface RequestOptionsWithTimeout extends RequestOptions {
 export abstract class BaseService {
   protected basePath: string = '/api/backend'
   
-  // Default timeouts in milliseconds
-  private readonly DEFAULT_TIMEOUT_GET = 5000    // 5 seconds for GET
-  private readonly DEFAULT_TIMEOUT_POST = 30000  // 30 seconds for POST/PUT/DELETE
+  // Default timeouts in milliseconds - balanced for production
+  private readonly DEFAULT_TIMEOUT_GET = 30000   // 30 seconds for GET (database queries)
+  private readonly DEFAULT_TIMEOUT_POST = 60000  // 60 seconds for POST/PUT/DELETE
+  private readonly AI_OPERATION_TIMEOUT = 120000 // 2 minutes for AI operations
+
+  /**
+   * Get timeout for AI operations
+   */
+  protected getAITimeout(): number {
+    return this.AI_OPERATION_TIMEOUT
+  }
 
   /**
    * Central request method for all API calls

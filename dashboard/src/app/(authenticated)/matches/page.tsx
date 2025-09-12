@@ -174,7 +174,8 @@ export default function MatchesPage() {
 
       // Start async scoring - returns task_id immediately
       showInfo('Starting job matching...', 'Processing')
-      const startResult = await api.scoringService.startScoring(selectedResume, 500, 0.0, 10)
+      // Use min_score of 0.65 to filter for good matches (65% minimum)
+      const startResult = await api.scoringService.startScoring(selectedResume, 500, 0.65, 10)
       
       let processedCount = 0
       let matchesFound = 0

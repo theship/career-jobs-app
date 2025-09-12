@@ -40,6 +40,7 @@ export class ScoringService extends BaseService {
         min_score: minScore,
         batch_size: batchSize,
       },
+      timeout: this.getAITimeout(), // Use AI timeout for scoring operations
     })
   }
 
@@ -56,11 +57,16 @@ export class ScoringService extends BaseService {
     onComplete?: () => void
   ): EventSource {
     const eventSource = new EventSource(`/api/backend/scores/stream/${taskId}`)
+    let retryCount = 0
+    const maxRetries = 3
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
         onUpdate(data)
+        
+        // Reset retry count on successful message
+        retryCount = 0
         
         // Check if complete
         if (data.type === 'complete') {
@@ -73,9 +79,16 @@ export class ScoringService extends BaseService {
     }
 
     eventSource.onerror = (error) => {
-      console.error('SSE error:', error)
-      eventSource.close()
-      onError?.(error)
+      // EventSource will automatically retry for network errors
+      // Only log and close if we've exceeded retry attempts
+      if (retryCount >= maxRetries) {
+        console.error('SSE connection failed after retries:', error)
+        eventSource.close()
+        onError?.(error)
+      } else {
+        retryCount++
+        console.warn(`SSE connection error (retry ${retryCount}/${maxRetries})`)
+      }
     }
 
     return eventSource

@@ -128,6 +128,7 @@ async def stream_scoring_updates(
                 yield f"data: {json.dumps({'type': 'status', **task_info})}\n\n"
 
             # Listen for updates with timeout
+            last_heartbeat = time.time()
             while True:
                 message = pubsub.get_message(timeout=1.0)
                 if message and message["type"] == "message":
@@ -142,7 +143,12 @@ async def stream_scoring_updates(
                     if update.get("type") == "complete":
                         break
 
-                # Send heartbeat to keep connection alive
+                # Send heartbeat every 30 seconds to keep connection alive
+                current_time = time.time()
+                if current_time - last_heartbeat > 30:
+                    yield f": heartbeat\n\n"
+                    last_heartbeat = current_time
+                    
                 await asyncio.sleep(0.1)
 
         except asyncio.CancelledError:
@@ -378,6 +384,13 @@ async def process_scoring_async(
 
                 for score in batch_scores:
                     job = jobs_detail.get(score.job_id, {})
+                    # Determine match level based on score
+                    match_level = "low"
+                    if score.total_score >= 0.7:
+                        match_level = "high"
+                    elif score.total_score >= 0.5:
+                        match_level = "medium"
+                    
                     batch_data.append(
                         {
                             "job_id": score.job_id,
@@ -391,6 +404,7 @@ async def process_scoring_async(
                             "seniority_fit": score.seniority_fit,
                             "geodist_km": score.geodist_km,
                             "recency_bonus": score.recency_bonus,
+                            "match_level": match_level,
                         }
                     )
 
@@ -528,6 +542,14 @@ async def get_scores(
         results = []
         for score in response.data:
             job = score.get("job_postings", {})
+            
+            # Determine match level based on score
+            match_level = "low"
+            if score["total_score"] >= 0.7:
+                match_level = "high"
+            elif score["total_score"] >= 0.5:
+                match_level = "medium"
+                
             results.append(
                 {
                     "job_id": score["job_id"],
@@ -541,6 +563,7 @@ async def get_scores(
                     "seniority_fit": score["seniority_fit"],
                     "geodist_km": score["geodist_km"],
                     "recency_bonus": score["recency_bonus"],
+                    "match_level": match_level,
                 }
             )
 

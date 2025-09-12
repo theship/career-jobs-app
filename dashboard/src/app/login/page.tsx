@@ -29,6 +29,11 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
       } else {
+        // Wait for auth state to propagate to cookies
+        await new Promise(resolve => setTimeout(resolve, 100))
+        // Refresh server components to pick up new auth state
+        router.refresh()
+        // Then navigate to dashboard
         router.push('/dashboard')
       }
     } catch (err) {
