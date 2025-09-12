@@ -35,48 +35,41 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch user's resumes
-      try {
-        const resumesData = await api.getResumes()
-        setResumes(resumesData || [])
-        
-        // If user has resumes, fetch or calculate scores for the first one
-        if (resumesData && resumesData.length > 0) {
-          try {
-            // First try to get existing scores
-            let scoresData = await api.getScores(resumesData[0].resume_id)
-            
-            // If no scores exist, calculate them
-            if (!scoresData || scoresData.length === 0) {
-              // No existing scores, calculate new ones
-              const scoringResult = await api.runScoring(resumesData[0].resume_id)
-              if (scoringResult && scoringResult.results) {
-                scoresData = scoringResult.results
-              }
-            }
-            
-            setScores(scoresData || [])
-          } catch (scoreError) {
-            // Could not fetch or calculate scores
-            setScores([])
-          }
-        }
-      } catch (resumeError) {
-        // No resumes yet
-        setResumes([])
-      }
+      // Fetch all data in parallel - don't block on any single request
+      const [resumesResult, jobsResult] = await Promise.allSettled([
+        api.getResumes().catch(err => {
+          console.error('Failed to load resumes:', err)
+          return []
+        }),
+        api.getJobs({ limit: 5 }).catch(err => {
+          console.error('Failed to load jobs:', err) 
+          return []
+        })
+      ])
 
-      // Fetch recent jobs
-      try {
-        const jobsData = await api.getJobs({ limit: 5 })
-        setJobs(jobsData || [])
-      } catch (jobError) {
-        // Could not fetch jobs
-        setJobs([])
+      // Process results
+      const resumesData = resumesResult.status === 'fulfilled' ? resumesResult.value : []
+      const jobsData = jobsResult.status === 'fulfilled' ? jobsResult.value : []
+      
+      setResumes(resumesData)
+      setJobs(jobsData)
+      
+      // If user has resumes, fetch existing scores in background (non-blocking)
+      if (resumesData && resumesData.length > 0) {
+        api.getScores(resumesData[0].resume_id, 10)
+          .then(scores => {
+            console.log('Dashboard scores loaded:', scores?.length || 0)
+            if (scores && scores.length > 0) {
+              setScores(scores)
+            }
+          })
+          .catch((error) => {
+            console.log('No scores yet for dashboard:', error)
+            // No scores yet, that's fine - don't block UI
+          })
       }
     } catch (error) {
-      console.error('Error fetching data:', error)
-      // Don't show error for initial data fetch - it's expected when no data exists
+      console.error('Dashboard data fetch error:', error)
     } finally {
       setLoading(false)
     }
@@ -100,19 +93,8 @@ export default function DashboardPage() {
       // Refresh resumes list
       await fetchData()
       
-      // Try to trigger scoring (but don't fail if it doesn't work)
-      try {
-        if (result.resume_id) {
-          const scoringResult = await api.runScoring(result.resume_id)
-          if (scoringResult && scoringResult.results) {
-            setScores(scoringResult.results)
-            showSuccess('Resume analyzed - check your matches!')
-          }
-        }
-      } catch (scoringError) {
-        // Scoring might not be implemented yet, that's okay
-        // Scoring not available yet, that's okay
-      }
+      // Don't auto-trigger scoring - let user do it from Matches page
+      showSuccess('Resume ready! Go to Matches to generate job matches.', 'Next Step')
       
       // Clear success message after 5 seconds
       setTimeout(() => setUploadSuccess(false), 5000)

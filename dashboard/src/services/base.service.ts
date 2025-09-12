@@ -5,33 +5,62 @@
 
 import type { ApiError, RequestOptions } from '@/types/api.types'
 
+interface RequestOptionsWithTimeout extends RequestOptions {
+  timeout?: number
+}
+
 export abstract class BaseService {
   protected basePath: string = '/api/backend'
+  
+  // Default timeouts in milliseconds
+  private readonly DEFAULT_TIMEOUT_GET = 5000    // 5 seconds for GET
+  private readonly DEFAULT_TIMEOUT_POST = 30000  // 30 seconds for POST/PUT/DELETE
 
   /**
    * Central request method for all API calls
    * Handles authentication automatically through Next.js proxy
+   * Includes automatic timeout to prevent hanging requests
    */
   protected async request<T>(
     endpoint: string,
-    options: RequestOptions = {}
+    options: RequestOptionsWithTimeout = {}
   ): Promise<T> {
     const url = `${this.basePath}${endpoint}`
     
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    })
+    // Determine timeout based on method or use provided timeout
+    const timeoutMs = options.timeout || 
+      (options.method === 'GET' ? this.DEFAULT_TIMEOUT_GET : this.DEFAULT_TIMEOUT_POST)
+    
+    // Setup abort controller for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      })
+      
+      clearTimeout(timeoutId)
 
-    if (!response.ok) {
-      await this.handleError(response)
+      if (!response.ok) {
+        await this.handleError(response)
+      }
+
+      return this.handleResponse<T>(response)
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please try again')
+      }
+      throw error
     }
-
-    return this.handleResponse<T>(response)
   }
 
   /**

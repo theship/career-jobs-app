@@ -44,6 +44,9 @@ export const api = {
     scoringService.runScoring(String(resumeId), limit, minScore),
   exportScores: (resumeId: string, format?: 'csv' | 'json') => 
     scoringService.exportScores(resumeId, format),
+  
+  // Direct access to scoring service for SSE methods
+  scoringService,
 
   // Pitch methods
   generatePitch: (resumeId: string, jobId: string, includeResearch?: boolean) =>
