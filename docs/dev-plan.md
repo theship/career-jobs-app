@@ -1103,7 +1103,34 @@ describe('Job Listings', () => {
 })
 ```
 
-### Phase 8: Corrections to Implementation ✅ COMPLETE
+### Phase 8: Performance Optimization ✅ COMPLETE
+
+#### ✅ Async Scoring with SSE Implementation (Completed 2025-01-12)
+
+**Status: COMPLETE** - Fixed critical performance issue (111+ second load times)
+
+##### Implementation Details
+- ✅ Replaced synchronous scoring with async background processing using FastAPI BackgroundTasks
+- ✅ Implemented Server-Sent Events (SSE) for real-time progress updates
+- ✅ Added Redis pubsub for task tracking and message broadcasting
+- ✅ Progressive batch processing (10 jobs at a time) for better UX
+- ✅ Stream matches directly to table as they're calculated (not a progress bar)
+- ✅ Fixed embedding parsing for numpy string representations stored as strings
+- ✅ Added pulsing status message "Analyzing job postings..." during scoring
+- ✅ Proper 500 match limit with highest scores shown first
+
+##### Technical Architecture
+- **Backend**: New `api/routes/scoring_async.py` with:
+  - `/scores/run` endpoint returns a task_id for tracking
+  - `/scores/stream/{task_id}` SSE endpoint for real-time updates
+  - Background task processing with Redis pubsub messaging
+  - Task state stored in Redis with 10-minute TTL
+  
+- **Frontend**: Updated to use EventSource API:
+  - No more polling (was making 100+ requests/second)
+  - Real-time match streaming to table
+  - Progressive loading with status updates
+  - Deduplication logic to prevent duplicate entries
 
 #### ✅ Redis Implementation Status
 
@@ -1313,26 +1340,28 @@ All 7 phases have been successfully completed with the following key achievement
 
 With all phases complete, consider these enhancements:
 
-### Next.js ESLint Migration (REQUIRED)
+### Next.js ESLint Migration (PARTIALLY COMPLETE)
 **Priority: HIGH** - Next.js 15 deprecates `next lint`, removal in Next.js 16
 
-#### Migration Steps Required
-1. Install ESLint and Next.js plugin:
+#### Migration Steps Status
+1. ✅ **COMPLETE**: Install ESLint and Next.js plugin:
    ```bash
-   npm install --save-dev eslint eslint-config-next @typescript-eslint/parser @typescript-eslint/eslint-plugin
+   npm install --save-dev eslint eslint-config-next
    ```
-2. Create `.eslintrc.json` with Next.js configuration:
+2. ✅ **COMPLETE**: Created `.eslintrc.json` with Next.js configuration:
    ```json
    {
      "extends": ["next/core-web-vitals", "next/typescript"],
      "rules": {
-       "react/no-unescaped-entities": "off",
-       "@next/next/no-page-custom-font": "off"
+       "@typescript-eslint/no-explicit-any": "off",
+       "@typescript-eslint/no-unused-vars": "warn",
+       "react-hooks/exhaustive-deps": "warn",
+       "react/no-unescaped-entities": "off"
      }
    }
    ```
-3. Update `package.json` script from `"lint": "next lint"` to `"lint": "eslint . --ext .js,.jsx,.ts,.tsx"`
-4. Run migration codemod: `npx @next/codemod@canary next-lint-to-eslint-cli .`
+3. **TODO**: Update `package.json` script from `"lint": "next lint"` to `"lint": "eslint . --ext .js,.jsx,.ts,.tsx"`
+4. **TODO**: Run migration codemod: `npx @next/codemod@canary next-lint-to-eslint-cli .`
 
 ### Automated Job Ingestion Strategy
 **Priority: HIGH** - System needs fresh job data to remain valuable

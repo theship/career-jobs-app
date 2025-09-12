@@ -208,8 +208,8 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedMatches.map((match) => (
-              <tr key={match.job_id} className="hover:bg-gray-50">
+            {paginatedMatches.map((match, index) => (
+              <tr key={`${match.job_id}-${index}`} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <span 
