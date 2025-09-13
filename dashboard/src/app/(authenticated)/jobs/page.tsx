@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase'
 import { api } from '@/lib/api-client'
 
 export default function JobsPage() {
-  const [user, setUser] = useState<any>(null)
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -16,18 +15,13 @@ export default function JobsPage() {
     remote_type: '',
     location: ''
   })
-  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    checkAuth()
     fetchJobs()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    setUser(user)
-  }
 
   const fetchJobs = async () => {
     setLoading(true)
@@ -70,6 +64,7 @@ export default function JobsPage() {
       fetchJobs()
     }, 500)
     return () => clearTimeout(debounce)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
 
   return (

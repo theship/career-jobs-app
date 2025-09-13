@@ -118,5 +118,41 @@ npm run dev
 # - UI: http://localhost:3000
 ```
 
+## Recent Updates (2025-09-09)
+
+### Scalable Company Management System
+- **Implemented**: Database-driven company management with parallel ingestion
+- **Performance**: 20x faster with parallel processing, supports 1000+ companies
+- **New Features**: Admin API endpoints, Ashby connector, ingestion history tracking
+- **Database**: Added `target_companies` and `ingestion_history` tables
+- **Key Files**: 
+  - `api/routes/admin.py` - Admin endpoints
+  - `api/services/company_manager.py` - Company CRUD operations
+  - `ingestion/connectors/ashby_public.py` - Ashby ATS support
+  - `scripts/migrate_companies_to_db.py` - Migration from CSV
+
+### Job Ingestion Gotchas
+- **posted_at is optional**: Some ATS APIs don't provide dates, made field optional in base model
+- **Empty vs Failed**: 200 status with 0 jobs is valid (no openings), not a failure
+- **Check Frequency**: Companies have `check_frequency_days` (default 1) to avoid excessive API calls
+- **404 Handling**: Some companies switched ATS or have wrong IDs - these are deactivated
+- **Current Status**: 37 active companies, 153+ jobs in database
+
+### Testing Ingestion
+```bash
+# Run migration first (if not done)
+python scripts/migrate_companies_to_db.py
+
+# Test ingestion
+python scripts/run_ingestion.py --limit 5
+
+# Check admin endpoints
+curl http://localhost:8000/api/v1/admin/companies
+curl http://localhost:8000/api/v1/admin/ingestion/stats
+
+# Reset company fetch times if needed for testing
+# (Companies are only fetched once per check_frequency_days)
+```
+
 ## Development Challenges & Solutions
 

@@ -46,6 +46,59 @@ def verify_service_secret(x_service_secret: Optional[str] = Header(None)) -> boo
     return True
 
 
+def require_admin(
+    request: Request,
+    x_service_secret: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+    x_user_email: Optional[str] = Header(None),
+    x_user_token: Optional[str] = Header(None),
+    x_user_role: Optional[str] = Header(None),
+) -> Dict[str, Any]:
+    """
+    Verify that the current user has admin privileges
+
+    Args:
+        request: FastAPI request object
+        x_service_secret: Service secret from X-Service-Secret header
+        x_user_id: User ID forwarded by Next.js
+        x_user_email: User email forwarded by Next.js
+        x_user_token: JWT token forwarded by Next.js
+        x_user_role: User role from X-User-Role header
+
+    Returns:
+        User data if admin
+
+    Raises:
+        HTTPException: If user is not an admin
+    """
+    # First get the current user (this verifies service secret and user auth)
+    user_data = get_current_user(
+        request, x_service_secret, x_user_id, x_user_email, x_user_token
+    )
+
+    # Check if user has admin role from header
+    if x_user_role == "admin":
+        return user_data
+
+    # Check user metadata for admin flag
+    if user_data.get("is_admin"):
+        return user_data
+
+    # For now, we can also check if user email ends with company domain
+    # This is a simple implementation - adjust based on your needs
+    admin_domains = os.getenv("ADMIN_EMAIL_DOMAINS", "@example.com").split(",")
+    user_email = user_data.get("email", "")
+
+    if user_email:
+        for domain in admin_domains:
+            if user_email.endswith(domain.strip()):
+                return user_data
+
+    raise HTTPException(
+        status_code=403, detail="Admin privileges required for this operation"
+    )
+
+
 # Dependency for protected routes
 def get_current_user(
     request: Request,

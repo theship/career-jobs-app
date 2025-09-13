@@ -18,14 +18,21 @@ export default function MatchesPage() {
   const [runningScoring, setRunningScoring] = useState(false)
   const [showSkillsUpload, setShowSkillsUpload] = useState(false)
   const [hasCustomSkills, setHasCustomSkills] = useState(false)
+  const [scoringStatus, setScoringStatus] = useState<string>('')
+  const [scoringProgress, setScoringProgress] = useState<{processed: number, total: number, found: number}>({
+    processed: 0,
+    total: 0,
+    found: 0
+  })
   
   const supabase = createClient()
-  const { showSuccess, showError, showInfo, showWarning, confirm } = useNotification()
+  const { showSuccess, showError, showInfo, showWarning } = useNotification()
 
   useEffect(() => {
     checkUser()
     checkCustomSkills()
     loadCachedMatches()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -39,6 +46,7 @@ export default function MatchesPage() {
         fetchMatches()
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedResume])
 
   const checkUser = async () => {
@@ -55,7 +63,7 @@ export default function MatchesPage() {
     try {
       const vocabInfo = await api.getSkillsVocabulary()
       setHasCustomSkills(vocabInfo.has_custom_vocab || false)
-    } catch (error) {
+    } catch {
       setHasCustomSkills(false)
       // Don't show error on initial load - it's expected if no skills uploaded yet
       // The user will be prompted when they try to run scoring
@@ -149,8 +157,14 @@ export default function MatchesPage() {
     
     // Clear any cached matches for this resume when running new scoring
     clearCachedMatches(selectedResume)
+    // Clear existing matches to show fresh results streaming in
+    setMatches([])
     
     setRunningScoring(true)
+    setScoringStatus('Starting job matching...')
+    setScoringProgress({ processed: 0, total: 0, found: 0 })
+    let eventSource: EventSource | null = null
+    
     try {
       // First check if we have jobs in the system
       const jobs = await api.getJobs({ limit: 1 })
@@ -160,35 +174,98 @@ export default function MatchesPage() {
         return
       }
 
-      const result = await api.runScoring(selectedResume, 100, 0.0)
-      setMatches(result.results || [])
+      // Start async scoring - returns task_id immediately
+      showInfo('Starting job matching...', 'Processing')
+      // Use min_score of 0.65 to filter for good matches (65% minimum)
+      const startResult = await api.scoringService.startScoring(selectedResume, 500, 0.65, 10)
       
-      // Cache the new matches
-      if (result.results && result.results.length > 0) {
-        saveCachedMatches(selectedResume, result.results)
-        showSuccess(`Found ${result.results.length} job matches!`, 'Scoring Complete')
-      } else {
-        // No matches found
-        if (!hasCustomSkills) {
-          showInfo(
-            'No strong matches found. The system matched your resume using AI embeddings, but uploading a custom skills vocabulary CSV could improve accuracy by identifying specific technical skills.',
-            'Matches Generated'
-          )
-        } else {
-          showInfo('No matches found with current criteria. Try adjusting your resume or waiting for more jobs to be added.', 'No Matches')
+      let processedCount = 0
+      let matchesFound = 0
+      let totalJobs = 0
+      
+      // Stream updates via SSE
+      eventSource = api.scoringService.streamScoringUpdates(
+        startResult.task_id,
+        (data) => {
+          // Process SSE update
+          
+          if (data.type === 'status') {
+            if (data.status === 'fetching_data') {
+              setScoringStatus('Fetching resume and job data...')
+            } else if (data.status === 'scoring') {
+              totalJobs = data.total || totalJobs
+              setScoringStatus(`Analyzing ${totalJobs} jobs...`)
+              setScoringProgress(prev => ({ ...prev, total: totalJobs }))
+            }
+          } else if (data.type === 'progress') {
+            processedCount = data.processed
+            matchesFound = data.scores_found
+            
+            // Add new matches to the table as they come in
+            if (data.new_matches && data.new_matches.length > 0) {
+              setMatches(prevMatches => {
+                // Add new matches and sort by score
+                const combined = [...prevMatches, ...data.new_matches]
+                // Remove duplicates and sort by total_score descending
+                const unique = Array.from(new Map(combined.map(m => [m.job_id, m])).values())
+                return unique.sort((a, b) => b.total_score - a.total_score)
+              })
+            }
+            
+            // Update progress status
+            setScoringStatus(`Found ${matchesFound} matches...`)
+            setScoringProgress({
+              processed: processedCount,
+              total: data.total,
+              found: matchesFound
+            })
+          } else if (data.type === 'complete') {
+            setScoringStatus('Loading final results...')
+            // Scoring complete - fetch final results
+            fetchMatches().then(() => {
+              setScoringStatus('')
+              if (matchesFound > 0) {
+                showSuccess(`Found ${matchesFound} job matches!`, 'Scoring Complete')
+              } else if (!hasCustomSkills) {
+                showInfo(
+                  'No strong matches found. The system matched your resume using AI embeddings, but uploading a custom skills vocabulary CSV could improve accuracy.',
+                  'Matches Generated'
+                )
+              } else {
+                showInfo('No matches found with current criteria. Try adjusting your resume or waiting for more jobs.', 'No Matches')
+              }
+            })
+          } else if (data.type === 'error') {
+            setScoringStatus('')
+            showError(data.message || 'Scoring failed', 'Error')
+          }
+        },
+        () => {
+          // Handle SSE error
+          showError('Connection lost. Please try again.', 'Connection Error')
+        },
+        () => {
+          // SSE stream complete
+          setRunningScoring(false)
         }
-      }
-    } catch (error: any) {
-      console.error('Failed to run scoring:', error)
+      )
       
-      // Check if it's a "no jobs" error
+    } catch (error: any) {
+      console.error('Failed to start scoring:', error)
+      
       if (error.message?.includes('No jobs to score')) {
         showWarning('No jobs available to match against. Please check back later.', 'No Jobs')
       } else {
-        showError(error.message || 'Unknown error occurred while running scoring', 'Scoring Failed')
+        showError(error.message || 'Failed to start scoring', 'Scoring Failed')
       }
-    } finally {
       setRunningScoring(false)
+    }
+    
+    // Cleanup function
+    return () => {
+      if (eventSource) {
+        eventSource.close()
+      }
     }
   }
 
@@ -286,25 +363,52 @@ export default function MatchesPage() {
               Upload Resume
             </button>
           </div>
-        ) : matches.length === 0 && !loading ? (
-          <div className="p-8 text-center">
-            <p className="text-text-secondary mb-4">
-              No matches found yet. Generate matches to see results.
-            </p>
-            <button
-              onClick={runScoring}
-              disabled={!selectedResume || runningScoring}
-              className="btn-primary disabled:opacity-50"
-            >
-              {runningScoring ? 'Generating...' : 'Generate Matches'}
-            </button>
-          </div>
         ) : (
-          <MatchesTable 
-            matches={matches} 
-            loading={loading}
-            onDownloadCSV={downloadCSV}
-          />
+          <>
+            {/* Show status during scoring */}
+            {runningScoring && (
+              <div className="p-4 bg-surface border-b border-border">
+                <div className="flex justify-between text-sm text-text-secondary">
+                  <span className="text-accent-red font-medium">{scoringStatus}</span>
+                  <span>
+                    {scoringProgress.processed} / {scoringProgress.total} jobs analyzed
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {/* Always show table - it will update as matches stream in */}
+            <MatchesTable 
+              matches={matches} 
+              loading={loading}
+              onDownloadCSV={downloadCSV}
+            />
+            
+            {/* Show status message when no matches yet */}
+            {matches.length === 0 && runningScoring && (
+              <div className="p-8 text-center text-text-secondary">
+                <div className="animate-pulse">
+                  Analyzing job postings and calculating match scores...
+                </div>
+              </div>
+            )}
+            
+            {/* Show empty state when not scoring and no matches */}
+            {matches.length === 0 && !loading && !runningScoring && (
+              <div className="p-8 text-center">
+                <p className="text-text-secondary mb-4">
+                  No matches found yet. Generate matches to see results.
+                </p>
+                <button
+                  onClick={runScoring}
+                  disabled={!selectedResume || runningScoring}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  Generate Matches
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
       

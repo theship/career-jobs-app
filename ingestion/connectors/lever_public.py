@@ -3,10 +3,8 @@ Public Lever Connector - No authentication required
 Uses Lever's public posting API for job boards
 """
 
-import csv
 import logging
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import List, Optional
 
 import httpx
@@ -20,12 +18,11 @@ logger = logging.getLogger(__name__)
 class LeverPublicConnector(ATSConnector):
     """Connector for Lever's public job postings API (no auth required)"""
 
-    def __init__(self, company_csv_path: str = "config/target_companies.csv"):
+    def __init__(self):
         """
         Initialize Lever public connector
 
-        Args:
-            company_csv_path: Path to CSV file containing target companies
+        Note: Companies are now loaded from database, not CSV
         """
         # No API key needed for public endpoints
         super().__init__(
@@ -33,26 +30,18 @@ class LeverPublicConnector(ATSConnector):
             base_url="https://api.lever.co/v0/postings",
             rate_limit=1.0,  # 1 request per second (60 per minute)
         )
-        self.company_csv_path = company_csv_path
-        self.companies = self._load_companies()
+        # Companies will be loaded from database by orchestrator
+        self.companies = []
 
-    def _load_companies(self) -> List[dict]:
-        """Load target companies from CSV file"""
-        companies = []
-        csv_path = Path(self.company_csv_path)
+    def set_companies(self, companies: List[dict]):
+        """
+        Set companies to fetch from (called by orchestrator)
 
-        if not csv_path.exists():
-            logger.warning(f"Company CSV not found at {csv_path}")
-            return companies
-
-        with open(csv_path, "r") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["ats_system"] == "lever" and row["active"] == "true":
-                    companies.append(row)
-
-        logger.info(f"Loaded {len(companies)} Lever companies from {csv_path}")
-        return companies
+        Args:
+            companies: List of company dicts from database
+        """
+        self.companies = companies
+        logger.info(f"Configured {len(companies)} Lever companies")
 
     def _get_default_headers(self) -> dict:
         """Get default headers for API requests"""
@@ -128,12 +117,23 @@ class LeverPublicConnector(ATSConnector):
                             if job:
                                 all_jobs.append(job)
 
-                        logger.info(
-                            f"Fetched {len(jobs_data)} jobs from {display_name}"
+                        # Log differently based on whether jobs were found
+                        if len(jobs_data) == 0:
+                            logger.info(
+                                f"No open positions at {display_name} (valid endpoint)"
+                            )
+                        else:
+                            logger.info(
+                                f"Fetched {len(jobs_data)} jobs from {display_name}"
+                            )
+                    elif response.status_code == 404:
+                        logger.error(
+                            f"Company {display_name} not found on Lever (404) - may need different ID or doesn't use Lever"
                         )
+                        # Don't raise exception, just skip this company
                     else:
                         logger.warning(
-                            f"Failed to fetch from {display_name}: {response.status_code}"
+                            f"Unexpected status from {display_name}: {response.status_code}"
                         )
 
                 except Exception as e:

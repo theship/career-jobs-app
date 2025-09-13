@@ -184,48 +184,9 @@ class GeoScorer:
         Returns:
             Location object with coordinates filled in
         """
-        if location.latitude and location.longitude:
-            return location
-
-        # Check cache first
-        cache_key = f"{location.city},{location.state},{location.country}"
-        if self.geocoding_cache is not None and cache_key in self.geocoding_cache:
-            cached = self.geocoding_cache[cache_key]
-            location.latitude = cached.latitude
-            location.longitude = cached.longitude
-            return location
-
-        # Build query string
-        query_parts = []
-        if location.city and location.city != "Remote":
-            query_parts.append(location.city)
-        if location.state:
-            query_parts.append(location.state)
-        if location.country:
-            query_parts.append(location.country)
-
-        if not query_parts:
-            return location
-
-        query = ", ".join(query_parts)
-
-        try:
-            # Rate limiting for geocoding service
-            time.sleep(1)
-
-            geo_location = self.geocoder.geocode(query)
-            if geo_location:
-                location.latitude = geo_location.latitude
-                location.longitude = geo_location.longitude
-                location.formatted_address = geo_location.address
-
-                # Cache the result
-                if self.geocoding_cache is not None:
-                    self.geocoding_cache[cache_key] = location
-
-        except Exception as e:
-            logger.warning(f"Geocoding failed for {query}: {str(e)}")
-
+        # TEMPORARILY DISABLED: Geocoding service is unavailable
+        # Return location without coordinates to use default scoring
+        # TODO: Re-enable when OpenStreetMap service is available or implement alternative geocoding
         return location
 
     def calculate_distance(self, loc1: Location, loc2: Location) -> Tuple[float, float]:

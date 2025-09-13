@@ -29,11 +29,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - required for Server Components
-  // This will refresh the token and update the cookies automatically
+  // Use getSession for fast routing decisions (middleware is just a bouncer)
+  // The real security check happens in the API proxy with getUser()
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
   // Protected routes - redirect to login if not authenticated
   const protectedPaths = ['/dashboard', '/profile', '/matches', '/pitch']
@@ -41,12 +41,12 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   )
 
-  if (isProtectedPath && !user) {
+  if (isProtectedPath && !session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // If user is logged in and trying to access login page, redirect to dashboard
-  if (user && request.nextUrl.pathname === '/login') {
+  if (session && request.nextUrl.pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

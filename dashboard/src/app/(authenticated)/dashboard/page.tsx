@@ -8,9 +8,9 @@ import Link from 'next/link'
 import { useNotification } from '@/contexts/NotificationContext'
 
 export default function DashboardPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [user, setUser] = useState<any>(null)
   const [resumes, setResumes] = useState<any[]>([])
-  const [jobs, setJobs] = useState<any[]>([])
   const [scores, setScores] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [uploadingResume, setUploadingResume] = useState(false)
@@ -22,6 +22,7 @@ export default function DashboardPage() {
   useEffect(() => {
     checkAuth()
     fetchData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const checkAuth = async () => {
@@ -35,48 +36,38 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch user's resumes
-      try {
-        const resumesData = await api.getResumes()
-        setResumes(resumesData || [])
-        
-        // If user has resumes, fetch or calculate scores for the first one
-        if (resumesData && resumesData.length > 0) {
-          try {
-            // First try to get existing scores
-            let scoresData = await api.getScores(resumesData[0].resume_id)
-            
-            // If no scores exist, calculate them
-            if (!scoresData || scoresData.length === 0) {
-              // No existing scores, calculate new ones
-              const scoringResult = await api.runScoring(resumesData[0].resume_id)
-              if (scoringResult && scoringResult.results) {
-                scoresData = scoringResult.results
-              }
-            }
-            
-            setScores(scoresData || [])
-          } catch (scoreError) {
-            // Could not fetch or calculate scores
-            setScores([])
-          }
-        }
-      } catch (resumeError) {
-        // No resumes yet
-        setResumes([])
-      }
+      // Fetch all data in parallel - don't block on any single request
+      const [resumesResult] = await Promise.allSettled([
+        api.getResumes().catch(err => {
+          console.error('Failed to load resumes:', err)
+          return []
+        }),
+        api.getJobs({ limit: 5 }).catch(err => {
+          console.error('Failed to load jobs:', err) 
+          return []
+        })
+      ])
 
-      // Fetch recent jobs
-      try {
-        const jobsData = await api.getJobs({ limit: 5 })
-        setJobs(jobsData || [])
-      } catch (jobError) {
-        // Could not fetch jobs
-        setJobs([])
+      // Process results
+      const resumesData = resumesResult.status === 'fulfilled' ? resumesResult.value : []
+      
+      setResumes(resumesData)
+      
+      // If user has resumes, fetch existing scores in background (non-blocking)
+      if (resumesData && resumesData.length > 0) {
+        api.getScores(resumesData[0].resume_id, 10)
+          .then(scores => {
+            // Dashboard scores loaded successfully
+            if (scores && scores.length > 0) {
+              setScores(scores)
+            }
+          })
+          .catch(() => {
+            // No scores yet, that's fine - don't block UI
+          })
       }
     } catch (error) {
-      console.error('Error fetching data:', error)
-      // Don't show error for initial data fetch - it's expected when no data exists
+      console.error('Dashboard data fetch error:', error)
     } finally {
       setLoading(false)
     }
@@ -90,7 +81,7 @@ export default function DashboardPage() {
     setUploadSuccess(false)
     
     try {
-      const result = await api.uploadResume(file)
+      await api.uploadResume(file)
       // Resume uploaded successfully
       
       // Show success immediately
@@ -100,19 +91,8 @@ export default function DashboardPage() {
       // Refresh resumes list
       await fetchData()
       
-      // Try to trigger scoring (but don't fail if it doesn't work)
-      try {
-        if (result.resume_id) {
-          const scoringResult = await api.runScoring(result.resume_id)
-          if (scoringResult && scoringResult.results) {
-            setScores(scoringResult.results)
-            showSuccess('Resume analyzed - check your matches!')
-          }
-        }
-      } catch (scoringError) {
-        // Scoring might not be implemented yet, that's okay
-        // Scoring not available yet, that's okay
-      }
+      // Don't auto-trigger scoring - let user do it from Matches page
+      showSuccess('Resume ready! Go to Matches to generate job matches.', 'Next Step')
       
       // Clear success message after 5 seconds
       setTimeout(() => setUploadSuccess(false), 5000)
@@ -299,7 +279,7 @@ export default function DashboardPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                   <p className="text-text-primary text-lg font-medium mb-2">Upload Your Resume to Get Job Matches</p>
-                  <p className="text-text-secondary mb-6">We'll analyze your skills and experience to find the best matching opportunities</p>
+                  <p className="text-text-secondary mb-6">We&apos;ll analyze your skills and experience to find the best matching opportunities</p>
                   <label className="inline-block cursor-pointer">
                     <span className="btn-primary px-6 py-2">
                       Upload Resume

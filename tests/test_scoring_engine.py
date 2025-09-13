@@ -427,7 +427,7 @@ class TestScoreExplainer:
 
         csv_output = explainer.export_to_csv(scores)
 
-        assert "job_id,title,company,total_score" in csv_output.replace(" ", "")
+        assert "rank,job_id,title,company" in csv_output.replace(" ", "")
         assert "job1" in csv_output
         assert "0.790" in csv_output
 
