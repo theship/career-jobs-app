@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useNotification } from '@/contexts/NotificationContext'
 
 export default function DashboardPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [user, setUser] = useState<any>(null)
   const [resumes, setResumes] = useState<any[]>([])
   const [scores, setScores] = useState<any[]>([])
@@ -80,7 +81,7 @@ export default function DashboardPage() {
     setUploadSuccess(false)
     
     try {
-      const result = await api.uploadResume(file)
+      await api.uploadResume(file)
       // Resume uploaded successfully
       
       // Show success immediately
