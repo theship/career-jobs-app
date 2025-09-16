@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { api } from '@/lib/api-client'
+import { useState, useEffect } from 'react'
+import { baseService } from '@/services/base.service'
 
 interface Company {
   id: string
@@ -32,13 +32,14 @@ export default function CompanyManager() {
   const [error, setError] = useState<string | null>(null)
 
   // Load user's watchlist on mount
-  useState(() => {
+  useEffect(() => {
     loadWatchlist()
   }, [])
 
   const loadWatchlist = async () => {
     try {
-      const data = await api.get('/api/v1/companies/my-watchlist')
+      const response = await baseService.request<Company[]>('/api/v1/companies/my-watchlist')
+      const data = response
       setCompanies(data)
     } catch (err) {
       console.error('Failed to load watchlist:', err)
@@ -51,7 +52,7 @@ export default function CompanyManager() {
     setDetecting(true)
     setError(null)
     try {
-      const result = await api.get(`/api/v1/companies/detect-ats?company_name=${encodeURIComponent(companyName)}`)
+      const result = await baseService.request<ATSDetection>(`/api/v1/companies/detect-ats?company_name=${encodeURIComponent(companyName)}`)
       setDetectionResult(result)
       if (result.detected_ats) {
         setSelectedATS(result.detected_ats)
@@ -78,7 +79,10 @@ export default function CompanyManager() {
         ats_system: selectedATS || undefined
       }
       
-      const newCompany = await api.post('/api/v1/companies/add', data)
+      const newCompany = await baseService.request<Company>('/api/v1/companies/add', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      })
       setCompanies([...companies, newCompany])
       
       // Reset form
@@ -95,7 +99,9 @@ export default function CompanyManager() {
 
   const removeCompany = async (companyId: string) => {
     try {
-      await api.delete(`/api/v1/companies/${companyId}`)
+      await baseService.request(`/api/v1/companies/${companyId}`, {
+        method: 'DELETE'
+      })
       setCompanies(companies.filter(c => c.id !== companyId))
     } catch (err) {
       console.error('Failed to remove company:', err)

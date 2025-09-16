@@ -425,11 +425,11 @@ class ResumeProcessor:
                                     "properties": {
                                         "skill": {
                                             "type": "string",
-                                            "description": "Any skill mentioned in the resume (technical, soft, domain-specific)",
+                                            "description": "Any skill mentioned in the resume",
                                         },
                                         "category": {
                                             "type": "string",
-                                            "description": "Category of the skill (e.g., Programming, Marketing, Design, Management, etc.)",
+                                            "description": "Skill category (Programming, Marketing, etc.)",
                                         },
                                         "confidence": {
                                             "type": "number",
@@ -469,7 +469,12 @@ Already found skills (avoid duplicates): {", ".join(existing_skills.keys()) if e
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert recruiter who can identify all types of skills across various industries and roles. Extract skills that are explicitly mentioned or strongly implied in the text. Be comprehensive and include technical, soft, and domain-specific skills.",
+                        "content": (
+                            "You are an expert recruiter who can identify all types of skills "
+                            "across various industries and roles. Extract skills that are explicitly "
+                            "mentioned or strongly implied in the text. Be comprehensive and include "
+                            "technical, soft, and domain-specific skills."
+                        ),
                     },
                     {"role": "user", "content": prompt},
                 ],

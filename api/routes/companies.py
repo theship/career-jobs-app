@@ -4,7 +4,7 @@ Allows users to add and manage their own target companies
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -20,12 +20,14 @@ router = APIRouter(prefix="/api/v1/companies", tags=["companies"])
 
 class CompanyAddRequest(BaseModel):
     """Request model for adding a company to user's watchlist"""
+
     company_name: str
     ats_system: Optional[str] = None  # If not provided, will auto-detect
 
 
 class ATSDetectionResponse(BaseModel):
     """Response model for ATS detection"""
+
     company_name: str
     detected_ats: Optional[str]
     company_id: str
@@ -35,6 +37,7 @@ class ATSDetectionResponse(BaseModel):
 
 class UserCompany(BaseModel):
     """Response model for a user's target company"""
+
     id: str
     company_name: str
     company_id: str
@@ -48,17 +51,18 @@ class UserCompany(BaseModel):
 async def detect_ats_system(company_name: str) -> ATSDetectionResponse:
     """
     Auto-detect which ATS system a company uses by testing endpoints.
-    
+
     Args:
         company_name: Company name to check
-        
+
     Returns:
         ATSDetectionResponse with detected ATS or None
     """
     # Normalize company name for URL (lowercase, remove spaces/special chars)
     import re
-    company_id = re.sub(r'[^a-z0-9]', '', company_name.lower())
-    
+
+    company_id = re.sub(r"[^a-z0-9]", "", company_name.lower())
+
     # Test URLs for different ATS systems
     test_cases = [
         {
@@ -67,7 +71,7 @@ async def detect_ats_system(company_name: str) -> ATSDetectionResponse:
             "check_field": "data",
         },
         {
-            "ats": "greenhouse", 
+            "ats": "greenhouse",
             "url": f"https://boards-api.greenhouse.io/v1/boards/{company_id}/jobs",
             "check_field": "jobs",
         },
@@ -75,14 +79,14 @@ async def detect_ats_system(company_name: str) -> ATSDetectionResponse:
             "ats": "ashby",
             "url": f"https://jobs.ashby.com/{company_id}",
             "check_field": None,  # HTML response
-        }
+        },
     ]
-    
+
     async with httpx.AsyncClient(timeout=5.0) as client:
         for test in test_cases:
             try:
                 response = await client.get(test["url"])
-                
+
                 if response.status_code == 200:
                     # Check if response looks valid
                     if test["check_field"]:
@@ -94,7 +98,7 @@ async def detect_ats_system(company_name: str) -> ATSDetectionResponse:
                                 detected_ats=test["ats"],
                                 company_id=company_id,
                                 confidence=0.9,
-                                job_board_url=test["url"]
+                                job_board_url=test["url"],
                             )
                     else:
                         # HTML response (Ashby)
@@ -104,19 +108,19 @@ async def detect_ats_system(company_name: str) -> ATSDetectionResponse:
                                 detected_ats="ashby",
                                 company_id=company_id,
                                 confidence=0.8,
-                                job_board_url=f"https://jobs.ashby.com/{company_id}"
+                                job_board_url=f"https://jobs.ashby.com/{company_id}",
                             )
             except Exception as e:
                 logger.debug(f"ATS detection failed for {test['ats']}: {e}")
                 continue
-    
+
     # No ATS detected
     return ATSDetectionResponse(
         company_name=company_name,
         detected_ats=None,
         company_id=company_id,
         confidence=0.0,
-        job_board_url=None
+        job_board_url=None,
     )
 
 
@@ -135,8 +139,7 @@ async def detect_company_ats(
     except Exception as e:
         logger.error(f"ATS detection failed: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to detect ATS system: {str(e)}"
+            status_code=500, detail=f"Failed to detect ATS system: {str(e)}"
         )
 
 
@@ -153,7 +156,7 @@ async def add_company_to_watchlist(
         # Auto-detect ATS if not provided
         ats_system = request.ats_system
         company_id = None
-        
+
         if not ats_system:
             detection = await detect_ats_system(request.company_name)
             if detection.detected_ats:
@@ -165,24 +168,24 @@ async def add_company_to_watchlist(
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail="Could not auto-detect ATS system. Please specify manually."
+                    detail="Could not auto-detect ATS system. Please specify manually.",
                 )
-        
+
         if not company_id:
             # Generate company ID from name
             import re
-            company_id = re.sub(r'[^a-z0-9]', '', request.company_name.lower())
-        
+
+            company_id = re.sub(r"[^a-z0-9]", "", request.company_name.lower())
+
         # Add to database
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         # Check if already exists
         existing = await company_manager.get_all_companies(
-            active_only=False,
-            ats_system=ats_system
+            active_only=False, ats_system=ats_system
         )
-        
+
         for company in existing:
             if company["company_id"] == company_id:
                 # Company already exists, just return it
@@ -192,44 +195,39 @@ async def add_company_to_watchlist(
                     company_id=company["company_id"],
                     ats_system=company["ats_system"],
                     job_board_url=_get_job_board_url(
-                        company["ats_system"],
-                        company["company_id"]
+                        company["ats_system"], company["company_id"]
                     ),
                     active=company["active"],
                     last_checked=company.get("last_successful_fetch"),
-                    jobs_found=0  # TODO: Get actual count
+                    jobs_found=0,  # TODO: Get actual count
                 )
-        
+
         # Add new company
         company = await company_manager.add_company(
             ats_system=ats_system,
             company_id=company_id,
             display_name=request.company_name,
-            metadata={"added_by_user": current_user["user_id"]}
+            metadata={"added_by_user": current_user["user_id"]},
         )
-        
+
         return UserCompany(
             id=company["id"],
             company_name=company["display_name"],
             company_id=company["company_id"],
             ats_system=company["ats_system"],
             job_board_url=_get_job_board_url(
-                company["ats_system"],
-                company["company_id"]
+                company["ats_system"], company["company_id"]
             ),
             active=True,
             last_checked=None,
-            jobs_found=0
+            jobs_found=0,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to add company: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to add company: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to add company: {str(e)}")
 
 
 @router.get("/my-watchlist", response_model=List[UserCompany])
@@ -243,34 +241,34 @@ async def get_my_watchlist(
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         # Get all active companies (for now, all users see all companies)
         # TODO: Add user-specific filtering
         companies = await company_manager.get_all_companies(active_only=True)
-        
+
         result = []
         for company in companies:
-            result.append(UserCompany(
-                id=company["id"],
-                company_name=company["display_name"],
-                company_id=company["company_id"],
-                ats_system=company["ats_system"],
-                job_board_url=_get_job_board_url(
-                    company["ats_system"],
-                    company["company_id"]
-                ),
-                active=company["active"],
-                last_checked=company.get("last_successful_fetch"),
-                jobs_found=0  # TODO: Get actual count from job_postings
-            ))
-        
+            result.append(
+                UserCompany(
+                    id=company["id"],
+                    company_name=company["display_name"],
+                    company_id=company["company_id"],
+                    ats_system=company["ats_system"],
+                    job_board_url=_get_job_board_url(
+                        company["ats_system"], company["company_id"]
+                    ),
+                    active=company["active"],
+                    last_checked=company.get("last_successful_fetch"),
+                    jobs_found=0,  # TODO: Get actual count from job_postings
+                )
+            )
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to get watchlist: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get watchlist: {str(e)}"
+            status_code=500, detail=f"Failed to get watchlist: {str(e)}"
         )
 
 
@@ -286,20 +284,18 @@ async def remove_from_watchlist(
     try:
         supabase = get_supabase_service_client()
         company_manager = CompanyManager(supabase)
-        
+
         # Deactivate the company
         await company_manager.update_company(
-            company_id=company_id,
-            updates={"active": False}
+            company_id=company_id, updates={"active": False}
         )
-        
+
         return {"message": "Company removed from watchlist"}
-        
+
     except Exception as e:
         logger.error(f"Failed to remove company: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to remove company: {str(e)}"
+            status_code=500, detail=f"Failed to remove company: {str(e)}"
         )
 
 

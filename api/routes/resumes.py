@@ -44,7 +44,7 @@ async def _update_user_vocabulary_from_resume(
             .eq("user_id", user_id)
             .execute()
         )
-        
+
         existing_vocab = {}
         if existing_vocab_response.data:
             existing_vocab_data = existing_vocab_response.data[0].get("vocab_data", [])
@@ -52,37 +52,37 @@ async def _update_user_vocabulary_from_resume(
             for entry in existing_vocab_data:
                 if isinstance(entry, dict) and "skill" in entry:
                     existing_vocab[entry["skill"].lower()] = entry
-        
+
         # Build new vocabulary entries from extracted skills
         new_vocab_entries = []
         updated = False
-        
+
         for skill in skills_data.skills:
             skill_lower = skill.lower()
             if skill_lower not in existing_vocab:
                 # Add new skill to vocabulary
                 category = "Other"  # Default category
-                
+
                 # Try to get category from skills_data if available
-                if hasattr(skills_data, 'skill_categories'):
+                if hasattr(skills_data, "skill_categories"):
                     category = skills_data.skill_categories.get(skill, "Other")
-                
+
                 new_entry = {
                     "skill": skill,
                     "category": category,
                     "aliases": "",  # User can add aliases later
                     "tags": "",  # User can add tags later
                     "auto_extracted": True,  # Mark as auto-extracted
-                    "first_seen": datetime.utcnow().isoformat()
+                    "first_seen": datetime.utcnow().isoformat(),
                 }
                 new_vocab_entries.append(new_entry)
                 existing_vocab[skill_lower] = new_entry
                 updated = True
-        
+
         if updated:
             # Convert back to list format
             vocab_list = list(existing_vocab.values())
-            
+
             # Prepare vocab record
             vocab_record = {
                 "user_id": user_id,
@@ -91,7 +91,7 @@ async def _update_user_vocabulary_from_resume(
                 "uploaded_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat(),
             }
-            
+
             if existing_vocab_response.data:
                 # Update existing record
                 supabase.table("user_skills_vocab").update(vocab_record).eq(
@@ -107,7 +107,7 @@ async def _update_user_vocabulary_from_resume(
                 logger.info(
                     f"Created user vocabulary with {len(vocab_list)} skills from first resume"
                 )
-    
+
     except Exception as e:
         # Non-critical error - vocabulary building is a nice-to-have
         logger.warning(f"Failed to update user vocabulary: {e}")
@@ -419,7 +419,7 @@ async def upload_resume(
                 supabase.table("resume_skills").insert(skills_records).execute()
             except Exception as e:
                 logger.warning(f"Failed to store skills: {e}")
-            
+
             # Auto-build/update user vocabulary from extracted skills
             await _update_user_vocabulary_from_resume(
                 supabase, user_id, skills_data, custom_vocab is None

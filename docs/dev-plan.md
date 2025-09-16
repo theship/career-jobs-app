@@ -1436,6 +1436,19 @@ With all phases complete, consider these enhancements:
 * **Email Notifications**: Implement email service integration (Resend/SendGrid) for match alerts
 * **Weave Integration**: Add LLM observability for production monitoring
 
+### User-Specific Features
+* **User-Specific Company Filtering**: Make company watchlist user-specific (currently global)
+* **User Skills Vocabulary Tracking**: Add last_used_at and usage_count columns to user_skills_vocab table
+* **Job Count Display**: Get actual job counts for companies in watchlist from job_postings table
+
+### Location & Geocoding
+* **Alternative Geocoding Service**: Re-enable geocoding when OpenStreetMap service is available or implement alternative
+* **Location Normalization**: Improve location parsing and matching
+
+### Ingestion & Embeddings
+* **Production Embedding Service**: Replace TODO placeholder with actual embedding service in orchestrator
+* **Job Cleanup Logic**: Implement job cleanup based on business rules (age, duplicates, etc.)
+
 ### Test Environment Setup
 * **Supabase Configuration for Tests**: Set up test environment variables for Supabase to fix integration test failures
 * **Mock Services**: Create proper mocks for external services in test suite
