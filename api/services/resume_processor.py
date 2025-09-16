@@ -23,21 +23,20 @@ class ResumeProcessor:
 
     def __init__(self):
         """Initialize the resume processor."""
-        self.skills_vocab = self._load_skills_vocabulary()
+        # No longer load default vocabulary - will be user-driven
+        self.skills_vocab = {}
         self.openai_client = openai.AsyncClient(api_key=settings.openai_api_key)
 
-    def _load_skills_vocabulary(self) -> Dict[str, Dict[str, Any]]:
-        """Load skills vocabulary from CSV."""
+    def _load_example_vocabulary(self) -> Dict[str, Dict[str, Any]]:
+        """Load example skills vocabulary from CSV (for template only)."""
         import csv
         import os
 
         vocab = {}
-        csv_path = os.path.join(settings.CONFIG_DIR, "skills_vocab.csv")
+        csv_path = os.path.join(settings.CONFIG_DIR, "skills_vocab_example.csv")
 
         if not os.path.exists(csv_path):
-            logger.warning(
-                f"Skills vocabulary not found at {csv_path}, using empty vocabulary"
-            )
+            # Not an error - example file is optional
             return vocab
 
         try:
@@ -65,9 +64,9 @@ class ResumeProcessor:
                             if alias.lower() not in vocab:
                                 vocab[alias.lower()] = vocab[skill.lower()]
         except Exception as e:
-            logger.error(f"Failed to load skills vocabulary: {e}")
+            # Not critical - example file is optional
+            logger.debug(f"Could not load example vocabulary: {e}")
 
-        logger.info(f"Loaded {len(vocab)} skills from vocabulary")
         return vocab
 
     async def extract_text(self, file: Any) -> str:
@@ -145,11 +144,14 @@ class ResumeProcessor:
             text: Resume text to extract skills from
             custom_vocab: Optional custom skills vocabulary from user
         """
-        # Use custom vocab if provided, otherwise use default
+        # Use custom vocab if provided, otherwise skills will be extracted freely
         original_vocab = None
         if custom_vocab:
             original_vocab = self.skills_vocab
             self.skills_vocab = self._process_custom_vocab(custom_vocab)
+        else:
+            # No vocabulary constraint - extract skills freely
+            self.skills_vocab = {}
         all_skills = {}
         evidence_spans = {}
         confidence_scores = {}
@@ -164,12 +166,16 @@ class ResumeProcessor:
             if "years" in data:
                 years_experience[skill] = data["years"]
 
-        # Calculate coverage
-        coverage = len(all_skills) / max(len(self.skills_vocab), 1) * 100
-        method = "fuzzy_matching"
+        # Skip coverage calculation when no vocabulary is set
+        if self.skills_vocab:
+            coverage = len(all_skills) / max(len(self.skills_vocab), 1) * 100
+        else:
+            # No vocabulary constraint - skip to OpenAI extraction
+            coverage = 0
+        method = "fuzzy_matching" if self.skills_vocab else "llm_extraction"
 
-        # Stage 2: Embedding-based retrieval if coverage < 70%
-        if coverage < 70 and settings.openai_api_key:
+        # Stage 2: Embedding-based retrieval if using vocabulary and coverage < 70%
+        if self.skills_vocab and coverage < 70 and settings.openai_api_key:
             try:
                 stage2_skills = await self._extract_skills_embeddings(text, all_skills)
                 for skill, data in stage2_skills.items():
@@ -185,8 +191,8 @@ class ResumeProcessor:
             except Exception as e:
                 logger.warning(f"Embedding extraction failed: {e}")
 
-        # Stage 3: OpenAI function calling if still low coverage
-        if coverage < 70 and settings.openai_api_key:
+        # Stage 3: OpenAI function calling if no vocab or still low coverage
+        if (not self.skills_vocab or coverage < 70) and settings.openai_api_key:
             try:
                 stage3_skills = await self._extract_skills_openai(text, all_skills)
                 for skill, data in stage3_skills.items():
@@ -402,18 +408,13 @@ class ResumeProcessor:
     async def _extract_skills_openai(
         self, text: str, existing_skills: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
-        """Stage 3: Extract skills using OpenAI function calling with closed-world constraint."""
+        """Stage 3: Extract skills using OpenAI function calling - no constraints."""
         try:
-            # Prepare vocabulary list for the prompt
-            vocab_list = list(
-                set([skill["canonical"] for skill in self.skills_vocab.values()])
-            )
-
-            # Create the function definition
+            # Create the function definition WITHOUT enum constraint
             functions = [
                 {
                     "name": "extract_skills",
-                    "description": "Extract technical skills from resume text",
+                    "description": "Extract all relevant skills from resume text",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -424,8 +425,11 @@ class ResumeProcessor:
                                     "properties": {
                                         "skill": {
                                             "type": "string",
-                                            "enum": vocab_list,  # Closed-world constraint
-                                            "description": "Skill from the predefined vocabulary",
+                                            "description": "Any skill mentioned in the resume (technical, soft, domain-specific)",
+                                        },
+                                        "category": {
+                                            "type": "string",
+                                            "description": "Category of the skill (e.g., Programming, Marketing, Design, Management, etc.)",
                                         },
                                         "confidence": {
                                             "type": "number",
@@ -438,7 +442,7 @@ class ResumeProcessor:
                                             "description": "Years of experience if mentioned",
                                         },
                                     },
-                                    "required": ["skill", "confidence"],
+                                    "required": ["skill", "category", "confidence"],
                                 },
                             }
                         },
@@ -447,25 +451,25 @@ class ResumeProcessor:
                 }
             ]
 
-            # Load prompt template
-            prompt_template = self._load_prompt_template()
+            # Create a more open-ended prompt
+            prompt = f"""Extract all skills from this resume text. Include:
+- Technical skills (programming languages, tools, frameworks)
+- Domain skills (industry-specific knowledge)
+- Soft skills (communication, leadership, etc.)
+- Any other relevant competencies
 
-            prompt = prompt_template.format(
-                text=text[:4000],  # Limit text length
-                existing_skills=(
-                    ", ".join(existing_skills.keys()) if existing_skills else "None"
-                ),
-                vocabulary_sample=", ".join(
-                    vocab_list[:50]
-                ),  # Show sample of vocabulary
-            )
+Resume text:
+{text[:4000]}
+
+Already found skills (avoid duplicates): {", ".join(existing_skills.keys()) if existing_skills else "None"}
+"""
 
             response = await self.openai_client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a technical recruiter expert at identifying skills in resumes. Only extract skills that are explicitly mentioned or strongly implied in the text.",
+                        "content": "You are an expert recruiter who can identify all types of skills across various industries and roles. Extract skills that are explicitly mentioned or strongly implied in the text. Be comprehensive and include technical, soft, and domain-specific skills.",
                     },
                     {"role": "user", "content": prompt},
                 ],
@@ -487,6 +491,7 @@ class ResumeProcessor:
                     if skill_name and skill_name not in existing_skills:
                         found_skills[skill_name] = {
                             "canonical": skill_name,
+                            "category": skill_item.get("category", "Other"),
                             "spans": self._find_spans(text, skill_name),
                             "confidence": skill_item.get("confidence", 0.8),
                             "years": skill_item.get("years_experience"),
