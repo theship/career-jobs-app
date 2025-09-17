@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { baseService } from '@/services/base.service'
 
 interface Company {
   id: string
@@ -38,8 +37,9 @@ export default function CompanyManager() {
 
   const loadWatchlist = async () => {
     try {
-      const response = await baseService.request<Company[]>('/api/v1/companies/my-watchlist')
-      const data = response
+      const response = await fetch('/api/backend/companies/my-watchlist')
+      if (!response.ok) throw new Error('Failed to load')
+      const data = await response.json()
       setCompanies(data)
     } catch (err) {
       console.error('Failed to load watchlist:', err)
@@ -52,7 +52,12 @@ export default function CompanyManager() {
     setDetecting(true)
     setError(null)
     try {
-      const result = await baseService.request<ATSDetection>(`/api/v1/companies/detect-ats?company_name=${encodeURIComponent(companyName)}`)
+      const response = await fetch(`/api/backend/companies/detect-ats?company_name=${encodeURIComponent(companyName)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      if (!response.ok) throw new Error('Failed to detect')
+      const result = await response.json()
       setDetectionResult(result)
       if (result.detected_ats) {
         setSelectedATS(result.detected_ats)
@@ -79,10 +84,13 @@ export default function CompanyManager() {
         ats_system: selectedATS || undefined
       }
       
-      const newCompany = await baseService.request<Company>('/api/v1/companies/add', {
+      const response = await fetch('/api/backend/companies/add', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
+      if (!response.ok) throw new Error('Failed to add')
+      const newCompany = await response.json()
       setCompanies([...companies, newCompany])
       
       // Reset form
@@ -99,9 +107,10 @@ export default function CompanyManager() {
 
   const removeCompany = async (companyId: string) => {
     try {
-      await baseService.request(`/api/v1/companies/${companyId}`, {
+      const response = await fetch(`/api/backend/companies/${companyId}`, {
         method: 'DELETE'
       })
+      if (!response.ok) throw new Error('Failed to remove')
       setCompanies(companies.filter(c => c.id !== companyId))
     } catch (err) {
       console.error('Failed to remove company:', err)
