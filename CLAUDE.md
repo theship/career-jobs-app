@@ -94,6 +94,16 @@ Use this template for future AI-enhanced workflow projects.
 
 ### 🚀 Running the Application
 
+#### Test Status (Updated 2025-01-17)
+- **Total Tests**: 106 tests defined (92 passing, 13 failing, 1 skipped)
+- **Pass Rate**: 87% (92/106 tests passing)
+- **Failing Tests**: Integration tests requiring Supabase environment mocking
+- **Key Fixes Applied**:
+  - Removed JWT-based auth tests (replaced with Supabase auth)
+  - Fixed async/await issues in job ingestion tests
+  - Mocked OpenAI API calls to prevent "test-key" failures
+  - Fixed vocabulary loading tests to expect empty vocab by default
+
 #### Prerequisites
 ```bash
 # Install and start Redis (REQUIRED)
@@ -155,4 +165,13 @@ curl http://localhost:8000/api/v1/admin/ingestion/stats
 ```
 
 ## Development Challenges & Solutions
+
+### Skills Upload UI Issues (Fixed 2025-01-17)
+- **Problem**: Skills upload modal styling inconsistent, drag-and-drop not working
+- **Solution**: Created unified SkillsUploadModal component with dark theme styling
+- **Features Added**:
+  - "Your Skills" section on dashboard matching "Your Resume" design
+  - Proper drag-and-drop event handlers with visual feedback
+  - Consistent modal styling using existing UI components
+  - Shared modal experience between dashboard and matches pages
 

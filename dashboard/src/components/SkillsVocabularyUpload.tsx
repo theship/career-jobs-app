@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { api } from '@/lib/api-client'
 import { useNotification } from '@/contexts/NotificationContext'
 
@@ -18,6 +18,8 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [processingStage, setProcessingStage] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { showSuccess, showError, showInfo } = useNotification()
 
   const validateCSV = (content: string): { valid: boolean; errors: string[]; preview: SkillPreview[] } => {
@@ -84,9 +86,14 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
     }
   }
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
+  const processFile = async (selectedFile: File) => {
     if (!selectedFile) return
+
+    // Check file type
+    if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
+      showError('Please upload a CSV file')
+      return
+    }
 
     setFile(selectedFile)
     setValidationErrors([])
@@ -121,6 +128,47 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
     }
 
     reader.readAsText(selectedFile)
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0]
+    if (selectedFile) {
+      await processFile(selectedFile)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set dragging to false if we're leaving the drop zone entirely
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+    if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const droppedFile = e.dataTransfer.files?.[0]
+    if (droppedFile) {
+      await processFile(droppedFile)
+    }
   }
 
   const handleUpload = async () => {
@@ -171,8 +219,19 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
   return (
     <div className="space-y-6">
       {/* Upload Section */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+      <div
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+          isDragging
+            ? 'border-accent-red bg-accent-red/10'
+            : 'border-border hover:border-accent-red/50 bg-surface'
+        }`}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <input
+          ref={fileInputRef}
           type="file"
           accept=".csv"
           onChange={handleFileSelect}
@@ -182,10 +241,10 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
         />
         <label
           htmlFor="skills-csv-upload"
-          className="cursor-pointer"
+          className="cursor-pointer block"
         >
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className={`mx-auto h-12 w-12 ${isDragging ? 'text-accent-red' : 'text-text-muted'}`}
             stroke="currentColor"
             fill="none"
             viewBox="0 0 48 48"
@@ -197,30 +256,30 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
               strokeLinejoin="round"
             />
           </svg>
-          <p className="mt-2 text-sm text-gray-600">
-            {file ? file.name : 'Click to upload CSV file or drag and drop'}
+          <p className={`mt-2 text-sm ${isDragging ? 'text-accent-red' : 'text-text-secondary'}`}>
+            {file ? file.name : (isDragging ? 'Drop your CSV file here' : 'Click to upload or drag and drop CSV file')}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
-            CSV format: skill, category, aliases (pipe-separated), tags (comma-separated)
+          <p className="text-xs text-text-muted mt-1">
+            CSV format: skill, category, aliases (pipe-separated), tags (pipe-separated)
           </p>
         </label>
       </div>
 
       {/* Processing Stage Display */}
       {processingStage && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-surface border border-accent-red/20 rounded-lg p-4">
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
-            <span className="text-blue-700">{processingStage}</span>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent-red mr-3"></div>
+            <span className="text-accent-red">{processingStage}</span>
           </div>
         </div>
       )}
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h3 className="text-red-800 font-medium mb-2">Validation Errors:</h3>
-          <ul className="list-disc list-inside text-sm text-red-700">
+        <div className="bg-red-900/20 border border-red-400/20 rounded-lg p-4">
+          <h3 className="text-red-400 font-medium mb-2">Validation Errors:</h3>
+          <ul className="list-disc list-inside text-sm text-red-400/80">
             {validationErrors.map((error, idx) => (
               <li key={idx}>{error}</li>
             ))}
@@ -230,55 +289,55 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
 
       {/* Preview Table */}
       {preview.length > 0 && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="bg-gray-50 px-6 py-3 border-b">
-            <h3 className="text-sm font-medium text-gray-900">
+        <div className="bg-surface rounded-lg border border-border overflow-hidden">
+          <div className="bg-background px-6 py-3 border-b border-border">
+            <h3 className="text-sm font-medium text-text-primary">
               Preview (showing first {preview.length} skills)
             </h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-background">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Skill
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Category
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Aliases
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                     Tags
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-surface divide-y divide-border">
                 {preview.map((skill, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={idx} className="hover:bg-background/50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-primary">
                       {skill.skill}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
                       {skill.category || '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-text-secondary">
                       {skill.aliases.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {skill.aliases.map((alias, i) => (
-                            <span key={i} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                            <span key={i} className="px-2 py-1 text-xs bg-blue-900/20 text-blue-400 rounded border border-blue-400/20">
                               {alias}
                             </span>
                           ))}
                         </div>
                       ) : '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-text-secondary">
                       {skill.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {skill.tags.map((tag, i) => (
-                            <span key={i} className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                            <span key={i} className="px-2 py-1 text-xs bg-green-900/20 text-green-400 rounded border border-green-400/20">
                               {tag}
                             </span>
                           ))}
@@ -296,13 +355,13 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
       {/* Upload Progress */}
       {uploading && uploadProgress > 0 && (
         <div className="space-y-2">
-          <div className="flex justify-between text-sm text-gray-600">
+          <div className="flex justify-between text-sm text-text-secondary">
             <span>Uploading skills vocabulary...</span>
             <span>{uploadProgress}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-surface rounded-full h-2 border border-border">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-accent-red h-2 rounded-full transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
@@ -320,14 +379,14 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
                 setValidationErrors([])
                 setProcessingStage('')
               }}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="btn-secondary px-4 py-2"
             >
               Cancel
             </button>
             <button
               onClick={handleUpload}
               disabled={preview.length === 0}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary px-4 py-2 disabled:opacity-50"
             >
               Upload {preview.length}+ Skills
             </button>
@@ -336,9 +395,9 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
       </div>
 
       {/* Help Text */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-gray-900 mb-2">CSV Format Example:</h4>
-        <pre className="text-xs text-gray-600 bg-white p-2 rounded border">
+      <div className="bg-surface rounded-lg p-4 border border-border">
+        <h4 className="text-sm font-medium text-text-primary mb-2">CSV Format Example:</h4>
+        <pre className="text-xs text-text-muted bg-background p-2 rounded border border-border">
 {`skill,category,aliases,tags
 Python,language,py|python3,backend|scripting
 React,framework,ReactJS|React.js,frontend|web
