@@ -139,44 +139,63 @@ Add a tiny alias in the sandbox:
 
 ### 4) Running the Application
 
-#### Prerequisites
+#### Quick Service Status Check
 ```bash
-# Ensure Redis is running (REQUIRED)
-redis-cli ping  # Should return "PONG"
-
-# Verify all dependencies
-python scripts/validate_dependencies.py
+# Check if services are running:
+redis-cli ping                                      # Redis (should return "PONG")
+curl -s http://localhost:8000/health | jq .         # Backend API
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000  # Frontend (should return 200)
 ```
 
-#### Backend API Server
+#### Starting Services
+
+##### 1. Redis (REQUIRED - Must be running first)
+```bash
+# Check if running
+redis-cli ping  # Should return "PONG"
+
+# If not running, start it:
+brew services start redis        # macOS with Homebrew
+# OR
+sudo systemctl start redis       # Linux
+# OR  
+docker run -d -p 6379:6379 redis:7-alpine  # Docker
+```
+
+##### 2. Backend API Server
 ```bash
 # Activate Python environment
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 
-# Start the FastAPI backend server
-python -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+# Check if running
+curl -s http://localhost:8000/health | jq .
+
+# If not running, start it:
+python -m uvicorn api.main:app --reload --port 8000
 
 # API will be available at:
 # - http://localhost:8000
 # - API docs: http://localhost:8000/docs
 ```
 
-#### Frontend Dashboard
+##### 3. Frontend Dashboard
 ```bash
 # Navigate to dashboard directory
 cd dashboard
 
-# Install dependencies (first time)
-npm install
+# Check if running
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
 
-# Start the Next.js development server
+# If not running, start it:
+npm install  # First time only
 npm run dev
 
 # Dashboard will be available at:
 # - http://localhost:3000
 ```
 
-#### Stop Services
+#### Stopping Services
+- **Redis**: `brew services stop redis` (or keep running, it's lightweight)
 - **Backend**: Press `Ctrl+C` in the terminal running uvicorn
 - **Frontend**: Press `Ctrl+C` in the terminal running npm
 

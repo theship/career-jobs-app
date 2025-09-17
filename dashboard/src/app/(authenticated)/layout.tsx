@@ -71,6 +71,12 @@ export default function AuthenticatedLayout({
                 Dashboard
               </Link>
               <Link 
+                href="/companies" 
+                className={`nav-link ${isActive('/companies') ? 'text-accent-red' : ''}`}
+              >
+                Companies
+              </Link>
+              <Link 
                 href="/jobs" 
                 className={`nav-link ${isActive('/jobs') || pathname.startsWith('/jobs/') ? 'text-accent-red' : ''}`}
               >

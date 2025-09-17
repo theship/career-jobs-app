@@ -1,6 +1,5 @@
 """Tests for resume processing pipeline."""
 
-import io
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -44,86 +43,101 @@ def sample_resume_text():
 @pytest.mark.asyncio
 async def test_skill_extraction_fuzzy_matching(resume_processor, sample_resume_text):
     """Test skill extraction using fuzzy matching."""
-    # Mock the vocabulary
-    resume_processor.skills_vocab = {
-        "python": {
-            "canonical": "Python",
-            "category": "Languages",
-            "aliases": ["py"],
-            "tags": [],
-        },
-        "javascript": {
-            "canonical": "JavaScript",
-            "category": "Languages",
-            "aliases": ["js"],
-            "tags": [],
-        },
-        "react": {
-            "canonical": "React",
-            "category": "Frameworks",
-            "aliases": [],
-            "tags": [],
-        },
-        "docker": {
-            "canonical": "Docker",
-            "category": "DevOps",
-            "aliases": [],
-            "tags": [],
-        },
-        "kubernetes": {
-            "canonical": "Kubernetes",
-            "category": "DevOps",
-            "aliases": ["k8s"],
-            "tags": [],
-        },
-        "machine learning": {
-            "canonical": "Machine Learning",
-            "category": "AI",
-            "aliases": ["ml"],
-            "tags": [],
-        },
-        "pytorch": {
-            "canonical": "PyTorch",
-            "category": "AI",
-            "aliases": [],
-            "tags": [],
-        },
-        "fastapi": {
-            "canonical": "FastAPI",
-            "category": "Frameworks",
-            "aliases": [],
-            "tags": [],
-        },
-        "ci/cd": {
-            "canonical": "CI/CD",
-            "category": "DevOps",
-            "aliases": [],
-            "tags": [],
-        },
-        "agile": {
-            "canonical": "Agile",
-            "category": "Methodology",
-            "aliases": [],
-            "tags": [],
-        },
-    }
+    # Mock OpenAI client to avoid API calls
+    with patch.object(
+        resume_processor.openai_client.chat.completions, "create"
+    ) as mock_create:
+        # Mock the OpenAI response
+        mock_response = Mock()
+        mock_response.choices = [
+            Mock(
+                message=Mock(
+                    content='{"skills": ["Python", "JavaScript", "React", "Docker", "Kubernetes", "PyTorch", "FastAPI", "CI/CD", "Agile"]}'
+                )
+            )
+        ]
+        mock_create.return_value = mock_response
 
-    # Test extraction
-    result = await resume_processor.extract_skills(sample_resume_text)
+        # Mock the vocabulary
+        resume_processor.skills_vocab = {
+            "python": {
+                "canonical": "Python",
+                "category": "Languages",
+                "aliases": ["py"],
+                "tags": [],
+            },
+            "javascript": {
+                "canonical": "JavaScript",
+                "category": "Languages",
+                "aliases": ["js"],
+                "tags": [],
+            },
+            "react": {
+                "canonical": "React",
+                "category": "Frameworks",
+                "aliases": [],
+                "tags": [],
+            },
+            "docker": {
+                "canonical": "Docker",
+                "category": "DevOps",
+                "aliases": [],
+                "tags": [],
+            },
+            "kubernetes": {
+                "canonical": "Kubernetes",
+                "category": "DevOps",
+                "aliases": ["k8s"],
+                "tags": [],
+            },
+            "machine learning": {
+                "canonical": "Machine Learning",
+                "category": "AI",
+                "aliases": ["ml"],
+                "tags": [],
+            },
+            "pytorch": {
+                "canonical": "PyTorch",
+                "category": "AI",
+                "aliases": [],
+                "tags": [],
+            },
+            "fastapi": {
+                "canonical": "FastAPI",
+                "category": "Frameworks",
+                "aliases": [],
+                "tags": [],
+            },
+            "ci/cd": {
+                "canonical": "CI/CD",
+                "category": "DevOps",
+                "aliases": [],
+                "tags": [],
+            },
+            "agile": {
+                "canonical": "Agile",
+                "category": "Methodology",
+                "aliases": [],
+                "tags": [],
+            },
+        }
 
-    assert isinstance(result, SkillExtractionResult)
-    assert len(result.skills) > 0
-    assert "Python" in result.skills
-    assert "JavaScript" in result.skills
-    assert "Docker" in result.skills
-    assert result.method in [
-        "fuzzy_matching",
-        "fuzzy_and_embeddings",
-        "full_pipeline",
-    ]
-    assert result.coverage > 0
-    assert isinstance(result.confidence_scores, dict)
-    assert isinstance(result.evidence_spans, dict)
+        # Test extraction
+        result = await resume_processor.extract_skills(sample_resume_text)
+
+        assert isinstance(result, SkillExtractionResult)
+        assert len(result.skills) > 0
+        assert "Python" in result.skills
+        assert "JavaScript" in result.skills
+        assert "Docker" in result.skills
+        assert result.method in [
+            "fuzzy_matching",
+            "fuzzy_and_embeddings",
+            "full_pipeline",
+        ]
+        assert result.coverage > 0
+        assert isinstance(result.confidence_scores, dict)
+        assert isinstance(result.evidence_spans, dict)
 
 
 def test_extract_years_experience(resume_processor):
@@ -239,34 +253,35 @@ async def test_generate_embedding(resume_processor):
 
 @pytest.mark.asyncio
 async def test_skills_vocabulary_loading(resume_processor):
-    """Test loading skills vocabulary from CSV."""
-    csv_content = """skill,category,aliases,tags
-Python,Languages,py|python3,backend|scripting
-JavaScript,Languages,JS,frontend|web
-"""
+    """Test that resume processor starts with empty vocabulary by default."""
+    # By default, vocabulary should be empty (user-driven now)
+    assert resume_processor.skills_vocab == {}
 
-    with patch("builtins.open", create=True) as mock_open:
-        mock_open.return_value.__enter__.return_value = io.StringIO(csv_content)
+    # Test setting custom vocabulary
+    test_vocab = {
+        "python": {
+            "canonical": "Python",
+            "category": "Languages",
+            "aliases": ["py", "python3"],
+            "tags": ["backend", "scripting"],
+        },
+        "javascript": {
+            "canonical": "JavaScript",
+            "category": "Languages",
+            "aliases": ["JS"],
+            "tags": ["frontend", "web"],
+        },
+    }
 
-        with patch("os.path.exists", return_value=True):
-            vocab = resume_processor._load_skills_vocabulary()
-
-            assert "python" in vocab
-            assert vocab["python"]["canonical"] == "Python"
-            assert vocab["python"]["category"] == "Languages"
-            assert "py" in vocab["python"]["aliases"]
-            assert "backend" in vocab["python"]["tags"]
-
-            # Check alias mapping
-            assert "py" in vocab
-            assert vocab["py"]["canonical"] == "Python"
+    resume_processor.skills_vocab = test_vocab
+    assert "python" in resume_processor.skills_vocab
+    assert resume_processor.skills_vocab["python"]["canonical"] == "Python"
 
 
 def test_skills_vocabulary_missing_file(resume_processor):
-    """Test handling of missing vocabulary file."""
-    with patch("os.path.exists", return_value=False):
-        vocab = resume_processor._load_skills_vocabulary()
-        assert vocab == {}
+    """Test that processor works without vocabulary file."""
+    # Should start with empty vocabulary (no file dependency)
+    assert resume_processor.skills_vocab == {}
 
 
 @pytest.mark.asyncio
@@ -287,13 +302,7 @@ async def test_multi_stage_pipeline_integration(resume_processor, sample_resume_
             # Mock chat completion response
             mock_chat_response = Mock()
             mock_chat_response.choices = [
-                Mock(
-                    message=Mock(
-                        function_call=Mock(
-                            arguments='{"skills": [{"skill": "Python", "confidence": 1.0, "years_experience": 5}]}'
-                        )
-                    )
-                )
+                Mock(message=Mock(content='{"skills": ["Python"]}'))
             ]
             mock_chat.return_value = mock_chat_response
 

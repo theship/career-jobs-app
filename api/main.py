@@ -117,6 +117,7 @@ async def health_check():
 from api.routes import (  # noqa: E402
     admin,
     auth,
+    companies,
     jobs,
     pitch,
     research,
@@ -126,6 +127,7 @@ from api.routes import (  # noqa: E402
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(resumes.router, prefix="/api/v1", tags=["resumes"])
+app.include_router(companies.router, tags=["companies"])  # User company management
 app.include_router(jobs.router, tags=["jobs"])  # Prefix already in router
 app.include_router(
     scoring_async.router, prefix="/api/v1", tags=["scoring"]

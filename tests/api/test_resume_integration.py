@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from fastapi.testclient import TestClient
 
 from api.main import app
-from api.services.auth import get_current_user
+from tests.helpers import get_test_auth_headers
 
 client = TestClient(app)
 
@@ -17,26 +17,12 @@ client = TestClient(app)
 class TestResumeUploadIntegration:
     """Integration tests for resume upload and processing"""
 
-    @patch("api.services.auth.get_auth_service")
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
     @patch("api.services.resume_processor.ResumeProcessor")
-    async def test_complete_resume_upload_flow(
-        self, mock_processor_class, mock_get_auth_service
-    ):
+    async def test_complete_resume_upload_flow(self, mock_processor_class):
         """Test complete flow: upload -> text extraction -> skill extraction -> storage"""
-        # Setup auth mock
-        mock_auth_service = Mock(spec=JWTAuthService)
-        mock_get_auth_service.return_value = mock_auth_service
-
-        test_payload = {
-            "sub": "test-user-id",
-            "email": "test@example.com",
-            "aud": "authenticated",
-            "role": "authenticated",
-        }
-        mock_auth_service.verify_token.return_value = test_payload
-        mock_auth_service.extract_user_id.return_value = "test-user-id"
-        mock_auth_service.extract_user_email.return_value = "test@example.com"
-        mock_auth_service.extract_user_metadata.return_value = {}
+        # Get test auth headers
+        headers = get_test_auth_headers("test-user-id", "test@example.com")
 
         # Setup resume processor mock
         mock_processor = Mock()
@@ -150,8 +136,7 @@ class TestResumeUploadIntegration:
             file_content = b"PDF content here"
             files = {"file": ("resume.pdf", file_content, "application/pdf")}
 
-            # Make request
-            headers = {"Authorization": "Bearer test-token"}
+            # Make request with proper auth headers
             response = client.post(
                 "/api/v1/resumes/upload", files=files, headers=headers
             )
@@ -166,16 +151,9 @@ class TestResumeUploadIntegration:
             assert data["skills"]["years_experience"]["Python"] == 5.0
             assert data["message"] == "Resume uploaded and processed successfully"
 
-    @patch("api.services.auth.get_auth_service")
-    def test_upload_invalid_file_type(self, mock_get_auth_service):
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
+    def test_upload_invalid_file_type(self):
         """Test that invalid file types are rejected"""
-        # Setup auth mock
-        mock_auth_service = Mock(spec=JWTAuthService)
-        mock_get_auth_service.return_value = mock_auth_service
-
-        test_payload = {"sub": "test-user-id", "aud": "authenticated"}
-        mock_auth_service.verify_token.return_value = test_payload
-        mock_auth_service.extract_user_id.return_value = "test-user-id"
 
         # Create invalid file
         files = {
@@ -186,28 +164,21 @@ class TestResumeUploadIntegration:
             )
         }
 
-        headers = {"Authorization": "Bearer test-token"}
+        headers = get_test_auth_headers("test-user-id", "test@example.com")
         response = client.post("/api/v1/resumes/upload", files=files, headers=headers)
 
         assert response.status_code == 400
         assert "Invalid file type" in response.json()["detail"]
 
-    @patch("api.services.auth.get_auth_service")
-    def test_upload_oversized_file(self, mock_get_auth_service):
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
+    def test_upload_oversized_file(self):
         """Test that oversized files are rejected"""
-        # Setup auth mock
-        mock_auth_service = Mock(spec=JWTAuthService)
-        mock_get_auth_service.return_value = mock_auth_service
-
-        test_payload = {"sub": "test-user-id", "aud": "authenticated"}
-        mock_auth_service.verify_token.return_value = test_payload
-        mock_auth_service.extract_user_id.return_value = "test-user-id"
 
         # Create oversized file (> 10MB)
         large_content = b"x" * (11 * 1024 * 1024)  # 11MB
         files = {"file": ("resume.pdf", large_content, "application/pdf")}
 
-        headers = {"Authorization": "Bearer test-token"}
+        headers = get_test_auth_headers("test-user-id", "test@example.com")
         response = client.post("/api/v1/resumes/upload", files=files, headers=headers)
 
         assert response.status_code == 413
@@ -217,16 +188,9 @@ class TestResumeUploadIntegration:
 class TestResumeListAndRetrieve:
     """Test listing and retrieving resumes"""
 
-    @patch("api.services.auth.get_auth_service")
-    def test_list_user_resumes(self, mock_get_auth_service):
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
+    def test_list_user_resumes(self):
         """Test listing all resumes for a user"""
-        # Setup auth mock
-        mock_auth_service = Mock(spec=JWTAuthService)
-        mock_get_auth_service.return_value = mock_auth_service
-
-        test_payload = {"sub": "test-user-id", "aud": "authenticated"}
-        mock_auth_service.verify_token.return_value = test_payload
-        mock_auth_service.extract_user_id.return_value = "test-user-id"
 
         with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
             mock_supabase = Mock()
@@ -252,7 +216,7 @@ class TestResumeListAndRetrieve:
                 ]
             )
 
-            headers = {"Authorization": "Bearer test-token"}
+            headers = get_test_auth_headers("test-user-id", "test@example.com")
             response = client.get("/api/v1/resumes", headers=headers)
 
             assert response.status_code == 200
@@ -261,16 +225,9 @@ class TestResumeListAndRetrieve:
             assert data[0]["id"] == "resume-1"
             assert data[1]["id"] == "resume-2"
 
-    @patch("api.services.auth.get_auth_service")
-    def test_get_single_resume(self, mock_get_auth_service):
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
+    def test_get_single_resume(self):
         """Test retrieving a single resume by ID"""
-        # Setup auth mock
-        mock_auth_service = Mock(spec=JWTAuthService)
-        mock_get_auth_service.return_value = mock_auth_service
-
-        test_payload = {"sub": "test-user-id", "aud": "authenticated"}
-        mock_auth_service.verify_token.return_value = test_payload
-        mock_auth_service.extract_user_id.return_value = "test-user-id"
 
         with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
             mock_supabase = Mock()
@@ -298,7 +255,7 @@ class TestResumeListAndRetrieve:
                 ]
             )
 
-            headers = {"Authorization": "Bearer test-token"}
+            headers = get_test_auth_headers("test-user-id", "test@example.com")
             response = client.get("/api/v1/resumes/resume-123", headers=headers)
 
             assert response.status_code == 200
@@ -307,16 +264,9 @@ class TestResumeListAndRetrieve:
             assert data["skills"] == ["Python", "FastAPI"]
             assert data["skills_metadata"]["coverage"] == 75.0
 
-    @patch("api.services.auth.get_auth_service")
-    def test_delete_resume(self, mock_get_auth_service):
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
+    def test_delete_resume(self):
         """Test deleting a resume"""
-        # Setup auth mock
-        mock_auth_service = Mock(spec=JWTAuthService)
-        mock_get_auth_service.return_value = mock_auth_service
-
-        test_payload = {"sub": "test-user-id", "aud": "authenticated"}
-        mock_auth_service.verify_token.return_value = test_payload
-        mock_auth_service.extract_user_id.return_value = "test-user-id"
 
         with patch("api.routes.resumes.get_supabase_client") as mock_get_supabase:
             mock_supabase = Mock()
@@ -336,7 +286,7 @@ class TestResumeListAndRetrieve:
                 data=[{"id": "resume-123"}]
             )
 
-            headers = {"Authorization": "Bearer test-token"}
+            headers = get_test_auth_headers("test-user-id", "test@example.com")
             response = client.delete("/api/v1/resumes/resume-123", headers=headers)
 
             assert response.status_code == 200
