@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from api.main import app
 from ingestion.connectors.base import JobListing
 from ingestion.normalizers.normalizer import JobNormalizer
+from tests.helpers import get_test_auth_headers
 
 client = TestClient(app)
 
@@ -35,8 +36,11 @@ def create_test_job(job_id: str, title: str, **kwargs) -> Dict[str, Any]:
 class TestPhase3AcceptanceTests:
     """Phase 3 Backend Acceptance Tests from dev-plan.md"""
 
-    def test_greenhouse_connector(self):
+    @pytest.mark.asyncio
+    async def test_greenhouse_connector(self):
         """Greenhouse connector fetches recent jobs"""
+        from unittest.mock import AsyncMock
+
         from ingestion.connectors.greenhouse import GreenhouseConnector
 
         # Note: This test already exists in test_job_ingestion.py
@@ -56,8 +60,10 @@ class TestPhase3AcceptanceTests:
             )
         ]
 
-        with patch.object(connector, "fetch_jobs", return_value=mock_jobs):
-            jobs = connector.fetch_jobs()
+        with patch.object(
+            connector, "fetch_jobs", new=AsyncMock(return_value=mock_jobs)
+        ):
+            jobs = await connector.fetch_jobs()
 
             assert len(jobs) > 0
             assert all(hasattr(job, "title") for job in jobs)
@@ -224,9 +230,11 @@ class TestPhase3AcceptanceTests:
             # Check normalization happened
             assert jobs[0].experience_level is not None
 
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
     def test_job_stats_endpoint(self):
         """Test job statistics endpoint works"""
-        response = client.get("/api/v1/jobs/stats/summary")
+        headers = get_test_auth_headers("test-user-id", "test@example.com")
+        response = client.get("/api/v1/jobs/stats/summary", headers=headers)
 
         assert response.status_code == 200
 
@@ -247,6 +255,7 @@ class TestPhase3AcceptanceTests:
         assert isinstance(data["jobs_by_seniority"], dict)
         assert isinstance(data["jobs_by_remote_type"], dict)
 
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
     def test_job_search_endpoint(self):
         """Test job search endpoint"""
         search_request = {
@@ -262,7 +271,10 @@ class TestPhase3AcceptanceTests:
             "offset": 0,
         }
 
-        response = client.post("/api/v1/jobs/search", json=search_request)
+        headers = get_test_auth_headers("test-user-id", "test@example.com")
+        response = client.post(
+            "/api/v1/jobs/search", json=search_request, headers=headers
+        )
 
         assert response.status_code == 200
 
@@ -278,6 +290,7 @@ class TestPhase3AcceptanceTests:
             assert "location" in job
             assert "job_url" in job
 
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
     def test_job_listing_filters(self):
         """Test job listing with various filters"""
         # Test with different filter combinations
@@ -288,16 +301,21 @@ class TestPhase3AcceptanceTests:
             {"limit": 10, "offset": 5},
         ]
 
+        headers = get_test_auth_headers("test-user-id", "test@example.com")
         for filter_params in filters:
-            response = client.get("/api/v1/jobs", params=filter_params)
+            response = client.get("/api/v1/jobs", params=filter_params, headers=headers)
             assert response.status_code == 200
             assert isinstance(response.json(), list)
 
+    @patch.dict("os.environ", {"SERVICE_SECRET": "test-secret"})
     def test_similar_jobs_endpoint(self):
         """Test finding similar jobs endpoint"""
         # This would need a real job_id in the database
         # For now, test that endpoint exists and handles missing job
-        response = client.get("/api/v1/jobs/similar/nonexistent-job-id")
+        headers = get_test_auth_headers("test-user-id", "test@example.com")
+        response = client.get(
+            "/api/v1/jobs/similar/nonexistent-job-id", headers=headers
+        )
 
         # Should return 404 for non-existent job
         assert response.status_code == 404

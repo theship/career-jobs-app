@@ -4,7 +4,6 @@ Shared test fixtures and configuration
 
 import os
 from datetime import datetime, timedelta
-from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest

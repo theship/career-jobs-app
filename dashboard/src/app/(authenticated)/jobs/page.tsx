@@ -1,9 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
 import { api } from '@/lib/api-client'
 
 export default function JobsPage() {
@@ -15,7 +13,6 @@ export default function JobsPage() {
     remote_type: '',
     location: ''
   })
-  const supabase = createClient()
 
   useEffect(() => {
     fetchJobs()
