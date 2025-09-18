@@ -1,5 +1,8 @@
 # Career Jobs App — Dev Quickstart
 
+This repo is an experimen tools to create a fullstack appt using several AI, specifically ChatGPT to product requirements, Claude Code for the majority of implementation, Cursor and Daytona environments, and CodeRabbit for PR reviews. A final deploy pipeline wasn't part of this project, as the next project will be to design a development system using multiple AI subagents...
+
+
 For full project architecture see **[`./docs/project-structure-overview.md`](./docs/project-structure-overview.md)**.  
 For development planning and progress see **[`./docs/dev-plan.md`](./docs/dev-plan.md)**.  
 For AIEWF workflow details see **[`./docs/dev-overview.md`](./docs/dev-overview.md)**.  
