@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { api } from '@/lib/api-client'
 import Link from 'next/link'
 import { useNotification } from '@/contexts/NotificationContext'
+import SkillsUploadModal from '@/components/SkillsUploadModal'
 
 export default function DashboardPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -15,6 +16,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [uploadingResume, setUploadingResume] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [showSkillsUpload, setShowSkillsUpload] = useState(false)
+  const [hasCustomSkills, setHasCustomSkills] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { showSuccess, showError } = useNotification()
@@ -22,6 +25,7 @@ export default function DashboardPage() {
   useEffect(() => {
     checkAuth()
     fetchData()
+    checkCustomSkills()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -31,6 +35,15 @@ export default function DashboardPage() {
       router.push('/login')
     } else {
       setUser(user)
+    }
+  }
+
+  const checkCustomSkills = async () => {
+    try {
+      const vocabInfo = await api.getSkillsVocabulary()
+      setHasCustomSkills(vocabInfo.has_custom_vocab || false)
+    } catch {
+      setHasCustomSkills(false)
     }
   }
 
@@ -185,6 +198,44 @@ export default function DashboardPage() {
               )}
             </div>
 
+            {/* Skills Vocabulary Section */}
+            <div className="card mt-6">
+              <h2 className="text-lg font-medium text-text-primary mb-4">Your Skills</h2>
+
+              {hasCustomSkills ? (
+                <div>
+                  <div className="p-3 border border-border rounded-md mb-3">
+                    <p className="text-sm text-text-primary font-medium">Custom Skills Uploaded</p>
+                    <p className="text-xs text-text-secondary mt-1">
+                      Your custom skills vocabulary is being used for matching
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowSkillsUpload(true)}
+                    className="text-accent-red hover:text-accent-red-light text-sm"
+                  >
+                    + Update skills vocabulary
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <p className="mt-2 text-sm text-text-secondary">No custom skills vocabulary</p>
+                  <button
+                    onClick={() => setShowSkillsUpload(true)}
+                    className="mt-4 btn-primary px-4 py-2 rounded-md text-sm"
+                  >
+                    Upload Skills CSV
+                  </button>
+                  <p className="text-xs text-text-muted mt-2">
+                    Improves matching accuracy with your terminology
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Quick Stats */}
             <div className="bg-white rounded-lg shadow p-6 mt-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4">Your Stats</h2>
@@ -305,6 +356,18 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Skills Upload Modal */}
+        <SkillsUploadModal
+          isOpen={showSkillsUpload}
+          onClose={() => setShowSkillsUpload(false)}
+          onSuccess={() => {
+            setShowSkillsUpload(false)
+            setHasCustomSkills(true)
+            checkCustomSkills()
+            showSuccess('Skills vocabulary uploaded successfully!')
+          }}
+        />
     </main>
   )
 }

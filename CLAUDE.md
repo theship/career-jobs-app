@@ -9,6 +9,15 @@ This is a **Career Jobs App** with complete implementation:
 - **Database**: Supabase (PostgreSQL + pgvector + Auth + Storage)
 - **Testing**: Comprehensive test coverage across all components
 
+
+
+### Working Preferences
+  - **Decision Making**: When I ask questions, always:
+    1. Answer the question directly
+    2. Provide available options
+    3. Wait for my direction before proceeding
+  - **Use explicit confirmation** before making changes or skipping steps
+  
 ### Development Workflow (AIEWF)
 - **Cursor IDE (local)**: Code exploration, git management, Claude Code integration
 - **Daytona sandbox (remote)**: Secure development environment with Claude Code CLI
@@ -94,6 +103,16 @@ Use this template for future AI-enhanced workflow projects.
 
 ### 🚀 Running the Application
 
+#### Test Status (Updated 2025-01-17)
+- **Total Tests**: 106 tests defined (92 passing, 13 failing, 1 skipped)
+- **Pass Rate**: 87% (92/106 tests passing)
+- **Failing Tests**: Integration tests requiring Supabase environment mocking
+- **Key Fixes Applied**:
+  - Removed JWT-based auth tests (replaced with Supabase auth)
+  - Fixed async/await issues in job ingestion tests
+  - Mocked OpenAI API calls to prevent "test-key" failures
+  - Fixed vocabulary loading tests to expect empty vocab by default
+
 #### Prerequisites
 ```bash
 # Install and start Redis (REQUIRED)
@@ -118,7 +137,22 @@ npm run dev
 # - UI: http://localhost:3000
 ```
 
-## Recent Updates (2025-09-09)
+<!-- Remember: Check <env> for today's date before writing dates -->
+
+## Recent Updates (2025-09-17)
+
+### Skills Upload UI & CompanyManager Fixes
+- **Implemented**: Unified skills upload modal with consistent dark theme
+- **Fixed**: CompanyManager API calls to use correct HTTP methods
+- **Added**: "Your Skills" section to dashboard matching "Your Resume" design
+- **Fixed**: Drag-and-drop functionality for CSV uploads with visual feedback
+- **Updated**: Test documentation to reflect actual status (92/106 passing)
+- **Key Files**:
+  - `dashboard/src/components/SkillsUploadModal.tsx` - New unified modal component
+  - `dashboard/src/components/SkillsVocabularyUpload.tsx` - Enhanced with drag-and-drop
+  - `dashboard/src/components/CompanyManager.tsx` - Fixed API calls
+
+## Recent Updates (2024-09-09)
 
 ### Scalable Company Management System
 - **Implemented**: Database-driven company management with parallel ingestion
