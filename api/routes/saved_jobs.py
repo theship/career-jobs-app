@@ -53,7 +53,7 @@ async def get_saved_jobs(
         List of saved jobs
     """
     supabase = get_supabase_client()
-    user_id = current_user["sub"]
+    user_id = current_user["user_id"]
 
     try:
         if include_job_details:
@@ -95,7 +95,7 @@ async def save_job(
         Created saved job record
     """
     supabase = get_supabase_client()
-    user_id = current_user["sub"]
+    user_id = current_user["user_id"]
 
     # First check if job exists
     job_response = supabase.table("job_postings").select("job_id").eq("job_id", job_id).execute()
@@ -154,7 +154,7 @@ async def unsave_job(
         Success message
     """
     supabase = get_supabase_client()
-    user_id = current_user["sub"]
+    user_id = current_user["user_id"]
 
     try:
         # Delete the saved job record
@@ -193,7 +193,7 @@ async def check_if_saved(
         Object with is_saved boolean and saved job data if applicable
     """
     supabase = get_supabase_client()
-    user_id = current_user["sub"]
+    user_id = current_user["user_id"]
 
     try:
         response = supabase.table("saved_jobs").select("*").eq(
@@ -237,7 +237,7 @@ async def update_saved_job_notes(
         Updated saved job record
     """
     supabase = get_supabase_client()
-    user_id = current_user["sub"]
+    user_id = current_user["user_id"]
 
     try:
         # Update the notes
@@ -276,7 +276,7 @@ async def get_saved_jobs_count(
         Count of saved jobs
     """
     supabase = get_supabase_client()
-    user_id = current_user["sub"]
+    user_id = current_user["user_id"]
 
     try:
         response = supabase.table("saved_jobs").select(
