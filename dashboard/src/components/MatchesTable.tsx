@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { ChevronUpIcon, ChevronDownIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { useState, useMemo, useEffect } from 'react'
+import { ChevronUpIcon, ChevronDownIcon, ArrowDownTrayIcon, BookmarkIcon } from '@heroicons/react/24/outline'
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid'
+import { savedJobsService } from '@/services'
+import { useNotification } from '@/contexts/NotificationContext'
 
 interface JobMatch {
   job_id: string
@@ -32,8 +35,54 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [filterScore, setFilterScore] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState(1)
+  const [savedJobs, setSavedJobs] = useState<Record<string, boolean>>({})
+  const [savingJobs, setSavingJobs] = useState<Set<string>>(new Set())
   const itemsPerPage = 20
+  const { showSuccess, showError } = useNotification()
 
+  // Load saved jobs status when matches change
+  useEffect(() => {
+    if (matches.length > 0) {
+      checkSavedJobs()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matches])
+
+  const checkSavedJobs = async () => {
+    try {
+      const jobIds = matches.map(m => m.job_id)
+      const savedStatus = await savedJobsService.checkMultipleJobs(jobIds)
+      setSavedJobs(savedStatus)
+    } catch (error) {
+      console.error('Failed to check saved jobs:', error)
+    }
+  }
+
+  const handleToggleSave = async (jobId: string, jobTitle: string) => {
+    if (savingJobs.has(jobId)) return // Already processing
+
+    setSavingJobs(prev => new Set(prev).add(jobId))
+
+    try {
+      const result = await savedJobsService.toggleSaveJob(jobId)
+      setSavedJobs(prev => ({ ...prev, [jobId]: result.saved }))
+
+      if (result.saved) {
+        showSuccess(`Saved "${jobTitle}" to your saved jobs`)
+      } else {
+        showSuccess(`Removed "${jobTitle}" from saved jobs`)
+      }
+    } catch (error) {
+      console.error('Failed to toggle save job:', error)
+      showError('Failed to save job. Please try again.')
+    } finally {
+      setSavingJobs(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(jobId)
+        return newSet
+      })
+    }
+  }
 
   // Filter matches
   const filteredMatches = useMemo(() => {
@@ -220,12 +269,26 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
                   {formatDate(match.posted_at)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <a 
-                    href={`/jobs/${match.job_id}`}
-                    className="text-blue-600 hover:text-blue-900 mr-3"
-                  >
-                    View
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/jobs/${match.job_id}`}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      View
+                    </a>
+                    <button
+                      onClick={() => handleToggleSave(match.job_id, match.title)}
+                      disabled={savingJobs.has(match.job_id)}
+                      className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50"
+                      title={savedJobs[match.job_id] ? 'Unsave job' : 'Save job'}
+                    >
+                      {savedJobs[match.job_id] ? (
+                        <BookmarkSolidIcon className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <BookmarkIcon className="w-5 h-5 text-gray-400 hover:text-blue-600" />
+                      )}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -8,9 +8,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BookmarkIcon } from '@heroicons/react/24/outline'
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid'
 import { createClient } from '@/lib/supabase'
 import { useJobDetail } from '@/hooks/useJobDetail'
 import { usePitchGeneration } from '@/hooks/usePitchGeneration'
+import { savedJobsService } from '@/services'
+import { useNotification } from '@/contexts/NotificationContext'
 import JobInfo from '@/components/JobDetail/JobInfo'
 import MatchScore from '@/components/JobDetail/MatchScore'
 import PitchGenerator from '@/components/JobDetail/PitchGenerator'
@@ -19,18 +23,21 @@ export default function JobDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [isSaved, setIsSaved] = useState(false)
+  const [savingJob, setSavingJob] = useState(false)
   const supabase = createClient()
   const jobId = params.id as string
+  const { showSuccess, showError } = useNotification()
 
   // Use custom hooks for data fetching and actions
   const { job, score, loading, error } = useJobDetail(jobId, user?.id)
-  const { 
-    pitch, 
+  const {
+    pitch,
     generating,
     error: pitchError,
-    generatePitch, 
-    copyToClipboard, 
-    regenerate 
+    generatePitch,
+    copyToClipboard,
+    regenerate
   } = usePitchGeneration(jobId)
 
   useEffect(() => {
@@ -38,9 +45,46 @@ export default function JobDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (user && jobId) {
+      checkSavedStatus()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, jobId])
+
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     setUser(user)
+  }
+
+  const checkSavedStatus = async () => {
+    try {
+      const response = await savedJobsService.checkIfSaved(jobId)
+      setIsSaved(response.is_saved)
+    } catch (error) {
+      console.error('Failed to check saved status:', error)
+    }
+  }
+
+  const handleToggleSave = async () => {
+    if (savingJob) return
+
+    setSavingJob(true)
+    try {
+      const result = await savedJobsService.toggleSaveJob(jobId)
+      setIsSaved(result.saved)
+
+      if (result.saved) {
+        showSuccess(`Saved "${job?.title}" to your saved jobs`)
+      } else {
+        showSuccess(`Removed "${job?.title}" from saved jobs`)
+      }
+    } catch (error) {
+      console.error('Failed to toggle save job:', error)
+      showError('Failed to save job. Please try again.')
+    } finally {
+      setSavingJob(false)
+    }
   }
 
   const handleSignOut = async () => {
@@ -89,6 +133,11 @@ export default function JobDetailPage() {
           <div className="lg:col-span-1">
             {score && <MatchScore score={score} />}
             <ApplyButton jobUrl={job.job_url} />
+            <SaveJobButton
+              isSaved={isSaved}
+              savingJob={savingJob}
+              onToggleSave={handleToggleSave}
+            />
           </div>
         </div>
       </main>
@@ -164,8 +213,8 @@ function ApplyButton({ jobUrl }: { jobUrl?: string }) {
   if (!jobUrl) return null
 
   // Ensure the URL has a protocol
-  const validUrl = jobUrl.startsWith('http://') || jobUrl.startsWith('https://') 
-    ? jobUrl 
+  const validUrl = jobUrl.startsWith('http://') || jobUrl.startsWith('https://')
+    ? jobUrl
     : `https://${jobUrl}`
 
   return (
@@ -178,6 +227,42 @@ function ApplyButton({ jobUrl }: { jobUrl?: string }) {
       >
         Apply on Company Site
       </a>
+    </div>
+  )
+}
+
+function SaveJobButton({
+  isSaved,
+  savingJob,
+  onToggleSave
+}: {
+  isSaved: boolean;
+  savingJob: boolean;
+  onToggleSave: () => void
+}) {
+  return (
+    <div className="card mt-4">
+      <button
+        onClick={onToggleSave}
+        disabled={savingJob}
+        className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
+          isSaved
+            ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            : 'bg-blue-600/90 hover:bg-blue-600 text-white'
+        } disabled:opacity-50`}
+      >
+        {isSaved ? (
+          <>
+            <BookmarkSolidIcon className="w-5 h-5" />
+            <span>Saved to Jobs</span>
+          </>
+        ) : (
+          <>
+            <BookmarkIcon className="w-5 h-5" />
+            <span>Save Job</span>
+          </>
+        )}
+      </button>
     </div>
   )
 }

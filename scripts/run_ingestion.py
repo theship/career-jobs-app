@@ -56,6 +56,12 @@ async def main():
         help="Run cleanup after ingestion (dedup, expire old jobs)",
     )
     parser.add_argument(
+        "--cleanup-days",
+        type=int,
+        default=90,
+        help="Number of days after which to consider a job expired (default: 90)",
+    )
+    parser.add_argument(
         "--update-embeddings",
         action="store_true",
         help="Update embeddings for jobs without them",
@@ -112,7 +118,7 @@ async def main():
         if args.cleanup and not args.no_store:
             logger.info("Running cleanup tasks...")
             duplicates_removed = await orchestrator.deduplicate_jobs()
-            expired_cleaned = await orchestrator.cleanup_expired_jobs()
+            expired_cleaned = await orchestrator.cleanup_expired_jobs(days_old=args.cleanup_days)
             logger.info(
                 f"Cleanup complete: {duplicates_removed} duplicates removed, {expired_cleaned} expired jobs cleaned"
             )

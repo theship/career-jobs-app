@@ -122,6 +122,7 @@ from api.routes import (  # noqa: E402
     pitch,
     research,
     resumes,
+    saved_jobs,
     scoring_async,
 )
 
@@ -132,6 +133,7 @@ app.include_router(jobs.router, tags=["jobs"])  # Prefix already in router
 app.include_router(
     scoring_async.router, prefix="/api/v1", tags=["scoring"]
 )  # Using async scoring with SSE
+app.include_router(saved_jobs.router, prefix="/api/v1", tags=["saved-jobs"])  # Saved jobs endpoints
 app.include_router(research.router, tags=["research"])  # Prefix already in router
 app.include_router(pitch.router, tags=["pitch"])  # Prefix already in router
 app.include_router(admin.router, tags=["admin"])  # Admin endpoints (prefix in router)
