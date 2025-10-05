@@ -44,7 +44,7 @@ export class SavedJobsService extends BaseService {
     const body = notes !== undefined ? { notes } : {}
     return this.request<SavedJob>(`/saved-jobs/${jobId}`, {
       method: 'POST',
-      body: JSON.stringify(body)
+      body: body
     })
   }
 
