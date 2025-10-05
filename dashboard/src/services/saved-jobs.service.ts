@@ -41,9 +41,10 @@ export class SavedJobsService extends BaseService {
    * Save a job
    */
   async saveJob(jobId: string, notes?: string): Promise<SavedJob> {
+    const body = notes !== undefined ? { notes } : {}
     return this.request<SavedJob>(`/saved-jobs/${jobId}`, {
       method: 'POST',
-      body: JSON.stringify({ notes })
+      body: JSON.stringify(body)
     })
   }
 
