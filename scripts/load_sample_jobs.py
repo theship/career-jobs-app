@@ -3,7 +3,6 @@
 Load sample job data into the database for testing
 """
 
-import json
 import os
 import sys
 from datetime import datetime, timedelta
@@ -38,9 +37,9 @@ SAMPLE_JOBS = [
         "currency": "USD",
         "job_url": "https://techcorp.com/jobs/senior-software-engineer",
         "description_text": """
-        We are looking for a Senior Software Engineer to join our growing team. 
+        We are looking for a Senior Software Engineer to join our growing team.
         You will be responsible for designing and implementing scalable web applications.
-        
+
         Key Responsibilities:
         - Design and develop high-quality software solutions
         - Lead technical discussions and code reviews
@@ -74,7 +73,7 @@ SAMPLE_JOBS = [
         "job_url": "https://datasystems.io/careers/ml-engineer",
         "description_text": """
         Join our ML team to build cutting-edge machine learning models and systems.
-        
+
         What you'll do:
         - Develop and deploy ML models at scale
         - Work with TensorFlow, PyTorch, and scikit-learn
@@ -108,7 +107,7 @@ SAMPLE_JOBS = [
         "job_url": "https://webdevstudios.com/jobs/fullstack",
         "description_text": """
         Looking for a Full Stack Developer to build modern web applications.
-        
+
         Responsibilities:
         - Develop frontend interfaces with React
         - Build REST APIs with Node.js
@@ -142,7 +141,7 @@ SAMPLE_JOBS = [
         "job_url": "https://cloudtech.com/careers/devops",
         "description_text": """
         We need a DevOps Engineer to manage our cloud infrastructure.
-        
+
         Key Areas:
         - Manage AWS infrastructure with Terraform
         - Build CI/CD pipelines with Jenkins/GitHub Actions
@@ -176,7 +175,7 @@ SAMPLE_JOBS = [
         "job_url": "https://aiinnovations.ai/jobs/data-scientist",
         "description_text": """
         Join our data science team to solve complex business problems.
-        
+
         Your role:
         - Build predictive models and analytics
         - Work with Python, R, and SQL
@@ -229,7 +228,8 @@ def main():
         print("OpenAI client initialized - will generate embeddings")
     else:
         print(
-            "Warning: OPENAI_API_KEY not set - jobs will be loaded without embeddings"
+            "Warning: OPENAI_API_KEY not set - "
+            "jobs will be loaded without embeddings"
         )
 
     print("Loading sample jobs into database...")
@@ -250,14 +250,17 @@ def main():
 
             # Generate embedding if OpenAI client is available
             if openai_client:
-                embedding_text = f"{job['title']}\n\n{job.get('description_text', '')}\n\n{job.get('requirements_text', '')}"
+                embedding_text = (
+                    f"{job['title']}\n\n{job.get('description_text', '')}\n\n"
+                    f"{job.get('requirements_text', '')}"
+                )
                 embedding = generate_embedding(embedding_text, openai_client)
                 if embedding:
                     job["embedding"] = embedding
                     print(f"  Generated embedding for {job['title']}")
 
             # Insert job
-            result = supabase.table("job_postings").insert(job).execute()
+            supabase.table("job_postings").insert(job).execute()
             print(f"✓ Loaded job: {job['title']} at {job['company_name']}")
 
         except Exception as e:

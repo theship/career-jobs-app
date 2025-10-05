@@ -118,7 +118,9 @@ async def main():
         if args.cleanup and not args.no_store:
             logger.info("Running cleanup tasks...")
             duplicates_removed = await orchestrator.deduplicate_jobs()
-            expired_cleaned = await orchestrator.cleanup_expired_jobs(days_old=args.cleanup_days)
+            expired_cleaned = await orchestrator.cleanup_expired_jobs(
+                days_old=args.cleanup_days
+            )
             logger.info(
                 f"Cleanup complete: {duplicates_removed} duplicates removed, {expired_cleaned} expired jobs cleaned"
             )

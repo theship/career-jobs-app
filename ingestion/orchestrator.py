@@ -669,11 +669,19 @@ class JobIngestionOrchestrator:
 
         try:
             # Calculate cutoff date
-            cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days_old)).isoformat()
+            cutoff_date = (
+                datetime.now(timezone.utc) - timedelta(days=days_old)
+            ).isoformat()
 
             # Get all saved job IDs to preserve them
-            saved_jobs_response = self.supabase.table("saved_jobs").select("job_id").execute()
-            saved_job_ids = {job['job_id'] for job in saved_jobs_response.data} if saved_jobs_response.data else set()
+            saved_jobs_response = (
+                self.supabase.table("saved_jobs").select("job_id").execute()
+            )
+            saved_job_ids = (
+                {job["job_id"] for job in saved_jobs_response.data}
+                if saved_jobs_response.data
+                else set()
+            )
 
             logger.info(f"Found {len(saved_job_ids)} saved jobs to preserve")
 
@@ -691,26 +699,35 @@ class JobIngestionOrchestrator:
 
             # Filter out saved jobs
             jobs_to_delete = [
-                job for job in old_jobs_response.data
-                if job['job_id'] not in saved_job_ids
+                job
+                for job in old_jobs_response.data
+                if job["job_id"] not in saved_job_ids
             ]
 
             if not jobs_to_delete:
-                logger.info(f"Found {len(old_jobs_response.data)} expired jobs, but all are saved by users")
+                logger.info(
+                    f"Found {len(old_jobs_response.data)} expired jobs, but all are saved by users"
+                )
                 return 0
 
             # Delete expired jobs that aren't saved
             deleted_count = 0
             for job in jobs_to_delete:
                 try:
-                    self.supabase.table("job_postings").delete().eq("job_id", job['job_id']).execute()
-                    logger.debug(f"Deleted expired job: {job['company_name']} - {job['title']}")
+                    self.supabase.table("job_postings").delete().eq(
+                        "job_id", job["job_id"]
+                    ).execute()
+                    logger.debug(
+                        f"Deleted expired job: {job['company_name']} - {job['title']}"
+                    )
                     deleted_count += 1
                 except Exception as e:
                     logger.error(f"Failed to delete job {job['job_id']}: {e}")
                     continue
 
-            logger.info(f"Cleaned up {deleted_count} expired jobs (preserved {len(saved_job_ids)} saved jobs)")
+            logger.info(
+                f"Cleaned up {deleted_count} expired jobs (preserved {len(saved_job_ids)} saved jobs)"
+            )
             return deleted_count
 
         except Exception as e:

@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-black text-white antialiased scrollbar-dark">
+      <body className={`${geistSans.variable} ${geistMono.variable} bg-black text-white antialiased scrollbar-dark`}>
         <NotificationProvider>
           {children}
         </NotificationProvider>

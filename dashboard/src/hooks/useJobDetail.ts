@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { jobService } from '@/services/job.service'
 import { scoringService } from '@/services/scoring.service'
 import { resumeService } from '@/services/resume.service'
-import type { Job, Score, Resume } from '@/types/api.types'
+import type { Job, Score } from '@/types/api.types'
 
 export function useJobDetail(jobId: string, userId?: string) {
   const [job, setJob] = useState<Job | null>(null)

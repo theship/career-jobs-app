@@ -4,7 +4,7 @@
  */
 
 import { BaseService } from './base.service'
-import type { Score, ScoringRequest, ScoringResponse } from '@/types/api.types'
+import type { Score } from '@/types/api.types'
 
 export class ScoringService extends BaseService {
   /**

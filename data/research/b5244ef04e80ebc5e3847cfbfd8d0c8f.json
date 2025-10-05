@@ -1,6 +1,6 @@
 {
   "company_domain": "stripe.com",
-  "cached_at": "2025-09-17T21:36:59.100701+00:00",
+  "cached_at": "2025-10-01T01:39:59.187649+00:00",
   "research": {
     "company_domain": "stripe.com",
     "company_name": "Stripe",
@@ -45,7 +45,7 @@
         "timeframe": "Next 3 years"
       }
     ],
-    "generated_at": "2025-09-17T21:36:59.100692+00:00",
+    "generated_at": "2025-10-01T01:39:59.187627+00:00",
     "model_used": "gpt-4-turbo-preview"
   }
 }

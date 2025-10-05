@@ -31,9 +31,9 @@ class TestResumeUploadIntegration:
         # Mock text extraction
         sample_text = """
         John Doe - Senior Software Engineer
-        
+
         Skills: Python (5 years), JavaScript (3 years), Docker, Kubernetes
-        
+
         Experience:
         - Built scalable FastAPI applications
         - Deployed machine learning models with PyTorch
