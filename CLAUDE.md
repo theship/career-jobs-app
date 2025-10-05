@@ -139,6 +139,19 @@ npm run dev
 
 <!-- Remember: Check <env> for today's date before writing dates -->
 
+## Recent Updates (2025-10-05)
+
+### Job Save/Unsave Feature Implementation
+- **Implemented**: Complete save/unsave functionality across the application
+- **Fixed**: RLS (Row Level Security) issues by using service client for saved jobs operations
+- **Added**: Save/unsave buttons on job detail pages, matches table, and job listings
+- **Enhanced**: Saved Jobs page with CSV export and proper job management
+- **Key Files**:
+  - `api/routes/saved_jobs.py` - Backend endpoints with RLS bypass
+  - `dashboard/src/services/saved-jobs.service.ts` - Frontend service
+  - `dashboard/src/app/(authenticated)/saved-jobs/page.tsx` - Saved jobs management page
+  - All job display components updated with save functionality
+
 ## Recent Updates (2025-09-17)
 
 ### Skills Upload UI & CompanyManager Fixes

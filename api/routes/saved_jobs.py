@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from api.services.auth import get_current_user
-from api.utils.database import get_supabase_client
+from api.utils.database import get_supabase_client, get_supabase_service_client
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +54,15 @@ async def get_saved_jobs(
     Returns:
         List of saved jobs
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS
+    service_client = get_supabase_service_client()
     user_id = current_user["user_id"]
 
     try:
         if include_job_details:
             # Join with job_postings to get full job details
             response = (
-                supabase.table("saved_jobs")
+                service_client.table("saved_jobs")
                 .select("*, job_postings(*)")
                 .eq("user_id", user_id)
                 .order("saved_at", desc=True)
@@ -70,7 +71,7 @@ async def get_saved_jobs(
         else:
             # Just get saved job records
             response = (
-                supabase.table("saved_jobs")
+                service_client.table("saved_jobs")
                 .select("*")
                 .eq("user_id", user_id)
                 .order("saved_at", desc=True)
@@ -107,11 +108,18 @@ async def save_job(
     supabase = get_supabase_client()
     user_id = current_user["user_id"]
 
-    # First check if job exists
+    # First check if job exists - use service client to bypass RLS for job check
+    logger.info(f"Checking if job exists: {job_id}")
+    service_client = get_supabase_service_client()
     job_response = (
-        supabase.table("job_postings").select("job_id").eq("job_id", job_id).execute()
+        service_client.table("job_postings")
+        .select("job_id")
+        .eq("job_id", job_id)
+        .execute()
     )
+    logger.info(f"Job check response: {len(job_response.data)} results found")
     if not job_response.data:
+        logger.error(f"Job not found: {job_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
@@ -130,10 +138,10 @@ async def save_job(
         return existing.data[0]
 
     try:
-        # Create saved job record
+        # Create saved job record - use service client to bypass RLS
         saved_job_data = {"user_id": user_id, "job_id": job_id, "notes": request.notes}
 
-        response = supabase.table("saved_jobs").insert(saved_job_data).execute()
+        response = service_client.table("saved_jobs").insert(saved_job_data).execute()
 
         if response.data:
             logger.info(f"User {user_id} saved job {job_id}")
@@ -161,13 +169,14 @@ async def unsave_job(job_id: str, current_user: dict = Depends(get_current_user)
     Returns:
         Success message
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS
+    service_client = get_supabase_service_client()
     user_id = current_user["user_id"]
 
     try:
         # Delete the saved job record
         response = (
-            supabase.table("saved_jobs")
+            service_client.table("saved_jobs")
             .delete()
             .eq("user_id", user_id)
             .eq("job_id", job_id)
@@ -201,12 +210,13 @@ async def check_if_saved(job_id: str, current_user: dict = Depends(get_current_u
     Returns:
         Object with is_saved boolean and saved job data if applicable
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS
+    service_client = get_supabase_service_client()
     user_id = current_user["user_id"]
 
     try:
         response = (
-            supabase.table("saved_jobs")
+            service_client.table("saved_jobs")
             .select("*")
             .eq("user_id", user_id)
             .eq("job_id", job_id)
@@ -243,13 +253,14 @@ async def update_saved_job_notes(
     Returns:
         Updated saved job record
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS
+    service_client = get_supabase_service_client()
     user_id = current_user["user_id"]
 
     try:
         # Update the notes
         response = (
-            supabase.table("saved_jobs")
+            service_client.table("saved_jobs")
             .update({"notes": request.notes})
             .eq("user_id", user_id)
             .eq("job_id", job_id)
@@ -283,12 +294,13 @@ async def get_saved_jobs_count(current_user: dict = Depends(get_current_user)):
     Returns:
         Count of saved jobs
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS
+    service_client = get_supabase_service_client()
     user_id = current_user["user_id"]
 
     try:
         response = (
-            supabase.table("saved_jobs")
+            service_client.table("saved_jobs")
             .select("id", count="exact")
             .eq("user_id", user_id)
             .execute()
