@@ -137,6 +137,7 @@ export default function JobDetailPage() {
               isSaved={isSaved}
               savingJob={savingJob}
               onToggleSave={handleToggleSave}
+              jobTitle={job.title}
             />
           </div>
         </div>
@@ -234,11 +235,13 @@ function ApplyButton({ jobUrl }: { jobUrl?: string }) {
 function SaveJobButton({
   isSaved,
   savingJob,
-  onToggleSave
+  onToggleSave,
+  jobTitle
 }: {
   isSaved: boolean;
   savingJob: boolean;
-  onToggleSave: () => void
+  onToggleSave: () => void;
+  jobTitle?: string
 }) {
   return (
     <div className="card mt-4">
@@ -250,6 +253,8 @@ function SaveJobButton({
             ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
             : 'bg-blue-600/90 hover:bg-blue-600 text-white'
         } disabled:opacity-50`}
+        aria-label={isSaved ? `Remove ${jobTitle || 'job'} from saved jobs` : `Save ${jobTitle || 'job'} to saved jobs`}
+        aria-pressed={isSaved ? 'true' : 'false'}
       >
         {isSaved ? (
           <>

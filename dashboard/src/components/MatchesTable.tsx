@@ -281,6 +281,8 @@ export default function MatchesTable({ matches, loading, onDownloadCSV }: Matche
                       disabled={savingJobs.has(match.job_id)}
                       className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50"
                       title={savedJobs[match.job_id] ? 'Unsave job' : 'Save job'}
+                      aria-label={savedJobs[match.job_id] ? `Unsave ${match.title} at ${match.company_name}` : `Save ${match.title} at ${match.company_name}`}
+                      aria-pressed={savedJobs[match.job_id] ? 'true' : 'false'}
                     >
                       {savedJobs[match.job_id] ? (
                         <BookmarkSolidIcon className="w-5 h-5 text-blue-600" />

@@ -80,11 +80,11 @@ async def get_saved_jobs(
         return response.data
 
     except Exception as e:
-        logger.error(f"Failed to fetch saved jobs: {e}")
+        logger.exception("Failed to fetch saved jobs")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch saved jobs",
-        )
+        ) from e
 
 
 @router.post("/{job_id}", response_model=dict)
@@ -142,11 +142,11 @@ async def save_job(
             raise Exception("Failed to save job")
 
     except Exception as e:
-        logger.error(f"Failed to save job: {e}")
+        logger.exception("Failed to save job")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to save job",
-        )
+        ) from e
 
 
 @router.delete("/{job_id}")
@@ -182,11 +182,11 @@ async def unsave_job(job_id: str, current_user: dict = Depends(get_current_user)
             return {"message": "Job was not saved"}
 
     except Exception as e:
-        logger.error(f"Failed to unsave job: {e}")
+        logger.exception("Failed to unsave job")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to unsave job",
-        )
+        ) from e
 
 
 @router.get("/check/{job_id}")
@@ -219,11 +219,11 @@ async def check_if_saved(job_id: str, current_user: dict = Depends(get_current_u
             return {"is_saved": False, "saved_job": None}
 
     except Exception as e:
-        logger.error(f"Failed to check saved status: {e}")
+        logger.exception("Failed to check saved status")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to check saved status",
-        )
+        ) from e
 
 
 @router.patch("/{job_id}/notes")
@@ -265,11 +265,11 @@ async def update_saved_job_notes(
             )
 
     except Exception as e:
-        logger.error(f"Failed to update saved job notes: {e}")
+        logger.exception("Failed to update saved job notes")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update notes",
-        )
+        ) from e
 
 
 @router.get("/count")
@@ -297,8 +297,8 @@ async def get_saved_jobs_count(current_user: dict = Depends(get_current_user)):
         return {"count": response.count or 0}
 
     except Exception as e:
-        logger.error(f"Failed to get saved jobs count: {e}")
+        logger.exception("Failed to get saved jobs count")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get count",
-        )
+        ) from e

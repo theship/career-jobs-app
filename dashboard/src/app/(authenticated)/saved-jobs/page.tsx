@@ -39,13 +39,20 @@ export default function SavedJobsPage() {
   }, [])
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) {
+        console.error('Authentication error:', error)
+        router.push('/login')
+        return
+      }
+      setUser(user)
+      await fetchSavedJobs()
+    } catch (err) {
+      console.error('Failed to check authentication:', err)
+      showError('Authentication failed. Please log in again.')
       router.push('/login')
-      return
     }
-    setUser(user)
-    await fetchSavedJobs()
   }
 
   const fetchSavedJobs = async () => {
@@ -62,18 +69,22 @@ export default function SavedJobsPage() {
   }
 
   const handleRemoveJob = async (jobId: string, jobTitle: string) => {
-    if (removingJobs.has(jobId)) return
-
-    setRemovingJobs(prev => new Set(prev).add(jobId))
+    // Check if already removing this job using functional update
+    setRemovingJobs(prev => {
+      if (prev.has(jobId)) return prev
+      return new Set(prev).add(jobId)
+    })
 
     try {
       await savedJobsService.unsaveJob(jobId)
+      // Use functional update to ensure we have the latest state
       setSavedJobs(prev => prev.filter(sj => sj.job_id !== jobId))
       showSuccess(`Removed "${jobTitle}" from saved jobs`)
     } catch (error) {
       console.error('Failed to remove saved job:', error)
       showError('Failed to remove job')
     } finally {
+      // Use functional update to remove from removing set
       setRemovingJobs(prev => {
         const newSet = new Set(prev)
         newSet.delete(jobId)
