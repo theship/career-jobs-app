@@ -188,5 +188,47 @@ curl http://localhost:8000/api/v1/admin/ingestion/stats
 # (Companies are only fetched once per check_frequency_days)
 ```
 
+## Code Quality Best Practices (Added 2025-10-05)
+
+### Backend (Python/FastAPI)
+- **Exception Handling**: Use `logger.exception()` instead of `logger.error()` to capture stack traces
+- **Exception Chaining**: Always use `raise HTTPException(...) from e` to preserve exception context
+- **Logging**: Use structured logging with proper levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- **Testing**: Run `pytest` before committing; aim for >85% test coverage
+
+### Frontend (TypeScript/Next.js/React)
+- **Accessibility**: Always add `aria-label` and `aria-pressed` to interactive elements
+- **Async Cleanup**: Use cleanup functions with `isMounted` flags to prevent memory leaks
+- **State Updates**: Use functional updates `setState(prev => ...)` to prevent race conditions
+- **Error Boundaries**: Wrap async operations in try-catch blocks with user-friendly error messages
+- **Type Safety**: Avoid `any` types; define proper interfaces for all data structures
+
+### PR Preparation Checklist
+Before creating a PR, always run:
+```bash
+# Python
+black api/ ingestion/ scripts/ tests/
+isort api/ ingestion/ scripts/ tests/
+flake8 api/ ingestion/ scripts/
+pytest
+
+# TypeScript/Next.js
+cd dashboard
+npm run lint
+tsc --noEmit
+npm run build
+```
+
+### Database Operations
+- **Saved Jobs Protection**: Always check `saved_jobs` table before deleting from `job_postings`
+- **Cascade Effects**: Be aware that deleting from `job_postings` cascades to related tables
+- **Cleanup Script**: Use `python scripts/run_ingestion.py --cleanup --cleanup-days 90` to safely remove old jobs while preserving saved ones
+
+### CodeRabbit Integration
+- **Review Cycles**: Address all feedback before merging
+- **Exception Handling**: CodeRabbit particularly values proper exception chaining
+- **Accessibility**: Always consider screen reader users in UI components
+- **Memory Management**: Clean up async operations to prevent leaks
+
 ## Development Challenges & Solutions
 
