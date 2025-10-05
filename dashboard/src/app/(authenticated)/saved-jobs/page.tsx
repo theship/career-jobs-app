@@ -105,21 +105,32 @@ export default function SavedJobsPage() {
   }
 
   const exportSavedJobs = () => {
+    // Helper function to escape CSV values
+    const escapeCSV = (value: string | null | undefined): string => {
+      if (!value) return '""'
+      const str = String(value)
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
     const csvContent = [
       ['Company', 'Position', 'Location', 'Department', 'Posted', 'Saved On', 'Job URL'].join(','),
-      ...savedJobs.map(sj => {
-        const job = sj.job_postings
-        if (!job) return ''
-        return [
-          `"${job.company_name}"`,
-          `"${job.title}"`,
-          `"${job.location || ''}"`,
-          `"${job.department || ''}"`,
-          formatDate(job.posted_at || ''),
-          new Date(sj.saved_at).toLocaleDateString(),
-          job.job_url
-        ].join(',')
-      })
+      ...savedJobs
+        .filter(sj => sj.job_postings) // Filter out any saved jobs without job details
+        .map(sj => {
+          const job = sj.job_postings!
+          return [
+            escapeCSV(job.company_name),
+            escapeCSV(job.title),
+            escapeCSV(job.location),
+            escapeCSV(job.department),
+            formatDate(job.posted_at || ''),
+            new Date(sj.saved_at).toLocaleDateString(),
+            escapeCSV(job.job_url)
+          ].join(',')
+        })
     ].join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv' })
