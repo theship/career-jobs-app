@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowUpTrayIcon, DocumentTextIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { DocumentTextIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 interface SkillsVocabUploadProps {
   onUpload: (file: File) => Promise<void>

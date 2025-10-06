@@ -655,17 +655,84 @@ class JobIngestionOrchestrator:
         logger.info(f"Updated embeddings for {updated} jobs")
         return updated
 
-    async def cleanup_expired_jobs(self) -> int:
+    async def cleanup_expired_jobs(self, days_old: int = 90) -> int:
         """
-        Clean up old jobs (placeholder for now)
+        Clean up old jobs while preserving saved jobs
+
+        Args:
+            days_old: Number of days after which to consider a job expired
 
         Returns:
             Number of jobs cleaned up
         """
-        # TODO: Implement job cleanup logic based on business rules
-        # For example, remove jobs older than 90 days
-        logger.info("Job cleanup not yet implemented")
-        return 0
+        from datetime import datetime, timedelta, timezone
+
+        try:
+            # Calculate cutoff date
+            cutoff_date = (
+                datetime.now(timezone.utc) - timedelta(days=days_old)
+            ).isoformat()
+
+            # Get all saved job IDs to preserve them
+            saved_jobs_response = (
+                self.supabase.table("saved_jobs").select("job_id").execute()
+            )
+            saved_job_ids = (
+                {job["job_id"] for job in saved_jobs_response.data}
+                if saved_jobs_response.data
+                else set()
+            )
+
+            logger.info(f"Found {len(saved_job_ids)} saved jobs to preserve")
+
+            # Get jobs that haven't been seen recently
+            old_jobs_response = (
+                self.supabase.table("job_postings")
+                .select("job_id, company_name, title, last_seen_at")
+                .lt("last_seen_at", cutoff_date)
+                .execute()
+            )
+
+            if not old_jobs_response.data:
+                logger.info("No expired jobs found")
+                return 0
+
+            # Filter out saved jobs
+            jobs_to_delete = [
+                job
+                for job in old_jobs_response.data
+                if job["job_id"] not in saved_job_ids
+            ]
+
+            if not jobs_to_delete:
+                logger.info(
+                    f"Found {len(old_jobs_response.data)} expired jobs, but all are saved by users"
+                )
+                return 0
+
+            # Delete expired jobs that aren't saved
+            deleted_count = 0
+            for job in jobs_to_delete:
+                try:
+                    self.supabase.table("job_postings").delete().eq(
+                        "job_id", job["job_id"]
+                    ).execute()
+                    logger.debug(
+                        f"Deleted expired job: {job['company_name']} - {job['title']}"
+                    )
+                    deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to delete job {job['job_id']}: {e}")
+                    continue
+
+            logger.info(
+                f"Cleaned up {deleted_count} expired jobs (preserved {len(saved_job_ids)} saved jobs)"
+            )
+            return deleted_count
+
+        except Exception as e:
+            logger.error(f"Failed to clean up expired jobs: {e}")
+            return 0
 
 
 async def run_ingestion_cycle(

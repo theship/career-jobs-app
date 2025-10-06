@@ -202,7 +202,40 @@ npm run dev
 - **Backend**: Press `Ctrl+C` in the terminal running uvicorn
 - **Frontend**: Press `Ctrl+C` in the terminal running npm
 
-### 5) Stop & cleanup Daytona sandbox
+
+### 5) Pulling in new jobs data
+
+To update the Database with New Jobs, use `/scripts/run_ingestion.py`. The ingestion script:
+
+- Fetches jobs from configured ATS sources (Greenhouse, Lever, Ashby)
+- Normalizes job data
+- Generates embeddings using OpenAI
+- Stores/updates jobs in the job_postings table
+- Tracks last_seen_at timestamp for existing jobs
+- Can optionally clean up duplicates and expired jobs
+
+* Basic ingestion (fetches from all configured sources:
+    `python scripts/run_ingestion.py`
+
+* Fetch limited number of jobs (useful for testing:
+    `python scripts/run_ingestion.py --limit 5`
+
+* Fetch from specific sources only:
+    `python scripts/run_ingestion.py --sources greenhouse lever`
+
+* Run with cleanup (remove duplicates and expired jobs:
+    `python scripts/run_ingestion.py --cleanup`
+
+* Update embeddings for jobs without them:
+    `python scripts/run_ingestion.py --update-embeddings`
+
+* Dry run (fetch but don't store:
+    `python scripts/run_ingestion.py --no-store`
+
+* Verbose logging:
+    `python scripts/run_ingestion.py -v`
+
+### 6) Stop & cleanup Daytona sandbox
 
 - Do nothing: sandbox **auto‑stops after 45 min idle**, then **auto‑archives 60 min later**.
 - Or stop immediately when you're done:

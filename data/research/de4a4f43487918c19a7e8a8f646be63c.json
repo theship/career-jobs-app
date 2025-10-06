@@ -1,0 +1,74 @@
+{
+  "company_domain": "job-boards.greenhouse.io",
+  "cached_at": "2025-10-05T22:34:34.687219+00:00",
+  "research": {
+    "company_domain": "job-boards.greenhouse.io",
+    "company_name": "Greenhouse Software, Inc.",
+    "industry": "Software & Technology",
+    "headquarters": "New York, NY, United States",
+    "founded": "2012",
+    "competitors": [
+      {
+        "name": "Lever",
+        "url": "https://www.lever.co",
+        "description": "Lever provides a comprehensive ATS and CRM functionality, directly competing with Greenhouse in the talent acquisition space."
+      },
+      {
+        "name": "Workday",
+        "url": "https://www.workday.com",
+        "description": "Workday offers a broad suite of HR tools including recruiting, which places them as a competitor in the HR software market."
+      },
+      {
+        "name": "SmartRecruiters",
+        "url": "https://www.smartrecruiters.com",
+        "description": "SmartRecruiters competes with Greenhouse by offering a Talent Acquisition Suite aimed at enterprise-level customers."
+      }
+    ],
+    "excellence": [
+      {
+        "area": "User Experience",
+        "description": "Greenhouse is renowned for its intuitive user interface and user experience, making it accessible for companies of all sizes.",
+        "evidence": "Consistently high ratings in user reviews on software review platforms."
+      },
+      {
+        "area": "Integration Ecosystem",
+        "description": "Offers a robust integration ecosystem, allowing businesses to connect seamlessly with other tools and services.",
+        "evidence": "Listed over 300 integrations on their official website."
+      }
+    ],
+    "shortcomings": [
+      {
+        "area": "Pricing Transparency",
+        "description": "Some users and reviews have pointed out that Greenhouse could improve its pricing transparency.",
+        "public_acknowledgment": "Feedback forums and customer reviews often highlight this issue, though direct acknowledgment from Greenhouse is limited."
+      }
+    ],
+    "aspirations": [
+      {
+        "statement": "To redefine the way companies hire and integrate talent, focusing on diversity and inclusion.",
+        "source_url": "https://www.greenhouse.io/blog",
+        "timeframe": "Ongoing"
+      }
+    ],
+    "recent_news": [
+      {
+        "headline": "Greenhouse Announces New Workforce Intelligence Solution",
+        "date": "2023-03-15",
+        "summary": "Greenhouse has launched a new analytics solution aimed at providing deeper insights into the hiring process and improving hiring decisions.",
+        "url": "https://www.greenhouse.io/press"
+      }
+    ],
+    "culture_values": [
+      {
+        "value": "Inclusivity",
+        "description": "Greenhouse actively promotes diversity and inclusivity within its hiring platform and company culture."
+      },
+      {
+        "value": "Innovation",
+        "description": "The company places a strong emphasis on continuous improvement and innovation in its product offerings."
+      }
+    ],
+    "generated_at": "2025-10-05T22:34:34.687133+00:00",
+    "model_used": "gpt-4-turbo-preview"
+  }
+}

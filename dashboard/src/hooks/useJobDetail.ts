@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { jobService } from '@/services/job.service'
 import { scoringService } from '@/services/scoring.service'
 import { resumeService } from '@/services/resume.service'
-import type { Job, Score, Resume } from '@/types/api.types'
+import type { Job, Score } from '@/types/api.types'
 
 export function useJobDetail(jobId: string, userId?: string) {
   const [job, setJob] = useState<Job | null>(null)
@@ -18,6 +18,10 @@ export function useJobDetail(jobId: string, userId?: string) {
   useEffect(() => {
     if (!jobId) return
 
+    // Create abort controller for cleanup
+    const abortController = new AbortController()
+    let isMounted = true
+
     const fetchJobDetails = async () => {
       setLoading(true)
       setError(null)
@@ -25,36 +29,55 @@ export function useJobDetail(jobId: string, userId?: string) {
       try {
         // Fetch job details
         const jobData = await jobService.getJobById(jobId)
-        setJob(jobData)
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setJob(jobData)
+        }
 
         // If user is logged in, try to get their score for this job
-        if (userId) {
+        if (userId && isMounted) {
           try {
             // Get user's resumes
             const resumes = await resumeService.getResumes()
-            
-            if (resumes && resumes.length > 0) {
+
+            if (resumes && resumes.length > 0 && isMounted) {
               // Get score for the first resume
               const jobScore = await scoringService.getScoreForJob(
                 String(resumes[0].resume_id),
                 jobId
               )
-              setScore(jobScore)
+              if (isMounted) {
+                setScore(jobScore)
+              }
             }
           } catch (scoreError) {
             // It's okay if we can't get the score
-            console.error('Error fetching score:', scoreError)
+            if (isMounted) {
+              console.error('Error fetching score:', scoreError)
+            }
           }
         }
       } catch (err) {
-        console.error('Error fetching job details:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load job details')
+        // Only update error state if component is still mounted
+        if (isMounted) {
+          console.error('Error fetching job details:', err)
+          setError(err instanceof Error ? err.message : 'Failed to load job details')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchJobDetails()
+
+    // Cleanup function
+    return () => {
+      isMounted = false
+      abortController.abort()
+    }
   }, [jobId, userId])
 
   return {

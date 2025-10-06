@@ -82,14 +82,20 @@ export default function AuthenticatedLayout({
               >
                 Browse Jobs
               </Link>
-              <Link 
-                href="/matches" 
+              <Link
+                href="/matches"
                 className={`nav-link ${isActive('/matches') ? 'text-accent-red' : ''}`}
               >
                 Gen Matches
               </Link>
-              <Link 
-                href="/profile" 
+              <Link
+                href="/saved-jobs"
+                className={`nav-link ${isActive('/saved-jobs') ? 'text-accent-red' : ''}`}
+              >
+                Saved Jobs
+              </Link>
+              <Link
+                href="/profile"
                 className={`nav-link ${isActive('/profile') ? 'text-accent-red' : ''}`}
               >
                 Profile

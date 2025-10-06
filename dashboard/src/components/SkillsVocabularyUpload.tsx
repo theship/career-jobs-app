@@ -80,7 +80,7 @@ export default function SkillsVocabularyUpload({ onSuccess }: { onSuccess?: () =
       }
 
       return { valid: errors.length === 0, errors, preview }
-    } catch (error) {
+    } catch {
       errors.push('Failed to parse CSV file. Please check the format.')
       return { valid: false, errors, preview }
     }

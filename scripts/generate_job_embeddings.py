@@ -141,9 +141,10 @@ async def main():
 
     for i in range(0, len(jobs_without_embeddings), batch_size):
         batch = jobs_without_embeddings[i : i + batch_size]
-        logger.info(
-            f"Processing batch {i//batch_size + 1} ({i+1}-{min(i+batch_size, len(jobs_without_embeddings))} of {len(jobs_without_embeddings)})"
-        )
+        batch_num = i // batch_size + 1
+        batch_end = min(i + batch_size, len(jobs_without_embeddings))
+        total_jobs = len(jobs_without_embeddings)
+        logger.info(f"Processing batch {batch_num} ({i+1}-{batch_end} of {total_jobs})")
 
         # Process batch concurrently
         tasks = [process_job(job, openai_client, supabase) for job in batch]
@@ -158,11 +159,12 @@ async def main():
 
     # Summary
     logger.info("=" * 50)
-    logger.info(f"Processing complete!")
+    logger.info("Processing complete!")
     logger.info(f"✅ Successfully updated: {success_count} jobs")
     logger.info(f"❌ Failed: {failure_count} jobs")
+    jobs_with_embeddings = total_jobs - len(jobs_without_embeddings) + success_count
     logger.info(
-        f"📊 Total jobs with embeddings now: {total_jobs - len(jobs_without_embeddings) + success_count}/{total_jobs}"
+        f"📊 Total jobs with embeddings now: {jobs_with_embeddings}/{total_jobs}"
     )
 
 

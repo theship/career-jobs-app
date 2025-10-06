@@ -4,7 +4,7 @@
  */
 
 import { BaseService } from './base.service'
-import type { Score, ScoringRequest, ScoringResponse } from '@/types/api.types'
+import type { Score } from '@/types/api.types'
 
 export class ScoringService extends BaseService {
   /**
@@ -108,9 +108,8 @@ export class ScoringService extends BaseService {
     
     // Wait for completion and collect results
     return new Promise((resolve, reject) => {
-      const results: any[] = []
       let totalProcessed = 0
-      
+
       const eventSource = this.streamScoringUpdates(
         task_id,
         (data) => {

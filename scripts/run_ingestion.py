@@ -16,6 +16,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from ingestion.orchestrator import JobIngestionOrchestrator, run_ingestion_cycle
 
 
+def positive_int(value: str) -> int:
+    """Validate that a value is a positive integer."""
+    try:
+        ivalue = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("--cleanup-days must be an integer")
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError("--cleanup-days must be > 0")
+    return ivalue
+
+
 def setup_logging(verbose: bool = False):
     """Configure logging for the script"""
     level = logging.DEBUG if verbose else logging.INFO
@@ -54,6 +65,12 @@ async def main():
         "--cleanup",
         action="store_true",
         help="Run cleanup after ingestion (dedup, expire old jobs)",
+    )
+    parser.add_argument(
+        "--cleanup-days",
+        type=positive_int,
+        default=90,
+        help="Number of days after which to consider a job expired (default: 90; must be > 0)",
     )
     parser.add_argument(
         "--update-embeddings",
@@ -112,7 +129,9 @@ async def main():
         if args.cleanup and not args.no_store:
             logger.info("Running cleanup tasks...")
             duplicates_removed = await orchestrator.deduplicate_jobs()
-            expired_cleaned = await orchestrator.cleanup_expired_jobs()
+            expired_cleaned = await orchestrator.cleanup_expired_jobs(
+                days_old=args.cleanup_days
+            )
             logger.info(
                 f"Cleanup complete: {duplicates_removed} duplicates removed, {expired_cleaned} expired jobs cleaned"
             )

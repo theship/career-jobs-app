@@ -4,12 +4,13 @@
  * All authentication handled server-side through Next.js proxy
  */
 
-import { 
+import {
   authService,
   resumeService,
   jobService,
   scoringService,
-  pitchService 
+  pitchService,
+  savedJobsService
 } from '@/services'
 
 // Re-export all services
@@ -18,7 +19,8 @@ export {
   resumeService,
   jobService,
   scoringService,
-  pitchService
+  pitchService,
+  savedJobsService
 }
 
 // Create a unified API interface for backward compatibility

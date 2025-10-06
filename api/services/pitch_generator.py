@@ -18,14 +18,21 @@ logger = logging.getLogger(__name__)
 class PitchGeneratorService:
     """Generate personalized pitches based on resume, job, and company research"""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         """
         Initialize pitch generator
 
         Args:
             api_key: OpenAI API key
+            model: OpenAI model to use (defaults to gpt-4o-mini or env var)
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        # Use PITCH_GENERATOR_MODEL env var if available, otherwise fall back to OPENAI_MODEL or default
+        self.model = (
+            model
+            or os.getenv("PITCH_GENERATOR_MODEL")
+            or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        )
         if not self.api_key:
             logger.warning(
                 "OpenAI API key not configured - pitch service will not be available"
@@ -49,7 +56,7 @@ class PitchGeneratorService:
             Resume: {resume_content}
             Job: {job_description}
             Company Research: {company_research}
-            
+
             Generate a compelling pitch that connects their experience to this specific opportunity."""
 
     @retry(
@@ -60,7 +67,7 @@ class PitchGeneratorService:
         """Call OpenAI API with retry logic"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
+                model=self.model,
                 messages=[
                     {
                         "role": "system",

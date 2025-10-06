@@ -270,10 +270,36 @@ export default function MatchesPage() {
   }
 
   const downloadCSV = async () => {
-    if (!selectedResume) return
-    
+    if (!selectedResume || matches.length === 0) return
+
     try {
-      const blob = await api.exportScores(selectedResume, 'csv')
+      // Helper function to escape CSV fields per RFC 4180
+      const escapeCSVField = (value: string): string => {
+        if (!value) return '""'
+        // Escape quotes by doubling them
+        const escaped = value.replace(/"/g, '""')
+        // Always wrap in quotes for safety
+        return `"${escaped}"`
+      }
+
+      // Create CSV content from existing matches data
+      const csvHeader = ['Company', 'Position', 'Location', 'Department', 'Total Score', 'Skills Match', 'Seniority Fit', 'Remote Type', 'Job URL'].join(',')
+      const csvRows = matches.map(match => {
+        return [
+          escapeCSVField(match.company_name || ''),
+          escapeCSVField(match.title || match.job_title || ''),
+          escapeCSVField(match.location || ''),
+          escapeCSVField(match.department || ''),
+          `${Math.round((match.total_score || 0) * 100)}%`,
+          `${Math.round((match.skills_match || 0) * 100)}%`,
+          `${Math.round((match.seniority_fit || 0) * 100)}%`,
+          escapeCSVField(match.remote_type || 'On-site'),
+          escapeCSVField(match.job_url || ''),
+        ].join(',')
+      })
+
+      const csvContent = [csvHeader, ...csvRows].join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -282,8 +308,11 @@ export default function MatchesPage() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
+      showSuccess('CSV downloaded successfully!')
     } catch (error) {
       console.error('Failed to download CSV:', error)
+      showError('Failed to download CSV')
     }
   }
 
