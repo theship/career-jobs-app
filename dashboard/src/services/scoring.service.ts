@@ -108,9 +108,8 @@ export class ScoringService extends BaseService {
     
     // Wait for completion and collect results
     return new Promise((resolve, reject) => {
-      const results: any[] = []
       let totalProcessed = 0
-      
+
       const eventSource = this.streamScoringUpdates(
         task_id,
         (data) => {

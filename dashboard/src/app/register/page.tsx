@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-  const { showSuccess, showError, showInfo } = useNotification()
+  const { showSuccess, showInfo } = useNotification()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +45,7 @@ export default function RegisterPage() {
         showSuccess('Registration successful! Please check your email to verify your account.')
         setTimeout(() => router.push('/login'), 2000)
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

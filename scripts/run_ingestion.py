@@ -16,6 +16,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from ingestion.orchestrator import JobIngestionOrchestrator, run_ingestion_cycle
 
 
+def positive_int(value: str) -> int:
+    """Validate that a value is a positive integer."""
+    try:
+        ivalue = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("--cleanup-days must be an integer")
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError("--cleanup-days must be > 0")
+    return ivalue
+
+
 def setup_logging(verbose: bool = False):
     """Configure logging for the script"""
     level = logging.DEBUG if verbose else logging.INFO
@@ -57,9 +68,9 @@ async def main():
     )
     parser.add_argument(
         "--cleanup-days",
-        type=int,
+        type=positive_int,
         default=90,
-        help="Number of days after which to consider a job expired (default: 90)",
+        help="Number of days after which to consider a job expired (default: 90; must be > 0)",
     )
     parser.add_argument(
         "--update-embeddings",

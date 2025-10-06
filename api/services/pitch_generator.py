@@ -27,7 +27,12 @@ class PitchGeneratorService:
             model: OpenAI model to use (defaults to gpt-4o-mini or env var)
         """
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        # Use PITCH_GENERATOR_MODEL env var if available, otherwise fall back to OPENAI_MODEL or default
+        self.model = (
+            model
+            or os.getenv("PITCH_GENERATOR_MODEL")
+            or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        )
         if not self.api_key:
             logger.warning(
                 "OpenAI API key not configured - pitch service will not be available"

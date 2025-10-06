@@ -87,15 +87,7 @@ class APIClient {
     formData.append('file', file)
     
     const token = await this.getAuthToken()
-    // Token available for upload
-    if (token) {
-      // Decode the token header to see the kid
-      const parts = token.split('.')
-      if (parts.length === 3) {
-        const header = JSON.parse(atob(parts[0]))
-        // Token header set
-      }
-    }
+    // Token available for upload - no need to decode header anymore
     
     const response = await fetch(`${API_BASE_URL}/api/v1/resumes/upload`, {
       method: 'POST',

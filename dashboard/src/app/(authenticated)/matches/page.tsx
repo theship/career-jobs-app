@@ -273,19 +273,28 @@ export default function MatchesPage() {
     if (!selectedResume || matches.length === 0) return
 
     try {
+      // Helper function to escape CSV fields per RFC 4180
+      const escapeCSVField = (value: string): string => {
+        if (!value) return '""'
+        // Escape quotes by doubling them
+        const escaped = value.replace(/"/g, '""')
+        // Always wrap in quotes for safety
+        return `"${escaped}"`
+      }
+
       // Create CSV content from existing matches data
       const csvHeader = ['Company', 'Position', 'Location', 'Department', 'Total Score', 'Skills Match', 'Seniority Fit', 'Remote Type', 'Job URL'].join(',')
       const csvRows = matches.map(match => {
         return [
-          `"${match.company_name || ''}"`,
-          `"${match.title || match.job_title || ''}"`,
-          `"${match.location || ''}"`,
-          `"${match.department || ''}"`,
+          escapeCSVField(match.company_name || ''),
+          escapeCSVField(match.title || match.job_title || ''),
+          escapeCSVField(match.location || ''),
+          escapeCSVField(match.department || ''),
           `${Math.round((match.total_score || 0) * 100)}%`,
           `${Math.round((match.skills_match || 0) * 100)}%`,
           `${Math.round((match.seniority_fit || 0) * 100)}%`,
-          `"${match.remote_type || 'On-site'}"`,
-          `"${match.job_url || ''}"`,
+          escapeCSVField(match.remote_type || 'On-site'),
+          escapeCSVField(match.job_url || ''),
         ].join(',')
       })
 

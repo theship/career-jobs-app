@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from api.services.auth import get_current_user
-from api.utils.database import get_supabase_client, get_supabase_service_client
+from api.utils.database import get_supabase_service_client
 
 logger = logging.getLogger(__name__)
 
@@ -105,12 +105,12 @@ async def save_job(
     Returns:
         Created saved job record
     """
-    supabase = get_supabase_client()
+    # Use service client to bypass RLS for all operations
+    service_client = get_supabase_service_client()
     user_id = current_user["user_id"]
 
-    # First check if job exists - use service client to bypass RLS for job check
+    # First check if job exists
     logger.info(f"Checking if job exists: {job_id}")
-    service_client = get_supabase_service_client()
     job_response = (
         service_client.table("job_postings")
         .select("job_id")
@@ -124,9 +124,9 @@ async def save_job(
             status_code=status.HTTP_404_NOT_FOUND, detail="Job not found"
         )
 
-    # Check if already saved
+    # Check if already saved - use service client to bypass RLS
     existing = (
-        supabase.table("saved_jobs")
+        service_client.table("saved_jobs")
         .select("*")
         .eq("user_id", user_id)
         .eq("job_id", job_id)

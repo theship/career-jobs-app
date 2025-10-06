@@ -5,24 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BookmarkSlashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { createClient } from '@/lib/supabase'
-import { savedJobsService } from '@/services'
+import { savedJobsService, type SavedJob } from '@/services'
 import { useNotification } from '@/contexts/NotificationContext'
-
-interface SavedJob {
-  id: string
-  job_id: string
-  saved_at: string
-  notes?: string
-  job_postings?: {
-    job_id: string
-    title: string
-    company_name: string
-    location: string
-    department?: string
-    posted_at?: string
-    job_url: string
-  }
-}
 
 export default function SavedJobsPage() {
   const router = useRouter()
@@ -105,14 +89,14 @@ export default function SavedJobsPage() {
   }
 
   const exportSavedJobs = () => {
-    // Helper function to escape CSV values
+    // Helper function to escape CSV values per RFC 4180
     const escapeCSV = (value: string | null | undefined): string => {
       if (!value) return '""'
       const str = String(value)
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`
-      }
-      return str
+      // Escape quotes by doubling them
+      const escaped = str.replace(/"/g, '""')
+      // Always wrap in quotes for consistency and safety
+      return `"${escaped}"`
     }
 
     const csvContent = [
@@ -126,8 +110,8 @@ export default function SavedJobsPage() {
             escapeCSV(job.title),
             escapeCSV(job.location),
             escapeCSV(job.department),
-            formatDate(job.posted_at || ''),
-            new Date(sj.saved_at).toLocaleDateString(),
+            escapeCSV(formatDate(job.posted_at || '')),
+            escapeCSV(new Date(sj.saved_at).toLocaleDateString()),
             escapeCSV(job.job_url)
           ].join(',')
         })
